@@ -1,0 +1,7 @@
+[project]
+name = "hcc-multimodal"
+version = "0.1.0"
+description = "Multimodal learning for HCC using MRI radiomics and transcriptomics for outcome prediction"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
