@@ -111,6 +111,8 @@ class DeseqCPMSelector(BaseEstimator, TransformerMixin):
         self.support_ = mask
         self.padj_ = padj
         self.n_features_in_ = X.shape[1]
+        if hasattr(X, "columns"):
+            self.feature_names_in_ = X.columns.to_numpy()
         return self
 
     def get_support(self, indices: bool = False) -> np.ndarray:
@@ -265,6 +267,14 @@ def run_cv_experiment(
                 if param_grids is not None
                 else {}
             )
+            sel = est.named_steps.get("feature_selection") if hasattr(est, "named_steps") else None
+            if sel is not None and hasattr(sel, "feature_names_in_"):
+                selected_features = pd.DataFrame({
+                    "gene": sel.feature_names_in_[sel.support_],
+                    "padj": sel.padj_[sel.support_],
+                }).sort_values("padj").reset_index(drop=True)
+            else:
+                selected_features = None
             fold_records.append(
                 {
                     "experiment": label,
@@ -273,6 +283,7 @@ def run_cv_experiment(
                     "train_auc": train_auc,
                     "test_auc": test_auc,
                     "best_params": best_params,
+                    "selected_features": selected_features,
                 }
             )
     return pd.DataFrame(records), pd.DataFrame(fold_records)

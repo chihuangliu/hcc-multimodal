@@ -89,6 +89,44 @@ All configurations hover at chance (0.465–0.500). `min_samples_leaf=15` collap
 
 ---
 
+## DESeq2-selected features per fold (LR C=1)
+
+Full gene lists are in `reports/0427/selected_features_{1,2}year_fold{1,2,3}.csv`.
+
+### 1-year RFS
+
+| Fold | n selected | passed padj<0.1 | train AUC | test AUC |
+|------|-----------|-----------------|-----------|----------|
+| 1 | 20 | 0 (fallback) | 0.917 | 0.410 |
+| 2 | 20 | 15 | 0.930 | 0.393 |
+| 3 | 606 | 606 | 1.000 | 0.194 |
+
+**Fold 1** — zero genes passed BH correction; selector fell back to the top-20 by padj. All 20 have padj ≈ 1.0, meaning there is effectively no differential expression signal in this training partition. Top genes (ranked by padj, all at ≈0.9999): TSPAN6, CYP51A1, ANKIB1, CFTR, SEMA3F.
+
+**Fold 2** — 15 genes passed padj < 0.1 (5 more added via fallback). Top hits: CABP2 (0.005), REXO1L3P (0.006), EFHC2 (0.018), DCDC2C (0.018), AC006538.1 (0.028). These are functionally diverse (calcium-binding, ciliary, cell-cycle) with no obvious liver/recurrence link — consistent with noise at n≈37 training samples.
+
+**Fold 3** — 606 genes passed padj < 0.1 (anomalously large; this is the fold where train AUC = 1.0 and test AUC = 0.194). Top hits: FAXC (0.005), NBPF22P (0.005), FAM180B (0.007), ZNF114 (0.009), STOML3 (0.010). The explosion of significant genes while test AUC collapses suggests the DESeq2 model overfitted the training-fold label split and found spurious associations.
+
+**Zero gene overlap** across all three folds — the selected set is entirely different each time, confirming that the signal is not reproducible at this sample size.
+
+### 2-year RFS
+
+| Fold | n selected | passed padj<0.1 | train AUC | test AUC |
+|------|-----------|-----------------|-----------|----------|
+| 1 | 20 | 15 | 0.978 | 0.650 |
+| 2 | 67 | 67 | 0.957 | 0.650 |
+| 3 | 274 | 274 | 1.000 | 0.302 |
+
+**Fold 1** — 15 genes passed threshold; fallback adds 5 more. Top hits: ASB5 (0.017), AC025580.2 (0.017), ATOH1 (0.017), MIAT (0.021), AC127070.4 (0.021). MIAT (myocardial infarction associated transcript) is a long non-coding RNA with reported roles in cell survival; ATOH1 is a transcription factor involved in differentiation.
+
+**Fold 2** — 67 genes passed; notably UBTFL2 (padj ≈ 0), PRY2 (padj ≈ 0), NKX2-5 (0.003), DUSP9 (0.003), ISL1 (0.004). NKX2-5 and ISL1 are cardiac/developmental transcription factors rarely expressed in liver — their near-zero padj in a 36-sample training fold is suspicious and may reflect a confound in the data split.
+
+**Fold 3** — 274 genes passed (again an outlier fold with train AUC = 1.0 and the weakest test AUC = 0.302). Top hits: TRIM60 (0.001), SLC35E4 (0.001), PTPN5 (0.005), GRHL3 (0.005), C3orf84 (0.005).
+
+**No gene overlap** across folds in the 2-year target either — the same instability pattern as 1-year.
+
+---
+
 ## Takeaways
 
 - **2-year RFS is easier than 1-year but still near chance.** Best test AUC is 0.534 (LR C=1), vs. 0.500-or-worse for every 1-year configuration. The extra 6 positives (19 → 25) shift the class balance closer to 50/50 and give the selector more signal to work with.
