@@ -1,14 +1,133 @@
 """Cross-validation evaluation utilities for HCC multimodal baselines."""
 
+import warnings
+from itertools import cycle
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.ds import DeseqStats
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA
+from sklearn.feature_selection import SelectorMixin
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_validate
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.validation import check_is_fitted
 
 from hcc_multimodal.baselines.config import RANDOM_STATE, MODELS
-from hcc_multimodal.baselines.transforms import build_preprocessor
+from hcc_multimodal.baselines.transforms import DataType, build_preprocessor
+
+
+class DeseqFeatureSelector(SelectorMixin, BaseEstimator):
+    """DESeq2-based feature selector for raw RNA-seq count data.
+
+    Fits a DESeq2 model inside each CV fold (no data leakage) and selects
+    genes whose Benjamini-Hochberg-adjusted p-value is below ``pvalue``.
+
+    Parameters
+    ----------
+    pvalue:
+        Adjusted p-value threshold for gene selection.
+    """
+
+    def __init__(self, pvalue: float = 0.05):
+        self.pvalue = pvalue
+
+    def fit(self, X: pd.DataFrame, y) -> "DeseqFeatureSelector":
+        metadata = pd.DataFrame({"condition": np.asarray(y, dtype=int)}, index=X.index)
+        dds = DeseqDataSet(counts=X, metadata=metadata, design="~condition")
+        dds.deseq2()
+        stat_res = DeseqStats(dds, contrast=["condition", 1, 0], alpha=self.pvalue)
+        stat_res.summary()
+        self.pvalues_ = stat_res.results_df["padj"].fillna(1.0).values
+        self.scores_ = -np.log10(np.clip(self.pvalues_, 1e-300, 1.0))
+        self.n_features_in_ = X.shape[1]
+        return self
+
+    def _get_support_mask(self) -> np.ndarray:
+        check_is_fitted(self, "pvalues_")
+        return self.pvalues_ < self.pvalue
+
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        mask = self._get_support_mask()
+        return X.loc[:, mask] if isinstance(X, pd.DataFrame) else X[:, mask]
+
+
+class DeseqCPMSelector(BaseEstimator, TransformerMixin):
+    """DESeq2 gene selection + log2(CPM) normalization for raw RNA-seq counts.
+
+    Must be the first step of the pipeline — both DESeq2 and the
+    library-size computation require raw integer counts. At ``fit`` time,
+    a DESeq2 model is fit on the training fold and the Benjamini-Hochberg
+    adjusted p-value mask is stored. At ``transform`` time, each sample's
+    library size is computed from the full (pre-selection) input, the
+    selected genes are subset, and values are returned as
+    ``log2(counts / library_size * 1e6 + pseudocount)``.
+
+    Parameters
+    ----------
+    pvalue:
+        Adjusted p-value threshold for gene selection.
+    pseudocount:
+        Added inside the log to keep zero-count entries finite.
+    min_features:
+        If fewer than this many genes pass the p-value threshold in a
+        fold, fall back to the top ``min_features`` genes ranked by
+        padj. Guards against folds where no gene survives BH correction
+        (common with small n and high-dim RNA-seq).
+    """
+
+    def __init__(
+        self,
+        pvalue: float = 0.05,
+        pseudocount: float = 1.0,
+        min_features: int = 20,
+    ):
+        self.pvalue = pvalue
+        self.pseudocount = pseudocount
+        self.min_features = min_features
+
+    def fit(self, X: pd.DataFrame, y) -> "DeseqCPMSelector":
+        metadata = pd.DataFrame({"condition": np.asarray(y, dtype=int)}, index=X.index)
+        dds = DeseqDataSet(counts=X, metadata=metadata, design="~condition")
+        dds.deseq2()
+        stat_res = DeseqStats(dds, contrast=["condition", 1, 0], alpha=self.pvalue)
+        stat_res.summary()
+        padj = stat_res.results_df["padj"].fillna(1.0).values
+        mask = padj < self.pvalue
+        if mask.sum() < self.min_features:
+            k = min(self.min_features, len(padj))
+            warnings.warn(
+                f"DeseqCPMSelector: only {int(mask.sum())} gene(s) passed "
+                f"padj<{self.pvalue}; falling back to top {k} by padj.",
+                stacklevel=2,
+            )
+            top_idx = np.argsort(padj, kind="stable")[:k]
+            mask = np.zeros_like(padj, dtype=bool)
+            mask[top_idx] = True
+        self.support_ = mask
+        self.padj_ = padj
+        self.n_features_in_ = X.shape[1]
+        return self
+
+    def get_support(self, indices: bool = False) -> np.ndarray:
+        check_is_fitted(self, "support_")
+        return np.where(self.support_)[0] if indices else self.support_
+
+    def transform(self, X):
+        check_is_fitted(self, "support_")
+        library_size = np.asarray(X.sum(axis=1), dtype=float).reshape(-1)
+        library_size = np.where(library_size <= 0, 1.0, library_size)
+        if isinstance(X, pd.DataFrame):
+            X_sel = X.loc[:, self.support_]
+            cpm = X_sel.div(library_size, axis=0) * 1e6
+        else:
+            X_sel = X[:, self.support_]
+            cpm = X_sel / library_size[:, None] * 1e6
+        return np.log2(cpm + self.pseudocount)
 
 
 def run_cv_experiment(
@@ -16,10 +135,12 @@ def run_cv_experiment(
     y: pd.Series,
     x_columns: dict,
     label: str,
-    pca_n_components: float = 0.9,
+    pca_n_components: float | None = None,
     n_splits: int = 3,
     param_grids: dict[str, dict] | None = None,
     models: dict[str, object] = MODELS,
+    feature_selector: SelectorMixin | None = None,
+    selector_first: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run stratified k-fold CV for LR and RF with PCA preprocessing.
 
@@ -40,6 +161,12 @@ def run_cv_experiment(
         to skip grid search and evaluate the pipeline with default parameters.
     models:
         Mapping of model name → estimator instance. Defaults to LR + RF.
+    selector_first:
+        If True, place ``feature_selector`` as the first pipeline step and
+        skip the ``x_columns``-based preprocessor. Use this when the
+        selector needs raw inputs (e.g. :class:`DeseqCPMSelector` on raw
+        RNA-seq counts) — the selector is then responsible for any
+        normalization.
 
     Returns
     -------
@@ -48,11 +175,30 @@ def run_cv_experiment(
     fold_df:
         One row per (model, fold) with train and test AUC.
     """
-    preprocessor = build_preprocessor(x_columns)
+    if feature_selector is not None and selector_first:
+        non_continuous = {
+            col: t for col, t in x_columns.items() if t != DataType.CONTINUOUS
+        }
+        if non_continuous:
+            raise ValueError(
+                "selector_first=True only supports continuous features "
+                "(the post-selector preprocessor is imputer + scaler). "
+                f"Non-continuous columns in x_columns: {non_continuous}"
+            )
+        preprocessor = Pipeline(
+            [
+                ("imputer", SimpleImputer(strategy="median")),
+                ("scaler", StandardScaler()),
+            ]
+        )
+    else:
+        preprocessor = build_preprocessor(x_columns)
     outer_cv = StratifiedKFold(
         n_splits=n_splits, shuffle=True, random_state=RANDOM_STATE
     )
-    inner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=RANDOM_STATE)
+    inner_cv = StratifiedKFold(
+        n_splits=n_splits, shuffle=True, random_state=RANDOM_STATE
+    )
 
     mask = ~y.isna()
     X_clean, y_clean = X[mask], y[mask]
@@ -64,13 +210,20 @@ def run_cv_experiment(
 
     records, fold_records = [], []
     for model_name, model in models.items():
-        pipe = Pipeline(
-            [
-                ("preprocessor", preprocessor),
-                ("pca", PCA(n_components=pca_n_components, random_state=RANDOM_STATE)),
-                ("model", model),
-            ]
-        )
+        steps = []
+        if feature_selector is not None and selector_first:
+            steps.append(("feature_selection", feature_selector))
+            steps.append(("preprocessor", preprocessor))
+        else:
+            steps.append(("preprocessor", preprocessor))
+            if feature_selector is not None:
+                steps.append(("feature_selection", feature_selector))
+        if pca_n_components is not None:
+            steps.append(
+                ("pca", PCA(n_components=pca_n_components, random_state=RANDOM_STATE))
+            )
+        steps.append(("model", model))
+        pipe = Pipeline(steps)
         if param_grids is not None:
             estimator = GridSearchCV(
                 pipe,
@@ -91,6 +244,7 @@ def run_cv_experiment(
             scoring=["roc_auc", "accuracy"],
             return_train_score=True,
             return_estimator=True,
+            error_score="raise",
         )
 
         records.append(
@@ -180,7 +334,7 @@ def plot_cv_results(
     fig, axes = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
     for col, split in enumerate(["train", "test"]):
         ax = axes[col]
-        for y_idx, (model_name, color) in enumerate(zip(model_names, colors)):
+        for y_idx, (model_name, color) in enumerate(zip(model_names, cycle(colors))):
             df = fold_df[fold_df["model"] == model_name]
             aucs = df[f"{split}_auc"].values
             ax.scatter(aucs, [y_idx] * len(aucs), color=color, s=60, zorder=3)

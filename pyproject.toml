@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "matplotlib>=3.10.8",
     "pandas>=3.0.2",
+    "pydeseq2>=0.5.4",
     "scikit-learn>=1.8.0",
 ]
 
