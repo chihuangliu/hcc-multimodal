@@ -29,7 +29,7 @@ New baseline task: binary classification of **recurrence-free survival (RFS)** a
 
 ### Logistic Regression
 
-![RFS 1 year LR](rfs_1year_lr.png)
+![RFS 1 year LR](3_folds/rfs_1year_lr.png)
 
 | Model | AUC mean ± std | Accuracy mean ± std |
 |-------|---------------|---------------------|
@@ -42,7 +42,7 @@ All strongly-regularised settings collapse to the constant-majority predictor (t
 
 ### Random Forest
 
-![RFS 1 year RF](rfs_1year_rf.png)
+![RFS 1 year RF](3_folds/rfs_1year_rf.png)
 
 | Model | AUC mean ± std | Accuracy mean ± std |
 |-------|---------------|---------------------|
@@ -61,7 +61,7 @@ All configurations land below 0.5 test AUC. The best (leaf=15) approaches random
 
 ### Logistic Regression
 
-![RFS 2 year LR](rfs_2year_lr.png)
+![RFS 2 year LR](3_folds/rfs_2year_lr.png)
 
 | Model | AUC mean ± std | Accuracy mean ± std |
 |-------|---------------|---------------------|
@@ -74,7 +74,7 @@ C=1 edges above the constant baseline (0.534) but with large fold-to-fold varian
 
 ### Random Forest
 
-![RFS 2 year RF](rfs_2year_rf.png)
+![RFS 2 year RF](3_folds/rfs_2year_rf.png)
 
 | Model | AUC mean ± std | Accuracy mean ± std |
 |-------|---------------|---------------------|
@@ -91,7 +91,7 @@ All configurations hover at chance (0.465–0.500). `min_samples_leaf=15` collap
 
 ## DESeq2-selected features per fold (LR C=1)
 
-Full gene lists are in `reports/0427/selected_features_{1,2}year_fold{1,2,3}.csv`.
+Full gene lists are in `reports/0427/3_folds/selected_features_{1,2}year_fold{1,2,3}.csv`.
 
 ### 1-year RFS
 
@@ -127,9 +127,73 @@ Full gene lists are in `reports/0427/selected_features_{1,2}year_fold{1,2,3}.csv
 
 ---
 
-## Takeaways
+## Takeaways (3-fold)
 
 - **2-year RFS is easier than 1-year but still near chance.** Best test AUC is 0.534 (LR C=1), vs. 0.500-or-worse for every 1-year configuration. The extra 6 positives (19 → 25) shift the class balance closer to 50/50 and give the selector more signal to work with.
 - **1-year RFS is hard for a pure RNA-seq + DESeq selector.** No model beats the 0.500 constant baseline; the only model that learns (LR C=1) overfits and generalises below chance (0.333). This contrasts with `death` on the same RNA-seq input (AUC 0.670 in the 0420 baseline) — longitudinal-recurrence signal in the bulk transcriptome is evidently weaker, and censoring drops further samples.
 - **DESeq inside CV rarely finds significant genes**, falling back to top-20-by-padj on most folds (warnings "only 0 gene(s) passed padj<0.1"). The selected gene set therefore differs across folds — a likely driver of the large fold-wise AUC variance (up to ±0.164).
 - Candidate next steps: widen the fallback-k, try a class-balanced loss, or pool 1-year + 2-year supervision via a multi-task head; add clinical covariates to see if they stabilise the RNA signal.
+
+---
+
+## 4-fold CV replication
+
+Same pipeline re-run with `CV_N_FOLDS=4` (stratified 4-fold). Plots and feature CSVs: `notebooks/baselines/4_folds/`.
+
+### 1-year RFS
+
+![RFS 1 year LR 4-fold](4_folds/rfs_1y_lr.png)
+![RFS 1 year RF 4-fold](4_folds/rfs_1y_rf.png)
+
+**Logistic Regression**
+
+| Model | AUC mean ± std | Accuracy mean ± std |
+|-------|---------------|---------------------|
+| LR_C=0.001 | 0.500 ± 0.000 | 0.661 ± 0.031 |
+| LR_C=0.01  | 0.500 ± 0.000 | 0.661 ± 0.031 |
+| LR_C=0.1   | 0.500 ± 0.000 | 0.661 ± 0.031 |
+| LR_C=1     | 0.358 ± 0.085 | 0.464 ± 0.107 |
+
+**Random Forest**
+
+| Model | AUC mean ± std | Accuracy mean ± std |
+|-------|---------------|---------------------|
+| RF_max_depth=2_min_samples_leaf=5  | 0.279 ± 0.135 | 0.500 ± 0.196 |
+| RF_max_depth=2_min_samples_leaf=10 | 0.350 ± 0.147 | 0.643 ± 0.051 |
+| RF_max_depth=2_min_samples_leaf=15 | 0.401 ± 0.159 | 0.661 ± 0.031 |
+| RF_max_depth=4_min_samples_leaf=5  | 0.247 ± 0.152 | 0.482 ± 0.178 |
+| RF_max_depth=4_min_samples_leaf=10 | 0.350 ± 0.147 | 0.643 ± 0.051 |
+| RF_max_depth=4_min_samples_leaf=15 | 0.401 ± 0.159 | 0.661 ± 0.031 |
+
+DESeq2 selector: all 4 folds fall back to the top-20 minimum (no genes pass padj<0.1), except fold 4 where 40 genes pass (best: RPL7P7, padj=0.0008). Zero gene overlap across folds.
+
+### 2-year RFS
+
+![RFS 2 year LR 4-fold](4_folds/rfs_2y_lr.png)
+![RFS 2 year RF 4-fold](4_folds/rfs_2y_rf.png)
+
+**Logistic Regression**
+
+| Model | AUC mean ± std | Accuracy mean ± std |
+|-------|---------------|---------------------|
+| LR_C=0.001 | 0.500 ± 0.000 | 0.537 ± 0.025 |
+| LR_C=0.01  | 0.500 ± 0.000 | 0.537 ± 0.025 |
+| LR_C=0.1   | 0.488 ± 0.021 | 0.537 ± 0.025 |
+| LR_C=1     | 0.304 ± 0.122 | 0.372 ± 0.063 |
+
+**Random Forest**
+
+| Model | AUC mean ± std | Accuracy mean ± std |
+|-------|---------------|---------------------|
+| RF_max_depth=2_min_samples_leaf=5  | 0.413 ± 0.126 | 0.391 ± 0.092 |
+| RF_max_depth=2_min_samples_leaf=10 | 0.403 ± 0.103 | 0.500 ± 0.105 |
+| RF_max_depth=2_min_samples_leaf=15 | 0.388 ± 0.081 | 0.537 ± 0.025 |
+| RF_max_depth=4_min_samples_leaf=5  | 0.401 ± 0.137 | 0.409 ± 0.075 |
+| RF_max_depth=4_min_samples_leaf=10 | 0.403 ± 0.103 | 0.500 ± 0.105 |
+| RF_max_depth=4_min_samples_leaf=15 | 0.388 ± 0.081 | 0.537 ± 0.025 |
+
+DESeq2 selector: fold 1=42 genes (best: CAMK1G, padj=0.0002), fold 2=20 (fallback), fold 3=614 (explosion, same outlier pattern as 3-fold), fold 4=22 genes. Zero cross-fold overlap.
+
+### Conclusion
+
+4-fold results are consistent with 3-fold: all models remain at or below chance for both targets. The 2-year LR best drops from 0.534 (3-fold) to 0.488 (4-fold), and the 1-year LR best stays at ≤0.500. The outlier-fold phenomenon (one fold selects hundreds of genes, train AUC→1, test AUC collapses) persists under 4-fold, confirming it is a structural property of DESeq2 in small-n splits rather than an artifact of the fold count. RNA-seq alone provides no reproducible signal for RFS at this sample size.

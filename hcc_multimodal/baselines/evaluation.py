@@ -336,6 +336,7 @@ def plot_pca_variance(
 def plot_cv_results(
     fold_df: pd.DataFrame,
     title: str = "Cross-validation AUC",
+    save_path=None,
 ) -> None:
     """Strip + diamond plot of per-fold train/test AUC."""
     model_names = fold_df["model"].unique().tolist()
@@ -357,6 +358,8 @@ def plot_cv_results(
         ax.grid(axis="x", alpha=0.3)
     fig.suptitle(title, fontsize=13)
     plt.tight_layout()
+    if save_path is not None:
+        fig.savefig(save_path, bbox_inches="tight", dpi=150)
     plt.show()
 
 
