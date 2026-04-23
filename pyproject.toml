@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "matplotlib>=3.10.8",
+    "matplotlib-venn>=1.1.2",
     "pandas>=3.0.2",
     "pydeseq2>=0.5.4",
     "scikit-learn>=1.8.0",

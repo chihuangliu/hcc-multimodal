@@ -406,6 +406,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "matplotlib-venn" },
     { name = "pandas" },
     { name = "pydeseq2" },
     { name = "scikit-learn" },
@@ -419,6 +420,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "matplotlib-venn", specifier = ">=1.1.2" },
     { name = "pandas", specifier = ">=3.0.2" },
     { name = "pydeseq2", specifier = ">=0.5.4" },
     { name = "scikit-learn", specifier = ">=1.8.0" },
@@ -703,6 +705,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/c7/74/97e72a36efd4ae2bc
 wheels = [
     { url = "https://files.pythonhosted.org/packages/af/33/ee4519fa02ed11a94aef9559552f3b17bb863f2ecfe1a35dc7f548cde231/matplotlib_inline-0.2.1-py3-none-any.whl", hash = "sha256:d56ce5156ba6085e00a9d54fead6ed29a9c47e215cd1bba2e976ef39f5710a76", size = 9516, upload-time = "2025-10-23T09:00:20.675Z" },
 ]
+
+[[package]]
+name = "matplotlib-venn"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e8/f7/47bddf95492f4d1370ed7164d2b16407805e8eeb38231361de65d387a562/matplotlib-venn-1.1.2.tar.gz", hash = "sha256:6f2b07a03e9bb5a62de2f32f965216739e175176f9d654dd19e7af2c22ec36e3", size = 40821, upload-time = "2025-02-25T10:44:24.294Z" }
 
 [[package]]
 name = "narwhals"

@@ -268,13 +268,50 @@ def run_cv_experiment(
                 else {}
             )
             sel = est.named_steps.get("feature_selection") if hasattr(est, "named_steps") else None
-            if sel is not None and hasattr(sel, "feature_names_in_"):
-                selected_features = pd.DataFrame({
-                    "gene": sel.feature_names_in_[sel.support_],
-                    "padj": sel.padj_[sel.support_],
-                }).sort_values("padj").reset_index(drop=True)
-            else:
-                selected_features = None
+            preproc = est.named_steps.get("preprocessor") if hasattr(est, "named_steps") else None
+            selected_features = None
+            selected_names = None
+            if sel is not None:
+                support = sel.support_ if hasattr(sel, "support_") else sel.get_support()
+                if hasattr(sel, "feature_names_in_"):
+                    selected_names = np.asarray(sel.feature_names_in_)[support]
+                elif preproc is not None and hasattr(preproc, "get_feature_names_out"):
+                    try:
+                        preproc_names = np.asarray(preproc.get_feature_names_out())
+                        preproc_names = np.array(
+                            [n.split("__", 1)[1] if "__" in n else n for n in preproc_names]
+                        )
+                        selected_names = preproc_names[support]
+                    except Exception:
+                        selected_names = None
+                if selected_names is not None:
+                    if hasattr(sel, "padj_"):
+                        selected_features = pd.DataFrame({
+                            "feature": selected_names,
+                            "padj": sel.padj_[support],
+                        }).sort_values("padj").reset_index(drop=True)
+                    elif hasattr(sel, "pvalues_") and sel.pvalues_ is not None:
+                        selected_features = pd.DataFrame({
+                            "feature": selected_names,
+                            "pvalue": sel.pvalues_[support],
+                        }).sort_values("pvalue").reset_index(drop=True)
+                    else:
+                        selected_features = pd.DataFrame({"feature": selected_names})
+
+            lr_nonzero_features = None
+            fitted_model = est.named_steps.get("model") if hasattr(est, "named_steps") else None
+            if (
+                fitted_model is not None
+                and hasattr(fitted_model, "coef_")
+                and selected_features is not None
+            ):
+                coef = fitted_model.coef_[0]
+                nonzero_mask = np.abs(coef) > 0
+                lr_nonzero_features = pd.DataFrame({
+                    "feature": selected_features["feature"].values[nonzero_mask],
+                    "coefficient": coef[nonzero_mask],
+                }).sort_values("coefficient", key=np.abs, ascending=False).reset_index(drop=True)
+
             fold_records.append(
                 {
                     "experiment": label,
@@ -284,6 +321,7 @@ def run_cv_experiment(
                     "test_auc": test_auc,
                     "best_params": best_params,
                     "selected_features": selected_features,
+                    "lr_nonzero_features": lr_nonzero_features,
                 }
             )
     return pd.DataFrame(records), pd.DataFrame(fold_records)
