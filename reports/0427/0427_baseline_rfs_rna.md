@@ -197,3 +197,56 @@ DESeq2 selector: fold 1=42 genes (best: CAMK1G, padj=0.0002), fold 2=20 (fallbac
 ### Conclusion
 
 4-fold results are consistent with 3-fold: all models remain at or below chance for both targets. The 2-year LR best drops from 0.534 (3-fold) to 0.488 (4-fold), and the 1-year LR best stays at ≤0.500. The outlier-fold phenomenon (one fold selects hundreds of genes, train AUC→1, test AUC collapses) persists under 4-fold, confirming it is a structural property of DESeq2 in small-n splits rather than an artifact of the fold count. RNA-seq alone provides no reproducible signal for RFS at this sample size.
+
+---
+
+## SelectKBest (k=80) vs DESeq comparison
+
+`SELECTOR="sklearn_kbest"`, `KBEST=80`. Same 3-fold CV, same LR/RF configs. Pipeline: imputer + StandardScaler → `SelectKBest(f_classif, k=80)` → model (i.e. `selector_first=False`; raw counts enter the preprocessor). Plots: `notebooks/baselines/kbest_3_folds/`.
+
+**Note:** SelectKBest flags 2–3 constant gene features per fold (indices 23517, 26012, 27801); these receive undefined F-statistics and are never among the top 80.
+
+### 1-year RFS (SelectKBest)
+
+![RFS 1 year LR kbest](../../notebooks/baselines/kbest_3_folds/rfs_1y_lr.png)
+![RFS 1 year RF kbest](../../notebooks/baselines/kbest_3_folds/rfs_1y_rf.png)
+
+| Model | AUC mean ± std |
+|-------|----------------|
+| LR_C=0.001 | 0.500 ± 0.000 |
+| LR_C=0.01  | 0.500 ± 0.000 |
+| LR_C=0.1   | 0.500 ± 0.000 |
+| LR_C=1     | 0.374 ± 0.078 |
+| RF leaf=5  | 0.345 ± 0.043 |
+| RF leaf=10 | 0.350 ± 0.176 |
+| RF leaf=15 | **0.478 ± 0.064** |
+
+### 2-year RFS (SelectKBest)
+
+![RFS 2 year LR kbest](../../notebooks/baselines/kbest_3_folds/rfs_2y_lr.png)
+![RFS 2 year RF kbest](../../notebooks/baselines/kbest_3_folds/rfs_2y_rf.png)
+
+| Model | AUC mean ± std |
+|-------|----------------|
+| LR_C=0.001 | 0.500 ± 0.000 |
+| LR_C=0.01  | 0.500 ± 0.000 |
+| LR_C=0.1   | 0.500 ± 0.000 |
+| LR_C=1     | 0.398 ± 0.074 |
+| RF leaf=5  | **0.558 ± 0.072** |
+| RF leaf=10 | 0.525 ± 0.061 |
+| RF leaf=15 | 0.500 ± 0.000 |
+
+### Head-to-head summary (3-fold)
+
+| Target | Selector | Best model | AUC mean | AUC std |
+|--------|----------|-----------|----------|---------|
+| 1-year | DESeq (padj<0.1, min 20) | RF leaf=15 | 0.438 | 0.108 |
+| 1-year | SelectKBest k=80 | RF leaf=15 | **0.478** | 0.064 |
+| 2-year | DESeq (padj<0.1, min 20) | LR C=1 | **0.534** | 0.164 |
+| 2-year | SelectKBest k=80 | RF leaf=5 | 0.558 | 0.072 |
+
+**1-year RFS:** SelectKBest modestly outperforms DESeq (0.478 vs 0.438 best RF) and has lower fold-variance (±0.064 vs ±0.108). Both are below chance, but SelectKBest avoids the "inverted" < 0.400 collapse seen with DESeq's unstable fold selections. LR behaviour is identical: collapses at all C values tested.
+
+**2-year RFS:** SelectKBest RF (0.558 ± 0.072) edges DESeq RF (0.490 ± 0.060) and matches DESeq LR (0.534), while DESeq LR carries much higher variance (±0.164). However, DESeq's LR C=1 best fold (0.650) exceeds any individual SelectKBest fold. The key contrast is stability: SelectKBest produces more consistent fold-to-fold AUC, whereas DESeq's gene selection explodes in outlier folds (hundreds of genes, train AUC→1, test AUC collapses), driving high variance and occasional above-chance exceptions.
+
+**Conclusion:** At n≈37 training samples, `SelectKBest(f_classif, k=80)` on scaled raw counts is a more stable selector than DESeq2 inside CV — it avoids the outlier-fold phenomenon and yields slightly higher or comparable mean AUC across both targets. Neither approach achieves reliable above-chance generalisation; the signal ceiling is set by sample size, not selector choice.
