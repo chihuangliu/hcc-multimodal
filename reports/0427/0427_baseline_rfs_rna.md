@@ -236,6 +236,18 @@ DESeq2 selector: fold 1=42 genes (best: CAMK1G, padj=0.0002), fold 2=20 (fallbac
 | RF leaf=10 | 0.525 ± 0.061 |
 | RF leaf=15 | 0.500 ± 0.000 |
 
+### Feature overlap Venn diagrams
+
+**SelectKBest: cross-fold gene overlap (within selector)**
+
+![KBest 1-year fold Venn](venn_rna/venn_kbest_1y_folds.png)
+![KBest 2-year fold Venn](venn_rna/venn_kbest_2y_folds.png)
+
+**DESeq union vs SelectKBest union (ever-selected genes)**
+
+![DESeq vs KBest 1-year](venn_rna/venn_deseq_vs_kbest_1y.png)
+![DESeq vs KBest 2-year](venn_rna/venn_deseq_vs_kbest_2y.png)
+
 ### Head-to-head summary (3-fold)
 
 | Target | Selector | Best model | AUC mean | AUC std |
