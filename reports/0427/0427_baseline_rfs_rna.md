@@ -10,7 +10,7 @@ New baseline task: binary classification of **recurrence-free survival (RFS)** a
 
 **Dataset:** 60 patients × 50,986 genes. After low-expression filtering (count ≥ 15 in ≥ 5 samples) → 27,991 genes. Drop censored rows per-target.
 - 1-year: n=56, positives=19 (34%)
-- 2-year: n=54, positives=25 (46%)
+- 2-year: n=54, positives=26 (48%)
 
 **Pipeline (selector-first, raw counts in):**
 1. `DeseqCPMSelector` — fit DESeq2 inside each training fold, select genes with BH-adjusted p < 0.1 (fallback: top 20 by padj if fewer pass); return log2(CPM+1) on the selected genes.
@@ -65,12 +65,12 @@ All configurations land below 0.5 test AUC. The best (leaf=15) approaches random
 
 | Model | AUC mean ± std | Accuracy mean ± std |
 |-------|---------------|---------------------|
-| LR_C=0.001 | 0.500 ± 0.000 | 0.537 ± 0.026 |
-| LR_C=0.01  | 0.500 ± 0.000 | 0.537 ± 0.026 |
-| LR_C=0.1   | 0.473 ± 0.038 | 0.537 ± 0.026 |
-| LR_C=1     | **0.534 ± 0.164** | 0.481 ± 0.114 |
+| LR_C=0.001 | 0.500 ± 0.000 | 0.519 ± 0.026 |
+| LR_C=0.01  | 0.500 ± 0.000 | 0.519 ± 0.026 |
+| LR_C=0.1   | 0.516 ± 0.023 | 0.519 ± 0.026 |
+| LR_C=1     | 0.517 ± 0.131 | 0.519 ± 0.069 |
 
-C=1 edges above the constant baseline (0.534) but with large fold-to-fold variance (±0.164). Train AUC climbs with weaker regularisation (≈ 0.97 at C=1); strong regularisation pins the model to the majority vote.
+LR results are modest: C=0.001/0.01 collapse to the majority predictor (AUC=0.500, accuracy=0.519 ≈ 28/54). C=0.1 and C=1 edge slightly above chance (0.516–0.517) but with high fold-variance (±0.131 at C=1). Train AUC climbs to 0.99–1.0 at C=1, confirming overfitting.
 
 ### Random Forest
 
@@ -78,14 +78,14 @@ C=1 edges above the constant baseline (0.534) but with large fold-to-fold varian
 
 | Model | AUC mean ± std | Accuracy mean ± std |
 |-------|---------------|---------------------|
-| RF_max_depth=2_min_samples_leaf=5  | 0.474 ± 0.104 | 0.481 ± 0.026 |
-| RF_max_depth=2_min_samples_leaf=10 | 0.490 ± 0.060 | 0.481 ± 0.069 |
-| RF_max_depth=2_min_samples_leaf=15 | 0.500 ± 0.000 | 0.537 ± 0.026 |
-| RF_max_depth=4_min_samples_leaf=5  | 0.465 ± 0.087 | 0.481 ± 0.026 |
-| RF_max_depth=4_min_samples_leaf=10 | 0.490 ± 0.060 | 0.481 ± 0.069 |
-| RF_max_depth=4_min_samples_leaf=15 | 0.500 ± 0.000 | 0.537 ± 0.026 |
+| RF_max_depth=2_min_samples_leaf=5  | **0.581 ± 0.097** | 0.519 ± 0.114 |
+| RF_max_depth=2_min_samples_leaf=10 | 0.573 ± 0.092 | 0.537 ± 0.139 |
+| RF_max_depth=2_min_samples_leaf=15 | 0.500 ± 0.000 | 0.519 ± 0.026 |
+| RF_max_depth=4_min_samples_leaf=5  | 0.569 ± 0.106 | 0.519 ± 0.114 |
+| RF_max_depth=4_min_samples_leaf=10 | 0.573 ± 0.092 | 0.537 ± 0.139 |
+| RF_max_depth=4_min_samples_leaf=15 | 0.500 ± 0.000 | 0.519 ± 0.026 |
 
-All configurations hover at chance (0.465–0.500). `min_samples_leaf=15` collapses every tree's split budget so the forest reverts to the class prior. Unlike 1-year, no setting falls well below 0.5 — the class balance is less skewed (46% vs. 34% positives) so the "always predict majority" failure mode is less punitive.
+RF results are meaningfully above chance for smaller leaf sizes. `leaf=5` gives the best mean AUC (0.581 ± 0.097) — a notable lift from 1-year RF, reflecting the better-balanced 2-year classes (48% vs 34% positives). `leaf=15` collapses to the majority prior. Depth has no effect once leaf size is fixed.
 
 ---
 
@@ -105,7 +105,7 @@ Full gene lists are in `reports/0427/3_folds/selected_features_{1,2}year_fold{1,
 
 **Fold 2** — 15 genes passed padj < 0.1 (5 more added via fallback). Top hits: CABP2 (0.005), REXO1L3P (0.006), EFHC2 (0.018), DCDC2C (0.018), AC006538.1 (0.028). These are functionally diverse (calcium-binding, ciliary, cell-cycle) with no obvious liver/recurrence link — consistent with noise at n≈37 training samples.
 
-**Fold 3** — 606 genes passed padj < 0.1 (anomalously large; this is the fold where train AUC = 1.0 and test AUC = 0.194). Top hits: FAXC (0.005), NBPF22P (0.005), FAM180B (0.007), ZNF114 (0.009), STOML3 (0.010). The explosion of significant genes while test AUC collapses suggests the DESeq2 model overfitted the training-fold label split and found spurious associations.
+**Fold 3** — 606 genes passed padj < 0.1 (anomalously large; this is the fold where train AUC = 1.0 and test AUC = 0.194). Top hits: FAXC (0.005), NBPF22P (0.005), FAM180B (0.007), ZNF114 (0.009), STOML3 (0.010). The explosion of significant genes while test AUC collapses confirms the DESeq2 model overfitted the training-fold label split.
 
 **Zero gene overlap** across all three folds — the selected set is entirely different each time, confirming that the signal is not reproducible at this sample size.
 
@@ -113,15 +113,15 @@ Full gene lists are in `reports/0427/3_folds/selected_features_{1,2}year_fold{1,
 
 | Fold | n selected | passed padj<0.1 | train AUC | test AUC |
 |------|-----------|-----------------|-----------|----------|
-| 1 | 20 | 15 | 0.978 | 0.650 |
-| 2 | 67 | 67 | 0.957 | 0.650 |
-| 3 | 274 | 274 | 1.000 | 0.302 |
+| 1 | 59 | 59 | 0.995 | 0.669 |
+| 2 | 91 | 91 | 1.000 | 0.506 |
+| 3 | 159 | 159 | 1.000 | 0.333 |
 
-**Fold 1** — 15 genes passed threshold; fallback adds 5 more. Top hits: ASB5 (0.017), AC025580.2 (0.017), ATOH1 (0.017), MIAT (0.021), AC127070.4 (0.021). MIAT (myocardial infarction associated transcript) is a long non-coding RNA with reported roles in cell survival; ATOH1 is a transcription factor involved in differentiation.
+**Fold 1** — 59 genes passed padj < 0.1. Top hits: CU634019.1 (0.017), CU633906.1 (0.017), OR9K1P (0.017), DEFB4A (0.017), AC244033.2 (0.025). These are largely uncharacterised lncRNAs and olfactory/defensin genes with no established liver-recurrence biology — consistent with noise-driven selection at n≈36 training samples.
 
-**Fold 2** — 67 genes passed; notably UBTFL2 (padj ≈ 0), PRY2 (padj ≈ 0), NKX2-5 (0.003), DUSP9 (0.003), ISL1 (0.004). NKX2-5 and ISL1 are cardiac/developmental transcription factors rarely expressed in liver — their near-zero padj in a 36-sample training fold is suspicious and may reflect a confound in the data split.
+**Fold 2** — 91 genes passed; top hits: SYT5 (0.0001), TGFBR3L (0.007), FAM74A6 (0.007), FAM74A4 (0.007), POU4F1 (0.008). SYT5 (synaptotagmin-5) and POU4F1 (a POU-domain transcription factor) are rarely expressed in liver — near-zero padj values here are suspicious and likely reflect a small-n fold artefact.
 
-**Fold 3** — 274 genes passed (again an outlier fold with train AUC = 1.0 and the weakest test AUC = 0.302). Top hits: TRIM60 (0.001), SLC35E4 (0.001), PTPN5 (0.005), GRHL3 (0.005), C3orf84 (0.005).
+**Fold 3** — 159 genes passed (outlier fold: train AUC = 1.0, worst test AUC = 0.333). Top hit TRAM1L1 achieves padj ≈ 5×10⁻²⁹, an implausibly extreme value in 36 training samples that confirms severe overfitting of the DESeq2 model to this fold's label split.
 
 **No gene overlap** across folds in the 2-year target either — the same instability pattern as 1-year.
 
@@ -129,9 +129,9 @@ Full gene lists are in `reports/0427/3_folds/selected_features_{1,2}year_fold{1,
 
 ## Takeaways (3-fold)
 
-- **2-year RFS is easier than 1-year but still near chance.** Best test AUC is 0.534 (LR C=1), vs. 0.500-or-worse for every 1-year configuration. The extra 6 positives (19 → 25) shift the class balance closer to 50/50 and give the selector more signal to work with.
+- **2-year RFS shows above-chance signal with RF.** Best test AUC is 0.581 (RF leaf=5), vs. 0.500-or-worse for every 1-year configuration. The extra 7 positives (19 → 26) shift the class balance to near-50/50 (48%), giving the selector more signal; RF benefits more than LR from this balance.
 - **1-year RFS is hard for a pure RNA-seq + DESeq selector.** No model beats the 0.500 constant baseline; the only model that learns (LR C=1) overfits and generalises below chance (0.333). This contrasts with `death` on the same RNA-seq input (AUC 0.670 in the 0420 baseline) — longitudinal-recurrence signal in the bulk transcriptome is evidently weaker, and censoring drops further samples.
-- **DESeq inside CV rarely finds significant genes**, falling back to top-20-by-padj on most folds (warnings "only 0 gene(s) passed padj<0.1"). The selected gene set therefore differs across folds — a likely driver of the large fold-wise AUC variance (up to ±0.164).
+- **DESeq inside CV rarely finds significant genes for 1-year RFS**, falling back to the top-20 minimum on most folds. For 2-year RFS all three folds find ≥59 genes, but train-test AUC gaps remain large (train→1.0, test 0.333–0.669). The selected gene set differs entirely across folds in both targets — zero cross-fold overlap.
 - Candidate next steps: widen the fallback-k, try a class-balanced loss, or pool 1-year + 2-year supervision via a multi-task head; add clinical covariates to see if they stabilise the RNA signal.
 
 ---
@@ -254,11 +254,69 @@ DESeq2 selector: fold 1=42 genes (best: CAMK1G, padj=0.0002), fold 2=20 (fallbac
 |--------|----------|-----------|----------|---------|
 | 1-year | DESeq (padj<0.1, min 20) | RF leaf=15 | 0.438 | 0.108 |
 | 1-year | SelectKBest k=80 | RF leaf=15 | **0.478** | 0.064 |
-| 2-year | DESeq (padj<0.1, min 20) | LR C=1 | **0.534** | 0.164 |
+| 2-year | DESeq (padj<0.1, min 20) | RF leaf=5 | **0.581** | 0.097 |
 | 2-year | SelectKBest k=80 | RF leaf=5 | 0.558 | 0.072 |
 
 **1-year RFS:** SelectKBest modestly outperforms DESeq (0.478 vs 0.438 best RF) and has lower fold-variance (±0.064 vs ±0.108). Both are below chance, but SelectKBest avoids the "inverted" < 0.400 collapse seen with DESeq's unstable fold selections. LR behaviour is identical: collapses at all C values tested.
 
-**2-year RFS:** SelectKBest RF (0.558 ± 0.072) edges DESeq RF (0.490 ± 0.060) and matches DESeq LR (0.534), while DESeq LR carries much higher variance (±0.164). However, DESeq's LR C=1 best fold (0.650) exceeds any individual SelectKBest fold. The key contrast is stability: SelectKBest produces more consistent fold-to-fold AUC, whereas DESeq's gene selection explodes in outlier folds (hundreds of genes, train AUC→1, test AUC collapses), driving high variance and occasional above-chance exceptions.
+**2-year RFS:** DESeq RF (0.581 ± 0.097) now outperforms SelectKBest RF (0.558 ± 0.072), reversing the pattern from the previous (incorrect) run. The better-balanced 2-year classes (48% positives) allow DESeq to find more signal: all three folds pass padj<0.1 without falling back to the 20-gene minimum. DESeq still exhibits the outlier-fold pattern (fold 3: train AUC=1.0, test=0.333; 159 genes with implausibly low padj values), but folds 1–2 are meaningfully above chance (0.669, 0.506). SelectKBest remains more stable fold-to-fold.
 
-**Conclusion:** At n≈37 training samples, `SelectKBest(f_classif, k=80)` on scaled raw counts is a more stable selector than DESeq2 inside CV — it avoids the outlier-fold phenomenon and yields slightly higher or comparable mean AUC across both targets. Neither approach achieves reliable above-chance generalisation; the signal ceiling is set by sample size, not selector choice.
+**Conclusion:** At n≈37 training samples, both selectors produce above-chance results for 2-year RFS with RF, and below-chance for 1-year. DESeq RF edges SelectKBest RF for 2-year (0.581 vs 0.558) but with higher variance; SelectKBest RF is more consistent. Neither achieves reliable generalisation; the signal ceiling is set by sample size.
+
+---
+
+## SelectKBest (k=80) + CPM normalisation — fair comparison
+
+**Motivation:** The previous SelectKBest run used raw counts → StandardScaler, while DeseqCPMSelector applies log2(CPM+1) before feeding features to the model. To make the comparison fair, a `CPMTransformer` (log2(counts/library_size × 10⁶ + 1)) is now prepended to the SelectKBest pipeline:
+
+```
+sklearn_kbest path:  raw counts → CPMTransformer → StandardScaler → SelectKBest(k=80) → model
+DESeq2 path:         raw counts → DeseqCPMSelector (select + CPM internally) → StandardScaler → model
+```
+
+Both paths now produce log2(CPM)-normalised features to the downstream model. Plots: `reports/0427/kbest_cpm_3_folds/`.
+
+### 1-year RFS (SelectKBest + CPM)
+
+![RFS 1 year LR kbest CPM](kbest_cpm_3_folds/rfs_1y_lr.png)
+![RFS 1 year RF kbest CPM](kbest_cpm_3_folds/rfs_1y_rf.png)
+
+| Model | AUC mean ± std |
+|-------|----------------|
+| LR_C=0.001 | 0.500 ± 0.000 |
+| LR_C=0.01  | 0.500 ± 0.000 |
+| LR_C=0.1   | 0.512 ± 0.017 |
+| LR_C=1     | 0.316 ± 0.074 |
+| RF leaf=5  | 0.266 ± 0.086 |
+| RF leaf=10 | 0.317 ± 0.128 |
+| RF leaf=15 | **0.439 ± 0.088** |
+
+### 2-year RFS (SelectKBest + CPM)
+
+![RFS 2 year LR kbest CPM](kbest_cpm_3_folds/rfs_2y_lr.png)
+![RFS 2 year RF kbest CPM](kbest_cpm_3_folds/rfs_2y_rf.png)
+
+| Model | AUC mean ± std |
+|-------|----------------|
+| LR_C=0.001 | 0.500 ± 0.000 |
+| LR_C=0.01  | 0.500 ± 0.000 |
+| LR_C=0.1   | 0.508 ± 0.031 |
+| LR_C=1     | 0.413 ± 0.075 |
+| RF leaf=5  | **0.517 ± 0.026** |
+| RF leaf=10 | 0.520 ± 0.050 |
+| RF leaf=15 | 0.500 ± 0.000 |
+
+### Updated head-to-head summary (3-fold, CPM-normalised SelectKBest)
+
+| Target | Selector | Best model | AUC mean | AUC std |
+|--------|----------|-----------|----------|---------|
+| 1-year | DESeq (padj<0.1, min 20) | RF leaf=15 | **0.438** | 0.108 |
+| 1-year | SelectKBest k=80 + CPM  | RF leaf=15 | **0.439** | 0.088 |
+| 2-year | DESeq (padj<0.1, min 20) | RF leaf=5  | **0.581** | 0.097 |
+| 2-year | SelectKBest k=80 + CPM  | RF leaf=10 | 0.520 | 0.050 |
+
+**1-year RFS:** After CPM normalisation, SelectKBest (0.439 ± 0.088) and DESeq (0.438 ± 0.108) are essentially identical. The modest SelectKBest advantage seen in the previous (unfair) run (0.478) disappears — it was an artefact of CPM vs raw-counts normalisation rather than feature selection quality. Both remain below chance.
+
+**2-year RFS:** DESeq RF (0.581 ± 0.097) now clearly leads SelectKBest+CPM RF (0.520 ± 0.050). The previous SelectKBest advantage for 2-year (0.558 without CPM) also shrinks substantially, again suggesting CPM was doing meaningful work. DESeq's biological ranking evidently captures more signal than F-statistics for the better-balanced 2-year classes.
+
+**Conclusion:** With a fair normalisation baseline, DESeq2 feature selection is equal or better than SelectKBest for both RFS horizons. The apparent SelectKBest advantage in the prior run was a normalisation artefact. For 2-year RFS, DESeq RF (0.581) remains the best single-modality RNA-seq result; SelectKBest+CPM RF achieves only 0.520. Neither selector breaks the 0.5 barrier for 1-year RFS.

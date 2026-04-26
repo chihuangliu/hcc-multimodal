@@ -143,6 +143,7 @@ def run_cv_experiment(
     models: dict[str, object] = MODELS,
     feature_selector: SelectorMixin | None = None,
     selector_first: bool = False,
+    rna_cpm: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run stratified k-fold CV for LR and RF with PCA preprocessing.
 
@@ -169,6 +170,12 @@ def run_cv_experiment(
         selector needs raw inputs (e.g. :class:`DeseqCPMSelector` on raw
         RNA-seq counts) — the selector is then responsible for any
         normalization.
+    rna_cpm:
+        Passed to :func:`~hcc_multimodal.baselines.transforms.build_preprocessor`.
+        When True, the preprocessor is ``CPMTransformer → StandardScaler``
+        instead of the column-type ColumnTransformer. Use this for the
+        SelectKBest path so the model sees log2(CPM)-normalised features,
+        matching what :class:`DeseqCPMSelector` produces.
 
     Returns
     -------
@@ -194,7 +201,7 @@ def run_cv_experiment(
             ]
         )
     else:
-        preprocessor = build_preprocessor(x_columns)
+        preprocessor = build_preprocessor(x_columns, rna_cpm=rna_cpm)
     outer_cv = StratifiedKFold(
         n_splits=n_splits, shuffle=True, random_state=RANDOM_STATE
     )
