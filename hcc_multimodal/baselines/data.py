@@ -1,6 +1,80 @@
 """Clinical data helpers for HCC multimodal baselines."""
 
+import warnings
+from importlib.resources import files
+from pathlib import Path
+
 import pandas as pd
+
+import hcc_multimodal
+
+_RNA_SEQ_DIR = Path(files(hcc_multimodal).joinpath("")).parent / "data" / "RNA_seq"
+
+
+_GENE_NAME_MAP: dict[str, str] = {
+    "AARS1": "AARS",
+    "BPNT2": "IMPAD1",
+    "CCN1": "CYR61",
+    "CCN2": "CTGF",
+    "CILK1": "ICK",
+    "DYNC2I2": "WDR60",
+    "EPRS1": "EPRS",
+    "G6PC1": "G6PC",
+    "GBA1": "GBA",
+    "H1-0": "H1F0",
+    "H1-6": "HIST1H1E",
+    "H2BC7": "HIST1H2BG",
+    "H2BC15": "HIST1H2BN",
+    "H2BC21": "HIST2H2BF",
+    "H4C1": "HIST1H4A",
+    "H4C3": "HIST1H4C",
+    "H4C14": "HIST2H4B",
+    "HJV": "HFE2",
+    "IARS1": "IARS",
+    "ILRUN": "C6orf106",
+    "ITPRID2": "PPIP5K2",
+    "MACROH2A2": "H2AFY2",
+    "MMUT": "MUT",
+    "NARS1": "NARS",
+    "NHERF1": "SLC9A3R1",
+    "NHERF2": "SLC9A3R2",
+    "NIBAN1": "FAM129A",
+    "NTAQ1": "NTAN1",
+    "PHB1": "PHB",
+    "PLAAT3": "PLA2G16",
+    "RSC1A1": "SLC7A9",
+}
+
+
+def get_hcc_genes() -> list[str]:
+    """Return deduplicated gene names from all HCC gene sets that exist in the RNA-seq matrix.
+
+    Genes present in gene_sets_combined but absent from Matrix_output_radiology_only.csv
+    are reported via a warning and excluded from the returned list.
+    """
+    gene_sets_dir = _RNA_SEQ_DIR / "gene_sets_combined"
+    all_genes: set[str] = set()
+    for path in gene_sets_dir.glob("*.txt"):
+        df = pd.read_csv(path, sep="\t")
+        all_genes.update(df["GeneName"].tolist())
+
+    all_genes = {_GENE_NAME_MAP.get(g, g) for g in all_genes}
+
+    matrix_genes: set[str] = set(
+        pd.read_csv(
+            _RNA_SEQ_DIR / "Matrix_output_radiology_only.csv", usecols=["Gene Symbol"]
+        )["Gene Symbol"]
+    )
+
+    unmatched = all_genes - matrix_genes
+    if unmatched:
+        warnings.warn(
+            f"{len(unmatched)} gene(s) not found in RNA-seq matrix and will be excluded: "
+            + ", ".join(sorted(unmatched)),
+            stacklevel=2,
+        )
+
+    return sorted(all_genes & matrix_genes)
 
 
 def rfs(rfs_central: float, rfs_central_event: float, months: int) -> int | None:

@@ -304,6 +304,15 @@ def run_cv_experiment(
                         }).sort_values("pvalue").reset_index(drop=True)
                     else:
                         selected_features = pd.DataFrame({"feature": selected_names})
+            elif preproc is not None and hasattr(preproc, "get_feature_names_out"):
+                try:
+                    preproc_names = np.asarray(preproc.get_feature_names_out())
+                    preproc_names = np.array(
+                        [n.split("__", 1)[1] if "__" in n else n for n in preproc_names]
+                    )
+                    selected_features = pd.DataFrame({"feature": preproc_names})
+                except Exception:
+                    selected_features = None
 
             lr_nonzero_features = None
             fitted_model = est.named_steps.get("model") if hasattr(est, "named_steps") else None
