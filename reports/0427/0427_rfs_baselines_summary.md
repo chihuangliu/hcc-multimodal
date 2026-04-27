@@ -139,23 +139,3 @@ Per-fold counts (DESeq2 selected → L1 non-zero at C=1): 1-year folds 1/2/3 = 2
 
 Key results: zero gene overlap across folds for both RNA-seq selectors and both targets. For radiomics, only 1 feature is shared across 2 folds for 1-year (GLCM_Entrop_HLH_64gl), and 3 pairwise features for 2-year — none shared across all three folds.
 
-### DESeq2 "outlier fold" phenomenon
-
-In both 3-fold and 4-fold CV, one fold consistently selects hundreds of genes (606 for 1-year fold 3; 159 for 2-year fold 3), while other 1-year folds fall back to the 20-gene minimum (all three 2-year folds now pass padj<0.1 without fallback). These outlier folds always produce train AUC → 1.0 and the *worst* test AUC (0.194–0.302), indicating DESeq2 overfits the training-fold label split when n≈37. This pattern is structural — it persists regardless of fold count — and does not appear with SelectKBest, which produces more stable fold-to-fold gene counts and lower AUC variance.
-
-### SelectKBest vs DESeq2 comparison
-
-With CPM normalisation applied to both paths (so features entering the model are on the same log2(CPM) scale), the picture is:
-
-- **1-year RFS:** SelectKBest+CPM (best RF 0.439 ± 0.088) and DESeq2 (0.438 ± 0.108) are essentially identical — the apparent SelectKBest advantage in an earlier run (0.478) was a normalisation artefact from F-stats on raw counts.
-- **2-year RFS:** DESeq2 RF (0.581 ± 0.097) clearly leads SelectKBest+CPM RF (0.520 ± 0.050). The better-balanced 2-year classes allow DESeq to find consistent signal across folds; F-statistics on log2(CPM) are less discriminative than differential expression ranking here.
-
-SelectKBest remains more stable fold-to-fold (no outlier-fold gene explosions, lower AUC variance), but DESeq2 has a higher ceiling when class balance is sufficient.
-
-### 4-fold replication (RNA-seq)
-
-4-fold CV results are consistent with 3-fold: no model exceeds chance for either target. The outlier-fold phenomenon persists. 2-year LR best drops from 0.534 (3-fold) to 0.488 (4-fold), confirming the 3-fold result was not an artifact of fold count.
-
-### Fold 2 as a persistent weak fold (radiomics)
-
-For 1-year RFS radiomics, fold 2 collapses to test AUC = 0.500 across **all** LR and RF configurations (LR C=0.001–1, RF leaf=5–15). This is not a model-specific failure — it points to a data-partition-level issue (distributional imbalance or outlier samples landing in the test split for that fold).
