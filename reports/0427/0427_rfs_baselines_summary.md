@@ -115,6 +115,12 @@ Each plot shows train AUC (left) and test AUC (right) per hyperparameter configu
 |---|---|
 | 1-year RFS, 3 folds | 2-year RFS, 3 folds |
 
+**RNA-seq — DESeq2 + L1 LR (C=1): non-zero coefficient genes across folds:**
+
+![DESeq2 LR C=1 non-zero coef Venn](venn_rna/venn_deseq_lr_c1.png)
+
+Per-fold counts (DESeq2 selected → L1 non-zero at C=1): 1-year folds 1/2/3 = 20→11, 20→9, 606→22; 2-year folds 1/2/3 = 59→16, 91→12, 159→18. C ≤ 0.1 zeros all coefficients. Zero overlap across folds for non-zero genes. Data: [`deseq_lr_coef_counts_all.csv`](deseq_lr_coef_counts_all.csv), [`deseq_lr_nonzero_genes_all.csv`](deseq_lr_nonzero_genes_all.csv).
+
 **RNA-seq — SelectKBest, cross-fold overlap (within selector):**
 
 | ![KBest 1-year fold Venn](venn_rna/venn_kbest_1y_folds.png) | ![KBest 2-year fold Venn](venn_rna/venn_kbest_2y_folds.png) |
