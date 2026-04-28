@@ -1,0 +1,37 @@
+# Non-zero L1-regularised LR features for RFS 2-year
+# Union across all folds and C values
+# Total: 33 unique features
+
+FD_max_HHH_8gl
+FD_max_HHL_8gl
+FD_mean_HLL_32gl
+FD_mean_LLL_16gl
+FD_min_HLH_16gl
+FOS_Imean_LLL
+GLCM_AutoCorrel_LHL_8gl
+GLCM_ClShad_LHH_4gl
+GLCM_Correl_HHH_128gl
+GLCM_Correl_HHH_256gl
+GLCM_Correl_HHH_64gl
+GLCM_Correl_HLH_128gl
+GLCM_Correl_HLH_256gl
+GLCM_Correl_HLH_32gl
+GLCM_Correl_HLH_64gl
+GLCM_Correl_HLL_16gl
+GLCM_Correl_HLL_8gl
+GLCM_Entrop_LHH_128gl
+GLCM_InfCo1_LLH_8gl
+GLCM_InfCo1_LLL_64gl
+GLCM_MxProb_256gl
+GLCM_invVar_16gl
+GLCM_invVar_LLL_16gl
+GLCM_sumAvg_HLH_8gl
+GLCM_sumAvg_LHL_8gl
+GLRLM_LRLGLE_HHL_32gl
+GLRLM_LRLGLE_LHL_32gl
+GLRLM_SRHGLE_HHH_4gl
+GLRLM_SRHGLE_HLH_32gl
+GLRLM_SRHGLE_LHL_16gl
+GLSZM_SzoneHiGl_LHL_256gl
+GLSZM_ZoneHiGl_4gl
+GLSZM_ZoneLoGl_HLH_4gl

@@ -1,0 +1,21 @@
+experiment,model,AUC mean,AUC std,Accuracy mean,Accuracy std
+RFS 1 year - Arterial Radiomics,LR_C=0.001,0.5,0.0,0.661,0.022
+RFS 1 year - Arterial Radiomics,LR_C=0.01,0.5,0.0,0.661,0.022
+RFS 1 year - Arterial Radiomics,LR_C=0.1,0.574,0.105,0.661,0.022
+RFS 1 year - Arterial Radiomics,LR_C=1,0.823,0.034,0.749,0.072
+RFS 1 year - Arterial Radiomics,RF_max_depth=2_min_samples_leaf=5,0.779,0.094,0.677,0.08
+RFS 1 year - Arterial Radiomics,RF_max_depth=2_min_samples_leaf=10,0.793,0.096,0.695,0.104
+RFS 1 year - Arterial Radiomics,RF_max_depth=2_min_samples_leaf=15,0.652,0.113,0.661,0.022
+RFS 1 year - Arterial Radiomics,RF_max_depth=4_min_samples_leaf=5,0.779,0.094,0.677,0.08
+RFS 1 year - Arterial Radiomics,RF_max_depth=4_min_samples_leaf=10,0.793,0.096,0.695,0.104
+RFS 1 year - Arterial Radiomics,RF_max_depth=4_min_samples_leaf=15,0.652,0.113,0.661,0.022
+RFS 2 year - Arterial Radiomics,LR_C=0.001,0.5,0.0,0.481,0.026
+RFS 2 year - Arterial Radiomics,LR_C=0.01,0.5,0.0,0.481,0.026
+RFS 2 year - Arterial Radiomics,LR_C=0.1,0.5,0.0,0.481,0.026
+RFS 2 year - Arterial Radiomics,LR_C=1,0.806,0.097,0.722,0.12
+RFS 2 year - Arterial Radiomics,RF_max_depth=2_min_samples_leaf=5,0.752,0.061,0.667,0.091
+RFS 2 year - Arterial Radiomics,RF_max_depth=2_min_samples_leaf=10,0.761,0.06,0.667,0.091
+RFS 2 year - Arterial Radiomics,RF_max_depth=2_min_samples_leaf=15,0.5,0.0,0.519,0.026
+RFS 2 year - Arterial Radiomics,RF_max_depth=4_min_samples_leaf=5,0.752,0.07,0.648,0.094
+RFS 2 year - Arterial Radiomics,RF_max_depth=4_min_samples_leaf=10,0.761,0.06,0.667,0.091
+RFS 2 year - Arterial Radiomics,RF_max_depth=4_min_samples_leaf=15,0.5,0.0,0.519,0.026

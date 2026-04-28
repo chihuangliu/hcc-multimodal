@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import SelectorMixin
 from sklearn.impute import SimpleImputer
@@ -130,6 +130,77 @@ class DeseqCPMSelector(BaseEstimator, TransformerMixin):
             X_sel = X[:, self.support_]
             cpm = X_sel / library_size[:, None] * 1e6
         return np.log2(cpm + self.pseudocount)
+
+
+def apply_selector_before_cv(
+    X: pd.DataFrame,
+    y: pd.Series,
+    x_columns: dict,
+    selector,
+    selector_first: bool = False,
+    rna_cpm: bool = False,
+    label: str = "",
+    save_path=None,
+) -> tuple:
+    """Fit a feature selector on the full labelled set before CV (leaks labels — diagnostic only).
+
+    Returns pre-transformed X, filtered y, updated x_columns, and cv_kwargs
+    ready to unpack into run_cv_experiment (feature_selector=None so no
+    second selection happens inside the folds).
+
+    Parameters
+    ----------
+    selector_first:
+        When True the selector receives raw X (e.g. DeseqCPMSelector on counts).
+        When False the column-type preprocessor runs first.
+    save_path:
+        If given, saves a CSV of selected feature names to this path.
+    """
+    y_mask = ~y.isna()
+    X_fit, y_fit = X[y_mask], y[y_mask]
+    sel_pre = clone(selector)
+
+    if selector_first:
+        X_arr = sel_pre.fit_transform(X_fit, y_fit)
+        support = (
+            sel_pre.support_
+            if hasattr(sel_pre, "support_")
+            else sel_pre.get_support()
+        )
+        feature_names = np.asarray(sel_pre.feature_names_in_)[support]
+    else:
+        # Use CPMTransformer for RNA counts; simple imputer+scaler for everything else.
+        # Both preserve column count/order, so input column names index the support mask.
+        if rna_cpm:
+            prep_pre = build_preprocessor(x_columns, rna_cpm=True)
+        else:
+            prep_pre = Pipeline(
+                [
+                    ("imputer", SimpleImputer(strategy="median")),
+                    ("scaler", StandardScaler()),
+                ]
+            )
+        X_pre = prep_pre.fit_transform(X_fit)
+        X_arr = sel_pre.fit_transform(X_pre, y_fit)
+        support = sel_pre.get_support()
+        all_names = (
+            np.asarray(X_fit.columns)
+            if hasattr(X_fit, "columns")
+            else np.array([f"x{i}" for i in range(X_fit.shape[1])])
+        )
+        feature_names = all_names[support]
+
+    X_cv = pd.DataFrame(np.asarray(X_arr), columns=feature_names, index=X_fit.index)
+    y_cv = y_fit
+    x_columns_cv = {c: DataType.CONTINUOUS for c in feature_names}
+    cv_kwargs = dict(feature_selector=None, selector_first=False, rna_cpm=False)
+
+    if label:
+        print(f"[{label}] selector applied before CV: {len(feature_names)} features")
+    if save_path is not None:
+        pd.DataFrame({"feature": feature_names}).to_csv(save_path, index=False)
+
+    return X_cv, y_cv, x_columns_cv, cv_kwargs
 
 
 def run_cv_experiment(
