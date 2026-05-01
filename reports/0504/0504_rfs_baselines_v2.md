@@ -14,6 +14,7 @@
   - [Pre CV selected features](#pre-cv-selected-features)
   - [Preselected features vs predefined HCC gene set](#preselected-features-vs-predefined-hcc-gene-set)
   - [Non-zero LR coefficient features per fold](#non-zero-lr-coefficient-features-per-fold-feature-selection-before-cross-validation)
+- [6. Ensemble (radiomics + RNA-seq)](#6-ensemble-radiomics--rna-seq)
 
 # 1. Task
 1. Binary classification of recurrence-free survival (RFS) at 1-year and 2-year horizons using two modalities: RNA-seq (DESeq2 with `padj < 0.05`, 3-fold stratified CV) and arterial-phase CT radiomics (SelectKBest F-score, k=100, 3-fold CV). Experiments span two selector placements — in-CV vs before-CV  
@@ -43,7 +44,7 @@ Source: `reports/0504`.
 
 | Modality | Selector | 1y LR | 1y RF | 2y LR | 2y RF |
 |----------|----------|-------|-------|-------|-------|
-| Arterial radiomics | SelectKBest F-score (k=100) | **0.823** | 0.793 | 0.806 | 0.761 |
+| Arterial radiomics | SelectKBest F-score (k=100) | **0.819** | 0.793 | 0.798 | 0.761 |
 | RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.686 | 0.601 | **0.864** | 0.761 |
 
 ## Plot AUC in each fold
@@ -255,3 +256,18 @@ Stable across all 3 folds: `AC135731.1` (padj < 0.05), `LINC00514`, `AC005696.4`
 | HIGD2B | 5.18e-01 | No | — | — | −0.062 |
 
 Stable across all 3 folds: `LACC1`, `AC093826.2`, `AC025580.2`, `AL449283.1`, `SGSM1`, `AL445235.1`, `H19`. only `LACC1` and `AC093826.2` pass padj < 0.05. `H19` (the is in predefined HCC set) is non-zero in all folds despite padj = 0.518.
+
+# 6. Ensemble (radiomics + RNA-seq)
+
+Average of LR C=1 predicted probabilities from arterial radiomics and RNA-seq (both before-CV, 2-year RFS). Source: `notebooks/baselines/ensemble_baseline_rfs.ipynb`.
+
+| Fold | Ensemble | Radiomics | RNA-seq |
+|------|----------|-----------|---------|
+| 1 | 0.912 | 0.825 | 0.913 |
+| 2 | 0.926 | 0.901 | 0.840 |
+| 3 | 0.815 | 0.667 | 0.790 |
+| **mean** | **0.884** | 0.798 | 0.847 |
+
+The ensemble outperforms both single modalities in mean AUC. Improvement is most pronounced in fold 3, where both individual modalities are weakest.
+
+<img src="ensemble_2y_lr/ensemble_2y_lr_auc.png" width="500">

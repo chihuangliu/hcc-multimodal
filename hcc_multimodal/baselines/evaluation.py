@@ -12,7 +12,8 @@ from sklearn.base import BaseEstimator, TransformerMixin, clone
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import SelectorMixin
 from sklearn.impute import SimpleImputer
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_validate
+from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.validation import check_is_fitted
@@ -215,6 +216,7 @@ def run_cv_experiment(
     feature_selector: SelectorMixin | None = None,
     selector_first: bool = False,
     rna_cpm: bool = False,
+    return_proba: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run stratified k-fold CV for LR and RF with PCA preprocessing.
 
@@ -316,30 +318,26 @@ def run_cv_experiment(
         else:
             estimator = pipe
 
-        scores = cross_validate(
-            estimator,
-            X_clean,
-            y_clean,
-            cv=outer_cv,
-            scoring=["roc_auc", "accuracy"],
-            return_train_score=True,
-            return_estimator=True,
-            error_score="raise",
-        )
+        fold_aucs_train, fold_aucs_test, fold_accs_test = [], [], []
+        for fold_i, (train_idx, test_idx) in enumerate(outer_cv.split(X_clean, y_clean)):
+            X_tr = X_clean.iloc[train_idx]
+            X_te = X_clean.iloc[test_idx]
+            y_tr = y_clean.iloc[train_idx]
+            y_te = y_clean.iloc[test_idx]
 
-        records.append(
-            {
-                "experiment": label,
-                "model": model_name,
-                "AUC mean": round(scores["test_roc_auc"].mean(), 3),
-                "AUC std": round(scores["test_roc_auc"].std(), 3),
-                "Accuracy mean": round(scores["test_accuracy"].mean(), 3),
-                "Accuracy std": round(scores["test_accuracy"].std(), 3),
-            }
-        )
-        for fold_i, (est, train_auc, test_auc) in enumerate(
-            zip(scores["estimator"], scores["train_roc_auc"], scores["test_roc_auc"])
-        ):
+            est = clone(estimator)
+            est.fit(X_tr, y_tr)
+
+            te_proba = est.predict_proba(X_te)[:, 1]
+            tr_proba = est.predict_proba(X_tr)[:, 1]
+            train_auc = roc_auc_score(y_tr, tr_proba)
+            test_auc = roc_auc_score(y_te, te_proba)
+            test_acc = accuracy_score(y_te, est.predict(X_te))
+
+            fold_aucs_train.append(train_auc)
+            fold_aucs_test.append(test_auc)
+            fold_accs_test.append(test_acc)
+
             best_params = (
                 {k.replace("model__", ""): v for k, v in est.best_params_.items()}
                 if param_grids is not None
@@ -399,18 +397,31 @@ def run_cv_experiment(
                     "coefficient": coef[nonzero_mask],
                 }).sort_values("coefficient", key=np.abs, ascending=False).reset_index(drop=True)
 
-            fold_records.append(
-                {
-                    "experiment": label,
-                    "model": model_name,
-                    "fold": fold_i + 1,
-                    "train_auc": train_auc,
-                    "test_auc": test_auc,
-                    "best_params": best_params,
-                    "selected_features": selected_features,
-                    "lr_nonzero_features": lr_nonzero_features,
-                }
-            )
+            fold_record = {
+                "experiment": label,
+                "model": model_name,
+                "fold": fold_i + 1,
+                "train_auc": train_auc,
+                "test_auc": test_auc,
+                "best_params": best_params,
+                "selected_features": selected_features,
+                "lr_nonzero_features": lr_nonzero_features,
+            }
+            if return_proba:
+                fold_record["test_indices"] = X_clean.index[test_idx].tolist()
+                fold_record["test_proba"] = te_proba.tolist()
+            fold_records.append(fold_record)
+
+        records.append(
+            {
+                "experiment": label,
+                "model": model_name,
+                "AUC mean": round(np.mean(fold_aucs_test), 3),
+                "AUC std": round(np.std(fold_aucs_test), 3),
+                "Accuracy mean": round(np.mean(fold_accs_test), 3),
+                "Accuracy std": round(np.std(fold_accs_test), 3),
+            }
+        )
     return pd.DataFrame(records), pd.DataFrame(fold_records)
 
 
