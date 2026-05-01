@@ -1,18 +1,20 @@
 # Non-zero L1-regularised LR features for RFS 1-year
 # Union across all folds and C values
-# Total: 14 unique features
+# Total: 16 unique features
 
 FD_lacunarity_HHL_8gl
-FD_lacunarity_HLH_16gl
-FD_mean_LHH_8gl
-GLCM_Entrop_HHL_128gl
+FD_lacunarity_LLH_16gl
+FD_sd_LHL_8gl
+FD_sd_LLH_16gl
+FD_var_LLH_16gl
 GLCM_Entrop_LHH_128gl
 GLCM_Entrop_LHH_64gl
 GLCM_InfCo1_LLH_16gl
+GLCM_MxProb_LHL_8gl
 GLCM_invVar_LHL_8gl
-GLCM_invVar_LLH_8gl
+GLCM_sumEnt_HLH_256gl
 GLCM_sumEnt_HLL_256gl
 GLRLM_SRLGLE_HLH_8gl
 GLSZM_GlVarianc_LHH_32gl
 GLSZM_ZoneLoGl_HLH_4gl
-NGTDM_Complex_LHH_16gl
+NGTDM_Complex_LHH_8gl

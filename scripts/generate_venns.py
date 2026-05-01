@@ -69,7 +69,7 @@ print(f"All genes: {rna_count_all.shape[1]}, HCC genes in matrix: {rna_count_hcc
 def make_rfs_df(rna_count):
     return rna_count.merge(
         clinical_data[["SID", "rfs_1year", "rfs_2year"]], on="SID"
-    ).set_index("SID")
+    ).set_index("SID").sort_index()
 
 rna_rfs_all = make_rfs_df(rna_count_all)
 rna_rfs_hcc = make_rfs_df(rna_count_hcc)
@@ -89,11 +89,11 @@ def log2_cpm(X_full: pd.DataFrame, feature_names: list[str]) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # Utility: get non-zero LR C=1 features per fold from a pre-transformed X_cv
 # ---------------------------------------------------------------------------
-def lr_nonzero_per_fold(X_cv: pd.DataFrame, y: pd.Series) -> dict[int, set]:
-    """Return {fold: set of non-zero-coef feature names} for LR C=1 L1."""
+def lr_nonzero_per_fold(X_cv: pd.DataFrame, y: pd.Series) -> tuple[dict[int, set], dict[int, dict]]:
+    """Return ({fold: set of feature names}, {fold: {feature: coef}}) for LR C=1 L1."""
     skf = StratifiedKFold(n_splits=CV_N_FOLDS, shuffle=True, random_state=RANDOM_STATE)
     feature_names = X_cv.columns.tolist()
-    result = {}
+    fold_sets, fold_coefs = {}, {}
     for fold_i, (train_idx, _) in enumerate(skf.split(X_cv, y)):
         X_train = X_cv.iloc[train_idx].values
         y_train = y.iloc[train_idx].values
@@ -105,10 +105,12 @@ def lr_nonzero_per_fold(X_cv: pd.DataFrame, y: pd.Series) -> dict[int, set]:
         )
         lr.fit(X_proc, y_train)
         nonzero_mask = np.abs(lr.coef_[0]) > 0
-        result[fold_i + 1] = set(np.array(feature_names)[nonzero_mask])
-        n = int(nonzero_mask.sum())
-        print(f"  fold {fold_i+1}: {n} non-zero coef features")
-    return result
+        names = np.array(feature_names)[nonzero_mask]
+        coefs = lr.coef_[0][nonzero_mask]
+        fold_sets[fold_i + 1] = set(names)
+        fold_coefs[fold_i + 1] = dict(zip(names, coefs))
+        print(f"  fold {fold_i+1}: {int(nonzero_mask.sum())} non-zero coef features")
+    return fold_sets, fold_coefs
 
 
 # ===========================================================================
@@ -146,9 +148,18 @@ for ax, (rfs_year, yr, label) in zip(axes, [(1, "1y", "1-year"), (2, "2y", "2-ye
     mask = ~y.isna()
     X_task, y_task = X_all_task[mask], y[mask]
     X_cv = log2_cpm(X_task, presel)
-    fold_sets = lr_nonzero_per_fold(X_cv, y_task)
+    fold_sets, fold_coefs = lr_nonzero_per_fold(X_cv, y_task)
     sets = [fold_sets[f] for f in [1, 2, 3]]
     draw_venn3(ax, sets, f"{label} RFS")
+    # Print coefficient table for report
+    all_features = sorted(set().union(*sets))
+    print(f"\nC1 {yr} non-zero features (feature | f1_coef | f2_coef | f3_coef):")
+    for feat in all_features:
+        c1 = fold_coefs[1].get(feat, None)
+        c2 = fold_coefs[2].get(feat, None)
+        c3 = fold_coefs[3].get(feat, None)
+        fmt = lambda c: f"{c:+.3f}" if c is not None else "—"
+        print(f"  {feat}\t{fmt(c1)}\t{fmt(c2)}\t{fmt(c3)}")
 
 plt.tight_layout()
 save_venn_figure(fig, OUT_DIR / "c1_lr_nonzero.png")
@@ -170,7 +181,7 @@ for ax, (rfs_year, yr, label) in zip(axes, [(1, "1y", "1-year"), (2, "2y", "2-ye
     mask = ~y.isna()
     X_task, y_task = X_hcc_task[mask], y[mask]
     X_cv = log2_cpm(X_task, presel)
-    fold_sets = lr_nonzero_per_fold(X_cv, y_task)
+    fold_sets, fold_coefs = lr_nonzero_per_fold(X_cv, y_task)
     sets = [fold_sets[f] for f in [1, 2, 3]]
     draw_venn3(ax, sets, f"{label} RFS")
 

@@ -23,29 +23,25 @@
 
 # 2. Key findings
 - 1 year rfs: Arterial radiomics outperform RNA-seq, not matter the selector placement and the model. [See 3.RNA-seq vs. radiomics](#3-rna-seq-vs-radiomics)
-- 2 year rfs: RNA-seq can outperform Arterial radiomics but is model dependent: if feature selection in-CV, RNA-seq with Random Forest is the best (AUC=0.581); if feature selection before CV, RNA-seq with Logistic Regression is the best (AUC=0.864). [See 3.RNA-seq vs. radiomics](#3-rna-seq-vs-radiomics)
+- 2 year rfs: RNA-seq can outperform Arterial radiomics but is model dependent: if feature selection in-CV, RNA-seq with Random Forest is the best (AUC=0.590); if feature selection before CV, RNA-seq with Logistic Regression is the best (AUC=0.867). [See 3.RNA-seq vs. radiomics](#3-rna-seq-vs-radiomics)
 - Predefined HCC gene set didn't work well. [See 4.Predefined HCC gene set - CV results](#predefined-hcc-gene-set-cv-results)
 - The pre-CV selected genes on our data set shows little overlap with predefined HCC gene set. [See Preselected features vs predefined HCC gene set](#preselected-features-vs-predefined-hcc-gene-set)
-- 8~13 pre-CV selected genes have non-zero LR coefficient. 1y-RFS CV have 3 common ones in all 3 folds, and 2y-RFS have 7 common ones. Statistical significance does not mean a gene can have a non-zero coefficient.[See Non-zero LR coefficient features per fold](#non-zero-lr-coefficient-features-per-fold-feature-selection-before-cross-validation)
+- 6~12 pre-CV selected genes have non-zero LR coefficient. 1y-RFS CV have 1 common one in all 3 folds, and 2y-RFS have 5 common ones. Statistical significance does not mean a gene can have a non-zero coefficient.[See Non-zero LR coefficient features per fold](#non-zero-lr-coefficient-features-per-fold-feature-selection-before-cross-validation)
 
 # 3. RNA-seq vs. radiomics
 ## Feature selection in cross-validation
 
-Source: `reports/0427`.
-
 | Modality | Selector | 1y LR | 1y RF | 2y LR | 2y RF |
 |----------|----------|-------|-------|-------|-------|
-| RNA-seq | DESeq2 (`padj < 0.1`, min 20 features)| 0.333 | 0.438 | 0.517 | **0.581** |
-| Arterial radiomics | SelectKBest F-score (k=100) | 0.654 | **0.665** | 0.537 | 0.570 |
+| Arterial radiomics | SelectKBest F-score (k=100) | 0.618 | **0.718** | 0.496 | 0.569 |
+| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.348 | 0.492 | 0.516 | **0.590** |
 
 ## Feature Selection before cross-validation
 
-Source: `reports/0504`.
-
 | Modality | Selector | 1y LR | 1y RF | 2y LR | 2y RF |
 |----------|----------|-------|-------|-------|-------|
-| Arterial radiomics | SelectKBest F-score (k=100) | **0.819** | 0.793 | 0.798 | 0.761 |
-| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.686 | 0.601 | **0.864** | 0.761 |
+| Arterial radiomics | SelectKBest F-score (k=100) | 0.780 | **0.821** | 0.752 | 0.781 |
+| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.675 | 0.779 | **0.867** | 0.805 |
 
 ## Plot AUC in each fold
 
@@ -145,12 +141,12 @@ Circles = per-fold AUC, diamonds = mean.
 
 ## Predefined HCC gene set CV results
 
-Best mean test AUC for C2 (before-CV, predefined genes) and C3 (in-CV, predefined genes). All runs use `padj < 0.05`; results are identical at `padj < 0.1` (no gene passes BH in either case — fallback-dominated throughout).
+Best mean test AUC for `before-CV, predefined genes` and  `in-CV, predefined genes`. All runs use `padj < 0.05`; results are identical at `padj < 0.1` (no gene passes BH in either case — fallback-dominated throughout).
 
 | Config | Selector placement | 1y LR | 1y RF | 2y LR | 2y RF |
 |--------|--------------------|-------|-------|-------|-------|
-| C2 — before_cv, predefined | before CV | 0.500 | 0.570 | 0.500 | 0.505 |
-| C3 — in_cv, predefined | inside CV | 0.500 | 0.500 | 0.500 | 0.508 |
+| before_cv, predefined | before CV | 0.485 | 0.596 | 0.500 | **0.591** |
+| in_cv, predefined | inside CV | 0.512 | 0.596 | 0.512 | **0.628** |
 
 # 5. Genes feature selection analysis
 ## Pre CV selected features 
@@ -162,23 +158,23 @@ padj threshold was set as 0.05, but there were too few below it, so 20 features 
 | AL138889.1 | 5.84e-04 *|
 | AC135731.1 | 5.84e-04 *|
 | AC004889.1 | 3.33e-02 *|
-| AL160272.1 | 5.61e-02 |
-| INAFM2 | 5.61e-02 |
-| AC092068.2 | 6.24e-02 |
-| LINC00514 | 6.24e-02 |
-| AL031594.1 | 1.06e-01 |
-| AL117328.2 | 1.19e-01 |
-| AC005696.4 | 1.65e-01 |
-| CCDC26 | 1.65e-01 |
-| AC025580.2 | 2.11e-01 |
+| CCDC26 | 3.93e-02 *|
+| INAFM2 | 4.67e-02 *|
+| AL160272.1 | 4.67e-02 *|
+| AC092068.2 | 5.43e-02 |
+| LINC00514 | 5.46e-02 |
+| AL031594.1 | 9.46e-02 |
+| AL117328.2 | 1.07e-01 |
+| AC005696.4 | 1.54e-01 |
 | EGFL8 | 2.11e-01 |
+| AC025580.2 | 2.11e-01 |
 | AC006538.1 | 2.11e-01 |
 | AC127070.4 | 2.53e-01 |
 | AL353726.2 | 2.86e-01 |
-| PCSK6-AS1 | 2.92e-01 |
-| AC016355.1 | 3.13e-01 |
-| AC008395.1 | 3.29e-01 |
-| AL008638.3 | 3.29e-01 |
+| AC016355.1 | 3.32e-01 |
+| AC008395.1 | 3.46e-01 |
+| AL008638.3 | 3.46e-01 |
+| AC102953.2 | 3.83e-01 |
 
 ### 2-year RFS
 
@@ -187,23 +183,23 @@ padj threshold was set as 0.05, but there were too few below it, so 20 features 
 | CAMK2N2 | 8.94e-03 *|
 | AC093826.2 | 3.18e-02 *|
 | LACC1 | 4.58e-02 *|
-| AC093525.8 | 1.98e-01 |
-| CSF2 | 1.98e-01 |
-| AC022098.1 | 1.98e-01 |
-| AC025198.1 | 1.98e-01 |
-| AC025580.2 | 1.98e-01 |
-| AC004241.5 | 1.98e-01 |
-| AL445235.1 | 1.98e-01 |
-| OR52N5 | 2.15e-01 |
-| HNRNPA1P9 | 2.88e-01 |
-| AL449283.1 | 3.03e-01 |
-| LINC02241 | 5.18e-01 |
-| AC138647.1 | 5.18e-01 |
-| HIGD2B | 5.18e-01 |
-| SGSM1 | 5.18e-01 |
-| H19 | 5.18e-01 |
-| CCR12P | 5.18e-01 |
-| ZMYND12 | 5.18e-01 |
+| CSF2 | 1.77e-01 |
+| HNRNPA1P9 | 1.77e-01 |
+| AL445235.1 | 1.77e-01 |
+| AC025580.2 | 1.77e-01 |
+| AC025198.1 | 1.77e-01 |
+| AC093525.8 | 1.77e-01 |
+| OR52N5 | 1.97e-01 |
+| RBMXL3 | 1.97e-01 |
+| AC004241.5 | 1.97e-01 |
+| AC138647.1 | 2.23e-01 |
+| AL449283.1 | 2.73e-01 |
+| AC130366.1 | 2.73e-01 |
+| AC063947.2 | 4.55e-01 |
+| H19 | 4.63e-01 |
+| SGSM1 | 4.63e-01 |
+| HIGD2B | 4.63e-01 |
+| ZMYND12 | 4.63e-01 |
 
 ## Preselected features vs predefined HCC gene set
   <img src="venns/c1_vs_hcc.png" width="600">
@@ -215,59 +211,57 @@ padj threshold was set as 0.05, but there were too few below it, so 20 features 
 
 | Feature | padj | HCC set | Fold 1 coef | Fold 2 coef | Fold 3 coef |
 |---------|------|---------|-------------|-------------|-------------|
-| AC135731.1 | 5.84e-04 * | No | +0.240 | +0.537 | −0.112 |
-| AL138889.1 | 5.84e-04 * | No | +0.222 | — | — |
-| AC004889.1 | 3.33e-02 * | No | −0.173 | — | −0.284 |
-| LINC00514 | 6.24e-02 | No | −0.260 | −0.225 | −0.209 |
-| AC092068.2 | 6.24e-02 | No | — | −0.202 | −0.592 |
-| AL160272.1 | 5.61e-02 | No | — | — | −0.178 |
-| INAFM2 | 5.61e-02 | No | — | −0.512 | — |
-| EGFL8 | 2.11e-01 | No | — | −0.520 | — |
-| AC025580.2 | 2.11e-01 | No | −0.461 | — | −0.665 |
-| AC005696.4 | 1.65e-01 | No | −0.081 | −0.082 | −0.615 |
-| AC006538.1 | 2.11e-01 | No | −0.238 | — | — |
-| AC016355.1 | 3.13e-01 | No | −0.366 | — | — |
-| AC127070.4 | 2.53e-01 | No | −0.336 | — | −0.340 |
-| PCSK6-AS1 | 2.92e-01 | No | −0.322 | −0.431 | — |
-| AC008395.1 | 3.29e-01 | No | — | −0.033 | −0.396 |
+| AC135731.1 | 5.84e-04 * | No | — | +0.036 | +0.701 |
+| AL138889.1 | 5.84e-04 * | No | — | — | +0.410 |
+| AC004889.1 | 3.33e-02 * | No | −0.284 | — | −0.240 |
+| CCDC26 | 3.93e-02 * | No | −0.035 | — | — |
+| INAFM2 | 4.67e-02 * | No | −0.267 | −0.550 | — |
+| AC092068.2 | 5.43e-02 | No | −0.184 | — | −0.173 |
+| LINC00514 | 5.46e-02 | No | −0.227 | — | −0.112 |
+| AC005696.4 | 1.54e-01 | No | −0.754 | — | −0.434 |
+| AC025580.2 | 2.11e-01 | No | −0.303 | −0.424 | −0.578 |
+| AC006538.1 | 2.11e-01 | No | — | −0.367 | −0.219 |
+| AC127070.4 | 2.53e-01 | No | −0.261 | — | −0.016 |
+| AL008638.3 | 3.46e-01 | No | −0.221 | — | — |
+| AC008395.1 | 3.46e-01 | No | — | −0.482 | −0.874 |
+| AC102953.2 | 3.83e-01 | No | — | −0.678 | −0.705 |
+| AL117328.2 | 1.07e-01 | No | — | — | −0.263 |
 
-Stable across all 3 folds: `AC135731.1` (padj < 0.05), `LINC00514`, `AC005696.4`. No feature is in the HCC predefined set.
+Stable across all 3 folds: `AC025580.2`. No feature is in the HCC predefined set.
 
 ### 2-year RFS — non-zero features per fold
 
 | Feature | padj | HCC set | Fold 1 coef | Fold 2 coef | Fold 3 coef |
 |---------|------|---------|-------------|-------------|-------------|
-| LACC1 | 4.58e-02 * | No | +1.480 | +0.130 | +0.456 |
-| AC093826.2 | 3.18e-02 * | No | −0.605 | −0.888 | −0.327 |
-| CAMK2N2 | 8.94e-03 * | No | — | +0.187 | — |
-| AC025580.2 | 1.98e-01 | No | −0.773 | −0.493 | −0.619 |
-| AL449283.1 | 3.03e-01 | No | +0.636 | +1.018 | +1.021 |
-| SGSM1 | 5.18e-01 | No | +0.687 | +0.804 | +0.734 |
-| AL445235.1 | 1.98e-01 | No | −0.322 | +0.018 | −0.867 |
-| H19 | 5.18e-01 | **Yes** | −0.227 | −0.667 | −0.284 |
-| ZMYND12 | 5.18e-01 | No | — | +0.969 | +0.507 |
-| AC004241.5 | 1.98e-01 | No | −0.263 | −0.266 | — |
-| CCR12P | 5.18e-01 | No | — | +0.590 | +0.247 |
-| AC093525.8 | 1.98e-01 | No | — | −0.426 | −0.294 |
-| AC138647.1 | 5.18e-01 | No | −0.247 | — | — |
-| AC022098.1 | 1.98e-01 | No | — | −0.166 | — |
-| LINC02241 | 5.18e-01 | No | — | — | +0.221 |
-| HNRNPA1P9 | 2.88e-01 | No | — | — | +0.198 |
-| HIGD2B | 5.18e-01 | No | — | — | −0.062 |
+| CAMK2N2 | 8.94e-03 * | No | — | — | +0.434 |
+| AC093826.2 | 3.18e-02 * | No | −0.806 | −0.204 | −0.664 |
+| LACC1 | 4.58e-02 * | No | +0.291 | +0.621 | +1.308 |
+| AC025580.2 | 1.77e-01 | No | −0.670 | −0.358 | −0.874 |
+| AL445235.1 | 1.77e-01 | No | — | −0.620 | −0.223 |
+| AC093525.8 | 1.77e-01 | No | — | −0.288 | −0.394 |
+| AC004241.5 | 1.97e-01 | No | −0.201 | −0.192 | — |
+| AC138647.1 | 2.23e-01 | No | −0.385 | — | — |
+| AL449283.1 | 2.73e-01 | No | +0.976 | +0.443 | +0.921 |
+| AC130366.1 | 2.73e-01 | No | — | +0.586 | +0.099 |
+| AC063947.2 | 4.55e-01 | No | +0.739 | +0.459 | — |
+| H19 | 4.63e-01 | **Yes** | — | −0.522 | −0.640 |
+| SGSM1 | 4.63e-01 | No | +1.473 | +0.657 | +0.283 |
+| ZMYND12 | 4.63e-01 | No | +0.417 | — | +0.026 |
+| RBMXL3 | 1.97e-01 | No | — | −0.169 | — |
 
-Stable across all 3 folds: `LACC1`, `AC093826.2`, `AC025580.2`, `AL449283.1`, `SGSM1`, `AL445235.1`, `H19`. only `LACC1` and `AC093826.2` pass padj < 0.05. `H19` (the is in predefined HCC set) is non-zero in all folds despite padj = 0.518.
+Stable across all 3 folds: `LACC1`, `AC093826.2`, `AC025580.2`, `AL449283.1`, `SGSM1`. Only `LACC1` and `AC093826.2` pass padj < 0.05. `H19` (in predefined HCC set) appears in folds 2 and 3 despite padj = 0.463.
 
 # 6. Ensemble (radiomics + RNA-seq)
 
-Average of LR C=1 predicted probabilities from arterial radiomics and RNA-seq (both before-CV, 2-year RFS). Source: `notebooks/baselines/ensemble_baseline_rfs.ipynb`.
+Average of predicted probabilities from the best before-CV model per modality (2-year RFS): `RF_max_depth=2_min_samples_leaf=10` for radiomics, `LR_C=1` for RNA-seq. Source: `notebooks/baselines/ensemble_baseline_rfs.ipynb`.
 
-| Fold | Ensemble | Radiomics | RNA-seq |
-|------|----------|-----------|---------|
-| 1 | 0.912 | 0.825 | 0.913 |
-| 2 | 0.926 | 0.901 | 0.840 |
-| 3 | 0.815 | 0.667 | 0.790 |
-| **mean** | **0.884** | 0.798 | 0.847 |
+| Fold | Ensemble | Radiomics (RF) | RNA-seq (LR) |
+|------|----------|----------------|--------------|
+| 1 | 0.812 | 0.688 | 0.750 |
+| 2 | 0.963 | 0.802 | 0.988 |
+| 3 | 0.901 | 0.852 | 0.864 |
+| **mean** | **0.892** | 0.781 | 0.867 |
 
-The ensemble outperforms both single modalities in mean AUC. Improvement is most pronounced in fold 3, where both individual modalities are weakest.
+The ensemble outperforms both individual modalities in mean AUC.
 
 <img src="ensemble_2y_lr/ensemble_2y_lr_auc.png" width="500">
