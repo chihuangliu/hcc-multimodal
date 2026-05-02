@@ -217,6 +217,8 @@ def run_cv_experiment(
     selector_first: bool = False,
     rna_cpm: bool = False,
     return_proba: bool = False,
+    X_confound: "pd.DataFrame | None" = None,
+    confound_x_columns: "dict | None" = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run stratified k-fold CV for LR and RF with PCA preprocessing.
 
@@ -318,6 +320,17 @@ def run_cv_experiment(
         else:
             estimator = pipe
 
+        # Confounders are concatenated after the feature pipeline (preprocessor +
+        # optional selector) inside each fold, so they never enter the selector
+        # while still being available to the model. Works for both before-CV and
+        # in-CV selection paths.
+        use_confound_path = X_confound is not None
+        if use_confound_path:
+            feat_steps_no_model = [(n, e) for n, e in steps if n != "model"]
+            feat_pipe_template = Pipeline(feat_steps_no_model)
+            conf_pipe_template = build_preprocessor(confound_x_columns or {})
+            X_confound_aligned = X_confound.loc[X_clean.index]
+
         fold_aucs_train, fold_aucs_test, fold_accs_test = [], [], []
         for fold_i, (train_idx, test_idx) in enumerate(outer_cv.split(X_clean, y_clean)):
             X_tr = X_clean.iloc[train_idx]
@@ -325,14 +338,31 @@ def run_cv_experiment(
             y_tr = y_clean.iloc[train_idx]
             y_te = y_clean.iloc[test_idx]
 
-            est = clone(estimator)
-            est.fit(X_tr, y_tr)
+            if use_confound_path:
+                fp = clone(feat_pipe_template)
+                X_tr_feat = fp.fit_transform(X_tr, y_tr)
+                X_te_feat = fp.transform(X_te)
 
-            te_proba = est.predict_proba(X_te)[:, 1]
-            tr_proba = est.predict_proba(X_tr)[:, 1]
+                conf_tr = X_confound_aligned.iloc[train_idx]
+                conf_te = X_confound_aligned.iloc[test_idx]
+                cp = clone(conf_pipe_template)
+                X_tr_combined = np.hstack([X_tr_feat, cp.fit_transform(conf_tr)])
+                X_te_combined = np.hstack([X_te_feat, cp.transform(conf_te)])
+
+                est = clone(model)
+                est.fit(X_tr_combined, y_tr)
+                te_proba = est.predict_proba(X_te_combined)[:, 1]
+                tr_proba = est.predict_proba(X_tr_combined)[:, 1]
+                test_acc = accuracy_score(y_te, est.predict(X_te_combined))
+            else:
+                est = clone(estimator)
+                est.fit(X_tr, y_tr)
+                te_proba = est.predict_proba(X_te)[:, 1]
+                tr_proba = est.predict_proba(X_tr)[:, 1]
+                test_acc = accuracy_score(y_te, est.predict(X_te))
+
             train_auc = roc_auc_score(y_tr, tr_proba)
             test_auc = roc_auc_score(y_te, te_proba)
-            test_acc = accuracy_score(y_te, est.predict(X_te))
 
             fold_aucs_train.append(train_auc)
             fold_aucs_test.append(test_auc)
@@ -340,7 +370,7 @@ def run_cv_experiment(
 
             best_params = (
                 {k.replace("model__", ""): v for k, v in est.best_params_.items()}
-                if param_grids is not None
+                if param_grids is not None and not use_confound_path
                 else {}
             )
             sel = est.named_steps.get("feature_selection") if hasattr(est, "named_steps") else None
