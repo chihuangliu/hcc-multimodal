@@ -262,15 +262,16 @@ Stable across all 3 folds: `LACC1`, `AC093826.2`, `AC025580.2`, `AL449283.1`, `S
 
 `CONFOUNDING_VARS = ["Age", "Sex"]`
 Age and Sex are concatenated to the selected features **after**. Source: `notebooks/baselines/radiomic_arterial_baseline_rfs.ipynb`, `notebooks/baselines/rna_baseline_rfs.ipynb`
-(`CONFOUNDING_VARS = ["Age", "Sex"]`, `SELECTOR_BEFORE_CV = True`).
+(`CONFOUNDING_VARS = ["Age", "Sex"]`, `SELECTOR_BEFORE_CV = True` for radiomics and all-gene RNA-seq; `SELECTOR_BEFORE_CV = False` for predefined gene set).
 
 | Modality | Selector | 1y LR | 1y RF | 2y LR | 2y RF |
 |----------|----------|-------|-------|-------|-------|
-| Arterial radiomics | SelectKBest F-score (k=100) | 0.768 ± 0.089 | **0.846 ± 0.073** | 0.739 ± 0.117 | 0.776 ± 0.136 |
-| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.646 ± 0.083 | 0.754 ± 0.036 | **0.876 ± 0.087** | 0.793 ± 0.138 |
+| Arterial radiomics | SelectKBest F-score (k=100), before CV | 0.768 ± 0.089 | **0.846 ± 0.073** | 0.739 ± 0.117 | 0.776 ± 0.136 |
+| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features), before CV | 0.646 ± 0.083 | 0.754 ± 0.036 | **0.876 ± 0.087** | 0.793 ± 0.138 |
+| RNA-seq (predefined HCC genes) | DESeq2 (`padj < 0.05`, min 20 features), in CV | 0.512 ± 0.143 | 0.588 ± 0.058 | 0.504 ± 0.065 | 0.591 ± 0.026 |
 
 The best radiomic RF improves slightly (1y: 0.821 → 0.846; 2y: 0.781 → 0.776).
-RNA-seq 2y LR also improves (0.867 → 0.876). But Age/Sex do not consistently add predictive value across both modalities and horizons.
+RNA-seq 2y LR also improves (0.867 → 0.876). Predefined HCC gene set + Age/Sex performs poorly across all horizons (best 2y RF: 0.591), consistent with the no-confounder result in §4.
 
 ## Plot AUC in each fold
 
@@ -289,6 +290,13 @@ Circles = per-fold AUC, diamonds = mean.
 |---|---|---|
 | **LR** | ![LR 1y](deseq_p0.05_before_cv_all_genes_age_sex/rfs_1y_lr.png) | ![LR 2y](deseq_p0.05_before_cv_all_genes_age_sex/rfs_2y_lr.png) |
 | **RF** | ![RF 1y](deseq_p0.05_before_cv_all_genes_age_sex/rfs_1y_rf.png) | ![RF 2y](deseq_p0.05_before_cv_all_genes_age_sex/rfs_2y_rf.png) |
+
+### RNA-seq — DESeq2, predefined HCC genes, in CV + Age/Sex
+
+| | 1-year RFS | 2-year RFS |
+|---|---|---|
+| **LR** | ![LR 1y](deseq_p0.05_in_cv_predefined_age_sex/rfs_1y_lr.png) | ![LR 2y](deseq_p0.05_in_cv_predefined_age_sex/rfs_2y_lr.png) |
+| **RF** | ![RF 1y](deseq_p0.05_in_cv_predefined_age_sex/rfs_1y_rf.png) | ![RF 2y](deseq_p0.05_in_cv_predefined_age_sex/rfs_2y_rf.png) |
 
 # 7. Ensemble (radiomics + RNA-seq)
 
