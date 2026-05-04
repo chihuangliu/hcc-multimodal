@@ -40,15 +40,15 @@ source: `notebooks/baselines/radiomic_arterial_baseline_rfs.ipynb`, `notebooks/b
 
 | Modality | Selector | 1y LR | 1y RF | 2y LR | 2y RF |
 |----------|----------|-------|-------|-------|-------|
-| Arterial radiomics | SelectKBest F-score (k=100) | 0.618 | **0.718** | 0.496 | 0.569 |
-| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.348 | 0.492 | 0.516 | **0.590** |
+| Arterial radiomics | SelectKBest F-score (k=100) | 0.618 ± 0.098 | **0.718 ± 0.070** | 0.496 ± 0.081 | 0.569 ± 0.133 |
+| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.348 ± 0.082 | 0.492 ± 0.089 | 0.516 ± 0.136 | **0.590 ± 0.191** |
 
 ## Feature Selection before cross-validation
 
 | Modality | Selector | 1y LR | 1y RF | 2y LR | 2y RF |
 |----------|----------|-------|-------|-------|-------|
-| Arterial radiomics | SelectKBest F-score (k=100) | 0.780 | **0.821** | 0.752 | 0.781 |
-| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.675 | 0.779 | **0.867** | 0.805 |
+| Arterial radiomics | SelectKBest F-score (k=100) | 0.780 ± 0.103 | **0.821 ± 0.068** | 0.752 ± 0.092 | 0.781 ± 0.069 |
+| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.675 ± 0.059 | 0.779 ± 0.083 | **0.867 ± 0.097** | 0.805 ± 0.139 |
 
 ## Plot AUC in each fold
 
@@ -152,8 +152,8 @@ Best mean test AUC for `before-CV, predefined genes` and  `in-CV, predefined gen
 
 | Config | Selector placement | 1y LR | 1y RF | 2y LR | 2y RF |
 |--------|--------------------|-------|-------|-------|-------|
-| before_cv, predefined | before CV | 0.485 | 0.596 | 0.500 | **0.591** |
-| in_cv, predefined | inside CV | 0.512 | 0.596 | 0.512 | **0.628** |
+| before_cv, predefined | before CV | 0.485 ± 0.032 | 0.596 ± 0.109 | 0.500 ± 0.018 | **0.591 ± 0.058** |
+| in_cv, predefined | inside CV | 0.512 ± 0.054 | 0.596 ± 0.109 | 0.512 ± 0.088 | **0.628 ± 0.045** |
 
 # 5. Genes feature selection analysis
 ## Pre CV selected features 
@@ -266,8 +266,8 @@ Age and Sex are concatenated to the selected features **after**. Source: `notebo
 
 | Modality | Selector | 1y LR | 1y RF | 2y LR | 2y RF |
 |----------|----------|-------|-------|-------|-------|
-| Arterial radiomics | SelectKBest F-score (k=100) | 0.768 | **0.846** | 0.739 | 0.776 |
-| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.646 | 0.754 | **0.876** | 0.793 |
+| Arterial radiomics | SelectKBest F-score (k=100) | 0.768 ± 0.089 | **0.846 ± 0.073** | 0.739 ± 0.117 | 0.776 ± 0.136 |
+| RNA-seq | DESeq2 (`padj < 0.05`, min 20 features) | 0.646 ± 0.083 | 0.754 ± 0.036 | **0.876 ± 0.087** | 0.793 ± 0.138 |
 
 The best radiomic RF improves slightly (1y: 0.821 → 0.846; 2y: 0.781 → 0.776).
 RNA-seq 2y LR also improves (0.867 → 0.876). But Age/Sex do not consistently add predictive value across both modalities and horizons.
@@ -301,7 +301,7 @@ Average of predicted probabilities from the best before-CV model per modality (2
 | 1 | 0.812 | 0.688 | 0.750 |
 | 2 | 0.963 | 0.802 | 0.988 |
 | 3 | 0.901 | 0.852 | 0.864 |
-| **mean** | **0.892** | 0.781 | 0.867 |
+| **mean ± std** | **0.892 ± 0.062** | 0.781 ± 0.069 | 0.867 ± 0.097 |
 
 The ensemble outperforms both individual modalities in mean AUC.
 
@@ -316,7 +316,7 @@ Same models and selectors; Age and Sex concatenated to selected features after s
 | 1 | 0.800 | 0.588 | 0.775 |
 | 2 | 0.963 | 0.840 | 0.988 |
 | 3 | 0.914 | 0.901 | 0.864 |
-| **mean** | **0.892** | 0.776 | 0.876 |
+| **mean ± std** | **0.892 ± 0.068** | 0.776 ± 0.136 | 0.876 ± 0.087 |
 
 Mean ensemble AUC is unchanged (0.892). Adding Age/Sex shifts the radiomics RF from 0.781 → 0.776 (−0.005) and RNA-seq LR from 0.867 → 0.876 (+0.009); the two changes cancel at the ensemble level.
 
