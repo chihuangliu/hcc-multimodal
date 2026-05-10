@@ -17,7 +17,7 @@ _GENE_NAME_MAP: dict[str, str] = {
     "CCN1": "CYR61",
     "CCN2": "CTGF",
     "CILK1": "ICK",
-    "DYNC2I2": "WDR60",
+    "DYNC2I2": "WDR34",
     "EPRS1": "EPRS",
     "G6PC1": "G6PC",
     "GBA1": "GBA",
@@ -32,7 +32,7 @@ _GENE_NAME_MAP: dict[str, str] = {
     "HJV": "HFE2",
     "IARS1": "IARS",
     "ILRUN": "C6orf106",
-    "ITPRID2": "PPIP5K2",
+    "ITPRID2": "SSFA2",
     "MACROH2A2": "H2AFY2",
     "MMUT": "MUT",
     "NARS1": "NARS",
@@ -42,7 +42,6 @@ _GENE_NAME_MAP: dict[str, str] = {
     "NTAQ1": "NTAN1",
     "PHB1": "PHB",
     "PLAAT3": "PLA2G16",
-    "RSC1A1": "SLC7A9",
 }
 
 
