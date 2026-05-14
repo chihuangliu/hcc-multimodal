@@ -12,7 +12,7 @@
 
 # 1. Task
 
-A contrastive model (`997dc829`) is pre-trained to align arterial-phase MRI single-axes slices (ViT-B/32 → 128-dim) and RNA-seq expression (3-layer MLP → 128-dim) per patient using NT-Xent loss with outcome regularisation. The resulting 256-dim joint embeddings are then evaluated in a 3-fold CV on 2-year RFS prediction, comparing four feature strategies.
+Two contrastive models are pre-trained to align arterial-phase MRI single-axes slices (ViT-B/32 → 128-dim) and RNA-seq expression (3-layer MLP → 128-dim) per patient using NT-Xent loss, varying the outcome regularisation weight λ: `997dc829` (λ=0.1) and `9d48c320` (λ=0). The resulting 256-dim joint embeddings are then evaluated in a 3-fold CV on 2-year RFS prediction, comparing four feature strategies.
 
 | Task | Feature matrix | Dim |
 |------|---------------|-----|
@@ -22,15 +22,21 @@ A contrastive model (`997dc829`) is pre-trained to align arterial-phase MRI sing
 | ensemble | Embeddings model + radiomics model, probabilities averaged | — |
 
 Each task is run with SelectKBest placed **in-CV** and **before-CV**.  
-Results: `results/multimodal_prediction/<task>_997dc829_rfs_2year_{selector}_k100_bc0d6e7/`
+Results:
+- λ=0.1: `results/multimodal_prediction/<task>_997dc829_rfs_2year_{selector}_k100_bc0d6e7/`
+- λ=0: `results/multimodal_prediction/<task>_9d48c320_rfs_2year_{selector}_k100_eb63546/`
 
 ---
 
 # 2. Key findings
 
-- **Pre-training:** train loss 3.15 → 1.39, val loss 1.65 → 1.47.
-- **In-CV:** embeddings RF (0.706 ± 0.093) outperforms radiomics RF baseline (0.569 ± 0.133).
-- **Before-CV** Concatenating (RF,0.873 ± 0.083) and ensemble (LR, 0.859 ± 0.130) surpass the radiomics baseline.
+Best AUC across all tasks and models:
+
+| | In-CV | Before-CV |
+|---|---|---|
+| Radiomics baseline | RF: 0.569 ± 0.133 | RF: 0.781 ± 0.069 |
+| λ=0.1 | Embeddings, RF: 0.706 ± 0.093 | Concat, RF: 0.873 ± 0.083 |
+| λ=0   | Embeddings, RF: 0.752 ± 0.111 | Concat, RF: 0.867 ± 0.076 |
 
 ---
 
@@ -64,26 +70,26 @@ $$\mathcal{L} = \mathcal{L}_{\text{NT-Xent}} + \lambda \cdot \mathcal{L}_{\text{
 
   Summed over image and gene embeddings separately.
 
-**Training hyperparameters (run `997dc829`)**
+**Training hyperparameters** (all other parameters shared across runs)
 
-| Parameter | Value |
-|-----------|-------|
-| Backbone | ViT-B/32 (unfrozen) |
-| Embed dim | 128 per modality |
-| Gene hidden dim | 256 |
-| Temperature τ | 0.07 |
-| λ (reg weight) | 0.1 |
-| Slices per patient | 10 (sagittal axis=0) |
-| Image size | 224 × 224 |
-| Epochs | 50 |
-| Batch size | 32 |
-| Optimiser | AdamW (lr=1e-4, wd=1e-4) |
-| LR schedule | Cosine annealing (T_max=50) |
-| Val split | 10% stratified hold-out |
-| Checkpoint | Best validation loss |
-| Seed | 42 |
-
-Training loss: 3.15 → 1.39 (train), 1.65 → 1.47 (val) over 50 epochs.
+| Parameter | `997dc829` (λ=0.1) | `9d48c320` (λ=0) |
+|-----------|-------------------|-----------------|
+| Backbone | ViT-B/32 (unfrozen) | ViT-B/32 (unfrozen) |
+| Embed dim | 128 per modality | 128 per modality |
+| Gene hidden dim | 256 | 256 |
+| Temperature τ | 0.07 | 0.07 |
+| λ (reg weight) | 0.1 | 0.0 |
+| Slices per patient | 10 (sagittal axis=0) | 10 (sagittal axis=0) |
+| Image size | 224 × 224 | 224 × 224 |
+| Epochs | 50 | 50 |
+| Batch size | 32 | 32 |
+| Optimiser | AdamW (lr=1e-4, wd=1e-4) | AdamW (lr=1e-4, wd=1e-4) |
+| LR schedule | Cosine annealing (T_max=50) | Cosine annealing (T_max=50) |
+| Val split | 10% stratified hold-out | 10% stratified hold-out |
+| Checkpoint | Best validation loss | Best validation loss |
+| Seed | 42 | 42 |
+| Train loss (final) | 1.39 | 2.90 |
+| Val loss (best) | 1.47 | 4.00 (epoch 13) |
 
 ---
 
@@ -127,12 +133,16 @@ For the standalone **radiomics** task, a fixed grid is evaluated: LR (C ∈ {0.0
 
 SelectKBest fitted on the training fold only. ROC-AUC mean ± std across 3 folds.
 
-| Task | LR AUC ± std | RF AUC ± std |
-|------|-------------|-------------|
-| Radiomics | 0.496 ± 0.081 | 0.569 ± 0.133 |
-| Embeddings | 0.673 ± 0.149 | **0.706 ± 0.093** |
-| Concat | 0.615 ± 0.146 | 0.609 ± 0.170 |
-| Ensemble | 0.594 ± 0.104 | 0.605 ± 0.111 |
+| Task | Model | λ=0.1 AUC ± std | λ=0 AUC ± std |
+|------|-------|----------------|--------------|
+| Radiomics | LR | 0.496 ± 0.081 | 0.496 ± 0.081 |
+| Radiomics | RF | 0.569 ± 0.133 | 0.569 ± 0.133 |
+| Embeddings | LR | 0.673 ± 0.149 | 0.586 ± 0.144 |
+| Embeddings | RF | **0.706 ± 0.093** | **0.752 ± 0.111** |
+| Concat | LR | 0.615 ± 0.146 | 0.508 ± 0.079 |
+| Concat | RF | 0.609 ± 0.170 | 0.545 ± 0.133 |
+| Ensemble | LR | 0.594 ± 0.104 | 0.599 ± 0.109 |
+| Ensemble | RF | 0.605 ± 0.111 | 0.601 ± 0.108 |
 
 
 ---
@@ -141,10 +151,14 @@ SelectKBest fitted on the training fold only. ROC-AUC mean ± std across 3 folds
 
 SelectKBest fitted on all 54 patients before splitting.
 
-| Task | LR AUC ± std | RF AUC ± std |
-|------|-------------|-------------|
-| Radiomics | 0.752 ± 0.092 | 0.781 ± 0.069 |
-| Embeddings | 0.627 ± 0.139 | 0.696 ± 0.067 |
-| Concat | 0.834 ± 0.083 | **0.873 ± 0.083** |
-| Ensemble | **0.859 ± 0.130** | 0.840 ± 0.085 |
+| Task | Model | λ=0.1 AUC ± std | λ=0 AUC ± std |
+|------|-------|----------------|--------------|
+| Radiomics | LR | 0.752 ± 0.092 | 0.752 ± 0.092 |
+| Radiomics | RF | 0.781 ± 0.069 | 0.781 ± 0.069 |
+| Embeddings | LR | 0.627 ± 0.139 | 0.652 ± 0.139 |
+| Embeddings | RF | 0.696 ± 0.067 | 0.690 ± 0.028 |
+| Concat | LR | 0.834 ± 0.083 | 0.797 ± 0.107 |
+| Concat | RF | **0.873 ± 0.083** | **0.867 ± 0.076** |
+| Ensemble | LR | **0.859 ± 0.130** | 0.751 ± 0.163 |
+| Ensemble | RF | 0.840 ± 0.085 | 0.845 ± 0.081 |
 
