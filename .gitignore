@@ -2,3 +2,5 @@ data/*
 **__pycache__**
 .claude
 .vscode
+*.DS_Store
+*.pt

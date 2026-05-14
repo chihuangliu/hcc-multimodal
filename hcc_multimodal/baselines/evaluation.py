@@ -158,7 +158,8 @@ def apply_selector_before_cv(
         If given, saves a CSV of selected feature names to this path.
     """
     y_mask = ~y.isna()
-    X_fit, y_fit = X[y_mask], y[y_mask]
+    y_fit = y[y_mask]
+    X_fit = X.loc[y_fit.index]
     sel_pre = clone(selector)
 
     if selector_first:
@@ -285,7 +286,8 @@ def run_cv_experiment(
     )
 
     mask = ~y.isna()
-    X_clean, y_clean = X[mask], y[mask]
+    y_clean = y[mask]
+    X_clean = X.loc[y_clean.index]
     print(
         f"[{label}]  n={len(y_clean)}"
         f"  positives={int(y_clean.sum())}"
