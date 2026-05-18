@@ -65,6 +65,7 @@ def train(args: argparse.Namespace) -> None:
         outcome_col=args.outcome_col,
         img_size=args.img_size,
         transform=augment,
+        mri_type=args.mri_type,
     )
 
     labels = [int(dataset.outcomes[pid]) for pid, _, _ in dataset._index]
@@ -204,6 +205,12 @@ def _parse_args() -> argparse.Namespace:
         "--outcome_col", default="rfs_2year", choices=["rfs_1year", "rfs_2year"]
     )
     p.add_argument("--img_size", type=int, default=224)
+    p.add_argument(
+        "--mri_type",
+        default="preprocessed",
+        choices=["preprocessed", "raw"],
+        help="preprocessed=Radiomics/arterial (intensity-normed); raw=Resections_with_rna (resampled to 1×1×3 mm).",
+    )
     p.add_argument("--val_split", type=float, default=0.1)
 
     p.add_argument("--epochs", type=int, default=50)

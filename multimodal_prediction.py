@@ -34,7 +34,9 @@ from hcc_multimodal.baselines.transforms import DataType
 from hcc_multimodal.contrastive.config import GENE_SET
 from hcc_multimodal.contrastive.data import (
     MRIGeneDataset,
-    _MRI_ROOT,
+    MRIType,
+    _MRI_ROOT_PREPROCESSED,
+    _MRI_ROOT_RAW,
     _CLINICAL_PATH,
     _load_gene_matrix,
     _load_outcomes,
@@ -92,7 +94,9 @@ def extract_embeddings(
     """Return (patients × 2*embed_dim) DataFrame of mean-pooled img + gene embeddings."""
     _, weights, _ = BACKBONES[meta["model"]]
 
-    mri_patients = {int(p.name) for p in _MRI_ROOT.iterdir() if p.is_dir()}
+    mri_type = MRIType(meta.get("mri_type", "preprocessed"))
+    mri_root = _MRI_ROOT_PREPROCESSED if mri_type == MRIType.PREPROCESSED else _MRI_ROOT_RAW
+    mri_patients = {int(p.name) for p in mri_root.iterdir() if p.is_dir()}
     valid = sorted(mri_patients & set(gene_matrix.index) & set(outcomes.index))
 
     axes_raw = meta["axes"]
@@ -106,6 +110,7 @@ def extract_embeddings(
         axes=axes,
         img_size=meta["img_size"],
         transform=weights.transforms(),
+        mri_type=mri_type,
     )
     loader = DataLoader(
         dataset, batch_size=batch_size, shuffle=False,
@@ -290,7 +295,11 @@ def run(args: argparse.Namespace) -> None:
     if args.task == "radiomics":
         dir_name = f"radiomics_{args.outcome}_{selector_tag}_k{args.k}_{git_hash}"
     else:
-        dir_name = f"{args.task}_{args.model_id}_{args.outcome}_{selector_tag}_k{args.k}_{git_hash}"
+        model_meta = json.loads(
+            (Path(hcc_multimodal.__file__).parent.parent / "training" / "contrastive" / args.model_id / "metadata.json").read_text()
+        )
+        mri_tag = model_meta.get("mri_type", "preprocessed")
+        dir_name = f"{args.task}_{args.model_id}_{args.outcome}_{selector_tag}_k{args.k}_{mri_tag}_{git_hash}"
 
     output_dir = _RESULTS_ROOT / dir_name
     output_dir.mkdir(parents=True, exist_ok=True)

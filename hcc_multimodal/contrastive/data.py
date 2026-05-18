@@ -2,6 +2,7 @@
 
 from importlib.resources import files
 from pathlib import Path
+from enum import StrEnum
 from typing import Callable
 
 import nibabel as nib
@@ -15,11 +16,17 @@ import hcc_multimodal
 from hcc_multimodal.baselines.data import add_rfs_columns
 from hcc_multimodal.baselines.transforms import CPMTransformer
 from hcc_multimodal.contrastive.config import GENE_SET
+from hcc_multimodal.contrastive.transform import resample_to_spacing, resampled_shape
 
 _DATA_ROOT = Path(files(hcc_multimodal).joinpath("")).parent / "data"
 _RNA_SEQ_PATH = _DATA_ROOT / "RNA_seq" / "Matrix_output_radiology_only.csv"
 _CLINICAL_PATH = _DATA_ROOT / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-_MRI_ROOT = _DATA_ROOT / "Resection" / "Images" / "Radiomics" / "arterial"
+_MRI_ROOT_PREPROCESSED = _DATA_ROOT / "Resection" / "Images" / "Radiomics" / "arterial"
+_MRI_ROOT_RAW = _DATA_ROOT / "Resection" / "Images" / "Resections_with_rna"
+
+class MRIType(StrEnum):
+    PREPROCESSED = "preprocessed"
+    RAW = "raw"
 
 
 def _load_gene_matrix(genes: set[str]) -> pd.DataFrame:
@@ -70,6 +77,9 @@ class MRIGeneDataset(Dataset):
         transform: Transforms applied after resize + 3-channel conversion.
             If None, no normalisation is applied — caller is responsible for
             providing appropriate normalisation for their backbone.
+        mri_type: "preprocessed" uses Radiomics/arterial (intensity-normalised,
+            already at 1×1×3 mm); "raw" uses Resections_with_rna and resamples
+            to 1×1×3 mm on load.
     """
 
     def __init__(
@@ -81,18 +91,21 @@ class MRIGeneDataset(Dataset):
         axes: list[int] | None = None,
         img_size: int = 224,
         transform: Callable | None = None,
+        mri_type: MRIType = MRIType.PREPROCESSED,
     ):
         self.gene_matrix = gene_matrix
         self.outcomes = outcomes
         self.resize = transforms.Resize((img_size, img_size), antialias=True)
         self.transform = transform
+        self.mri_type = MRIType(mri_type)
 
         _axes = axes if axes is not None else [0, 1, 2]
 
         # Build flat index: (patient_id, axis, slice_idx)
         self._index: list[tuple[int, int, int]] = []
         for pid in sorted(set(patient_ids)):
-            shape = nib.load(_mri_path(pid)).shape   # header only, no data loaded
+            img = nib.load(_mri_path(pid, mri_type))   # header only, no data loaded
+            shape = resampled_shape(img) if mri_type == MRIType.RAW else img.shape
             for axis in _axes:
                 for i in _sample_indices(shape[axis], n_per_axis):
                     self._index.append((pid, axis, i))
@@ -103,7 +116,8 @@ class MRIGeneDataset(Dataset):
     def __getitem__(self, i: int) -> tuple[torch.Tensor, torch.Tensor, int, int]:
         pid, axis, slice_idx = self._index[i]
 
-        vol = np.array(nib.load(_mri_path(pid)).dataobj)
+        img = nib.load(_mri_path(pid, self.mri_type))
+        vol = resample_to_spacing(img) if self.mri_type == MRIType.RAW else np.array(img.dataobj)
         s = np.take(vol, slice_idx, axis=axis)       # (H, W) regardless of axis
 
         s_tensor = torch.from_numpy(_normalize_slice(s)).unsqueeze(0)   # (1, H, W)
@@ -115,8 +129,10 @@ class MRIGeneDataset(Dataset):
         return s_tensor, gene_vec, int(self.outcomes[pid]), pid
 
 
-def _mri_path(patient_id: int) -> Path:
-    return _MRI_ROOT / str(patient_id) / f"{patient_id}.nii.gz"
+def _mri_path(patient_id: int, mri_type: MRIType = MRIType.PREPROCESSED) -> Path:
+    if mri_type == MRIType.PREPROCESSED:
+        return _MRI_ROOT_PREPROCESSED / str(patient_id) / f"{patient_id}.nii.gz"
+    return _MRI_ROOT_RAW / str(patient_id) / "MRI_liver_arterial.nii.gz"
 
 
 def build_dataset(
@@ -126,6 +142,7 @@ def build_dataset(
     img_size: int = 224,
     transform: Callable | None = None,
     genes: set[str] | None = None,
+    mri_type: MRIType = MRIType.PREPROCESSED,
 ) -> MRIGeneDataset:
     """Build dataset from patients with MRI, RNA-seq, and a valid outcome.
 
@@ -141,6 +158,8 @@ def build_dataset(
         transform: Normalisation/augmentation to apply after resize + 3-channel
             conversion. None means no normalisation.
         genes: Gene set to use; defaults to GENE_SET from config
+        mri_type: "preprocessed" (Radiomics/arterial) or "raw"
+            (Resections_with_rna, resampled to 1×1×3 mm on load)
 
     Returns:
         MRIGeneDataset over the valid patient intersection
@@ -149,7 +168,8 @@ def build_dataset(
     gene_matrix = _load_gene_matrix(genes)
     outcomes = _load_outcomes(outcome_col)
 
-    mri_patients = {int(p.name) for p in _MRI_ROOT.iterdir() if p.is_dir()}
+    mri_root = _MRI_ROOT_PREPROCESSED if mri_type == MRIType.PREPROCESSED else _MRI_ROOT_RAW
+    mri_patients = {int(p.name) for p in mri_root.iterdir() if p.is_dir()}
     valid = sorted(mri_patients & set(gene_matrix.index) & set(outcomes.index))
 
     return MRIGeneDataset(
@@ -160,4 +180,5 @@ def build_dataset(
         axes=axes,
         img_size=img_size,
         transform=transform,
+        mri_type=mri_type,
     )
