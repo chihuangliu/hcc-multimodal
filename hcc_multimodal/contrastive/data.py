@@ -23,6 +23,7 @@ _RNA_SEQ_PATH = _DATA_ROOT / "RNA_seq" / "Matrix_output_radiology_only.csv"
 _CLINICAL_PATH = _DATA_ROOT / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
 _MRI_ROOT_PREPROCESSED = _DATA_ROOT / "Resection" / "Images" / "Radiomics" / "arterial"
 _MRI_ROOT_RAW = _DATA_ROOT / "Resection" / "Images" / "Resections_with_rna"
+_MRI_ROOT_RAW_CACHE = _DATA_ROOT / "mri_resampled"
 
 class MRIType(StrEnum):
     PREPROCESSED = "preprocessed"
@@ -104,8 +105,10 @@ class MRIGeneDataset(Dataset):
         # Build flat index: (patient_id, axis, slice_idx)
         self._index: list[tuple[int, int, int]] = []
         for pid in sorted(set(patient_ids)):
-            img = nib.load(_mri_path(pid, mri_type))   # header only, no data loaded
-            shape = resampled_shape(img) if mri_type == MRIType.RAW else img.shape
+            path = _mri_path(pid, mri_type)
+            img = nib.load(path)   # header only, no data loaded
+            needs_resample = mri_type == MRIType.RAW and not str(path).startswith(str(_MRI_ROOT_RAW_CACHE))
+            shape = resampled_shape(img) if needs_resample else img.shape
             for axis in _axes:
                 for i in _sample_indices(shape[axis], n_per_axis):
                     self._index.append((pid, axis, i))
@@ -116,8 +119,10 @@ class MRIGeneDataset(Dataset):
     def __getitem__(self, i: int) -> tuple[torch.Tensor, torch.Tensor, int, int]:
         pid, axis, slice_idx = self._index[i]
 
-        img = nib.load(_mri_path(pid, self.mri_type))
-        vol = resample_to_spacing(img) if self.mri_type == MRIType.RAW else np.array(img.dataobj)
+        path = _mri_path(pid, self.mri_type)
+        img = nib.load(path)
+        needs_resample = self.mri_type == MRIType.RAW and not str(path).startswith(str(_MRI_ROOT_RAW_CACHE))
+        vol = resample_to_spacing(img) if needs_resample else np.array(img.dataobj)
         s = np.take(vol, slice_idx, axis=axis)       # (H, W) regardless of axis
 
         s_tensor = torch.from_numpy(_normalize_slice(s)).unsqueeze(0)   # (1, H, W)
@@ -132,6 +137,9 @@ class MRIGeneDataset(Dataset):
 def _mri_path(patient_id: int, mri_type: MRIType = MRIType.PREPROCESSED) -> Path:
     if mri_type == MRIType.PREPROCESSED:
         return _MRI_ROOT_PREPROCESSED / str(patient_id) / f"{patient_id}.nii.gz"
+    cached = _MRI_ROOT_RAW_CACHE / str(patient_id) / "MRI_liver_arterial.nii.gz"
+    if cached.exists():
+        return cached
     return _MRI_ROOT_RAW / str(patient_id) / "MRI_liver_arterial.nii.gz"
 
 

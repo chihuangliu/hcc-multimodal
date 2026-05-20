@@ -31,7 +31,17 @@ from hcc_multimodal.baselines.config import MODELS, MODELS_LR, MODELS_RF, RANDOM
 from hcc_multimodal.baselines.data import add_rfs_columns
 from hcc_multimodal.baselines.evaluation import apply_selector_before_cv, run_cv_experiment
 from hcc_multimodal.baselines.transforms import DataType
-from hcc_multimodal.contrastive.config import GENE_SET
+from hcc_multimodal.contrastive.config import (
+    GENE_SET,
+    PREDEFINED_HCC_2Y_CV_GENES,
+    RNA_2Y_BEFORE_CV_GENES,
+)
+
+_GENE_SETS = {
+    "all": GENE_SET,
+    "predefined_2y_cv": PREDEFINED_HCC_2Y_CV_GENES,
+    "2y_before_cv": RNA_2Y_BEFORE_CV_GENES,
+}
 from hcc_multimodal.contrastive.data import (
     MRIGeneDataset,
     MRIType,
@@ -336,7 +346,7 @@ def run(args: argparse.Namespace) -> None:
         model_path = _TRAINING_ROOT / args.model_id / "best_model.pt"
         meta = json.loads((model_path.parent / "metadata.json").read_text())
 
-        gene_matrix = _load_gene_matrix(GENE_SET)
+        gene_matrix = _load_gene_matrix(_GENE_SETS[meta.get("gene_set", "all")])
         outcomes = _load_outcomes(args.outcome)
         img_enc, gene_enc = _load_model(model_path, meta, gene_matrix.shape[1], device)
 

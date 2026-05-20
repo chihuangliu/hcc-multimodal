@@ -15,7 +15,18 @@ from torchvision.transforms import v2
 import hcc_multimodal
 from hcc_multimodal.contrastive.data import build_dataset
 from hcc_multimodal.contrastive.encoders import BACKBONES, GeneEncoder, ImageEncoder
+from hcc_multimodal.contrastive.config import (
+    GENE_SET,
+    PREDEFINED_HCC_2Y_CV_GENES,
+    RNA_2Y_BEFORE_CV_GENES,
+)
 from hcc_multimodal.contrastive.loss import contrastive_loss
+
+_GENE_SETS = {
+    "all": GENE_SET,
+    "predefined_2y_cv": PREDEFINED_HCC_2Y_CV_GENES,
+    "2y_before_cv": RNA_2Y_BEFORE_CV_GENES,
+}
 
 _OUT_ROOT = Path(hcc_multimodal.__file__).parent.parent / "training" / "contrastive"
 
@@ -66,6 +77,7 @@ def train(args: argparse.Namespace) -> None:
         img_size=args.img_size,
         transform=augment,
         mri_type=args.mri_type,
+        genes=_GENE_SETS[args.gene_set],
     )
 
     labels = [int(dataset.outcomes[pid]) for pid, _, _ in dataset._index]
@@ -192,6 +204,12 @@ def _parse_args() -> argparse.Namespace:
         "--reg_mode", default="per_modality", choices=["per_modality", "average"]
     )
 
+    p.add_argument(
+        "--gene_set",
+        default="all",
+        choices=list(_GENE_SETS),
+        help="Gene set to use. 'all'=full RNA-seq; 'predefined_2y_cv'=PREDEFINED_HCC_2Y_CV_GENES; '2y_before_cv'=RNA_2Y_BEFORE_CV_GENES.",
+    )
     p.add_argument("--n_per_axis", type=int, default=10)
     p.add_argument(
         "--axes",
@@ -207,7 +225,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--img_size", type=int, default=224)
     p.add_argument(
         "--mri_type",
-        default="preprocessed",
+        default="raw",
         choices=["preprocessed", "raw"],
         help="preprocessed=Radiomics/arterial (intensity-normed); raw=Resections_with_rna (resampled to 1×1×3 mm).",
     )
