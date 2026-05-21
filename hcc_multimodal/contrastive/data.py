@@ -48,7 +48,9 @@ def _load_outcomes(outcome_col: str) -> pd.Series:
     return clinical.set_index("SID")[outcome_col].dropna().astype(int)
 
 
-def _sample_indices(depth: int, n: int) -> list[int]:
+def _sample_indices(depth: int, n: int | None) -> list[int]:
+    if n is None:
+        return list(range(depth))
     return np.linspace(0, depth - 1, n, dtype=int).tolist()
 
 
@@ -88,7 +90,7 @@ class MRIGeneDataset(Dataset):
         patient_ids: list[int],
         gene_matrix: pd.DataFrame,
         outcomes: pd.Series,
-        n_per_axis: int = 10,
+        n_per_axis: int | None = 10,
         axes: list[int] | None = None,
         img_size: int = 224,
         transform: Callable | None = None,
@@ -144,7 +146,7 @@ def _mri_path(patient_id: int, mri_type: MRIType = MRIType.PREPROCESSED) -> Path
 
 
 def build_dataset(
-    n_per_axis: int = 10,
+    n_per_axis: int | None = 10,
     axes: list[int] | None = None,
     outcome_col: str = "rfs_2year",
     img_size: int = 224,

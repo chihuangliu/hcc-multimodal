@@ -1,0 +1,7 @@
+experiment,model,fold,emb_auc,radio_auc,ensemble_auc
+ensemble_rfs_2year,LR,1,0.925,0.41250000000000003,0.7375
+ensemble_rfs_2year,LR,2,1.0,0.6172839506172839,0.9753086419753085
+ensemble_rfs_2year,LR,3,1.0,0.45679012345679015,0.9506172839506173
+ensemble_rfs_2year,RF,1,1.0,0.40625000000000006,0.825
+ensemble_rfs_2year,RF,2,1.0,0.6419753086419753,1.0
+ensemble_rfs_2year,RF,3,1.0,0.5308641975308642,1.0

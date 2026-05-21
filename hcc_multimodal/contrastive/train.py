@@ -11,6 +11,7 @@ import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Subset
 from torchvision.transforms import v2
+from tqdm import tqdm
 
 import hcc_multimodal
 from hcc_multimodal.contrastive.data import build_dataset
@@ -108,6 +109,13 @@ def train(args: argparse.Namespace) -> None:
     img_enc = ImageEncoder(args.model, args.embed_dim, args.freeze_backbone).to(device)
     gene_enc = GeneEncoder(gene_dim, args.gene_hidden_dim, args.embed_dim).to(device)
 
+    if args.base_model is not None:
+        ckpt_path = _OUT_ROOT / args.base_model / "best_model.pt"
+        ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+        img_enc.load_state_dict(ckpt["img_enc"])
+        gene_enc.load_state_dict(ckpt["gene_enc"])
+        print(f"Loaded weights from {ckpt_path}")
+
     optimizer = torch.optim.AdamW(
         list(img_enc.parameters()) + list(gene_enc.parameters()),
         lr=args.lr,
@@ -125,7 +133,8 @@ def train(args: argparse.Namespace) -> None:
         img_enc.train()
         gene_enc.train()
         total_train = 0.0
-        for imgs, genes, outcomes, _ in train_loader:
+        train_pbar = tqdm(train_loader, desc=f"Epoch {epoch:3d}/{args.epochs} train", leave=False)
+        for imgs, genes, outcomes, _ in train_pbar:
             imgs, genes, outcomes = (
                 imgs.to(device),
                 genes.to(device),
@@ -144,6 +153,7 @@ def train(args: argparse.Namespace) -> None:
             loss.backward()
             optimizer.step()
             total_train += loss.item()
+            train_pbar.set_postfix(loss=f"{loss.item():.4f}")
             step += 1
         scheduler.step()
 
@@ -151,7 +161,7 @@ def train(args: argparse.Namespace) -> None:
         gene_enc.eval()
         total_val = 0.0
         with torch.no_grad():
-            for imgs, genes, outcomes, _ in val_loader:
+            for imgs, genes, outcomes, _ in tqdm(val_loader, desc=f"Epoch {epoch:3d}/{args.epochs} val  ", leave=False):
                 imgs, genes, outcomes = (
                     imgs.to(device),
                     genes.to(device),
@@ -194,6 +204,10 @@ def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train contrastive MRI-gene model")
 
     p.add_argument("--model", default="vit_b_32", choices=list(BACKBONES))
+    p.add_argument(
+        "--base_model", default=None, metavar="RUN_ID",
+        help="Run ID to continue training from (loads best_model.pt weights before epoch 1).",
+    )
     p.add_argument("--embed_dim", type=int, default=128)
     p.add_argument("--gene_hidden_dim", type=int, default=256)
     p.add_argument("--freeze_backbone", action="store_true")
@@ -210,7 +224,13 @@ def _parse_args() -> argparse.Namespace:
         choices=list(_GENE_SETS),
         help="Gene set to use. 'all'=full RNA-seq; 'predefined_2y_cv'=PREDEFINED_HCC_2Y_CV_GENES; '2y_before_cv'=RNA_2Y_BEFORE_CV_GENES.",
     )
-    p.add_argument("--n_per_axis", type=int, default=10)
+    p.add_argument(
+        "--n_per_axis",
+        type=lambda v: None if v == "all" else int(v),
+        default=None,
+        metavar="N|all",
+        help="Slices per axis per patient. 'all' uses every slice. Default: all.",
+    )
     p.add_argument(
         "--axes",
         type=int,
