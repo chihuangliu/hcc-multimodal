@@ -79,6 +79,7 @@ def train(args: argparse.Namespace) -> None:
         transform=augment,
         mri_type=args.mri_type,
         genes=_GENE_SETS[args.gene_set],
+        bbox_pad=args.bbox_pad,
     )
 
     labels = [int(dataset.outcomes[pid]) for pid, _, _ in dataset._index]
@@ -246,8 +247,15 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument(
         "--mri_type",
         default="raw",
-        choices=["preprocessed", "raw"],
-        help="preprocessed=Radiomics/arterial (intensity-normed); raw=Resections_with_rna (resampled to 1×1×3 mm).",
+        choices=["preprocessed", "raw", "raw_bbox"],
+        help="preprocessed=Radiomics/arterial (intensity-normed); raw=Resections_with_rna (resampled to 1×1×3 mm); raw_bbox=raw cropped to tumour bounding box.",
+    )
+    p.add_argument(
+        "--bbox_pad",
+        type=int,
+        default=10,
+        metavar="N",
+        help="Voxel padding around the tumour bounding box (raw_bbox mode only). Default: 10.",
     )
     p.add_argument("--val_split", type=float, default=0.1)
 

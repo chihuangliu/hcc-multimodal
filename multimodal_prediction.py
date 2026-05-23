@@ -134,6 +134,7 @@ def extract_embeddings(
         img_size=meta["img_size"],
         transform=weights.transforms(),
         mri_type=mri_type,
+        bbox_pad=meta.get("bbox_pad", 10),
     )
     loader = DataLoader(
         dataset,

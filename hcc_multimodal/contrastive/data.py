@@ -28,6 +28,7 @@ _MRI_ROOT_RAW_CACHE = _DATA_ROOT / "mri_resampled"
 class MRIType(StrEnum):
     PREPROCESSED = "preprocessed"
     RAW = "raw"
+    RAW_BBOX = "raw_bbox"
 
 
 def _load_gene_matrix(genes: set[str]) -> pd.DataFrame:
@@ -52,6 +53,26 @@ def _sample_indices(depth: int, n: int | None) -> list[int]:
     if n is None:
         return list(range(depth))
     return np.linspace(0, depth - 1, n, dtype=int).tolist()
+
+
+def _seg_path(patient_id: int) -> Path:
+    """Return the primary (non-multi) segmentation mask for *patient_id*."""
+    patient_dir = _MRI_ROOT_RAW / str(patient_id)
+    for name in ("hcc_seg_reg_pt.nii.gz", "hcc_seg_reg_mv.nii.gz", "hcc_seg_reg_mv_flag.nii.gz"):
+        p = patient_dir / name
+        if p.exists():
+            return p
+    raise FileNotFoundError(f"No segmentation file found for patient {patient_id}")
+
+
+def _compute_bbox(
+    seg_vol: np.ndarray, pad: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return (lo, hi) padded bounding box indices of the non-zero region in *seg_vol*."""
+    nz = np.argwhere(seg_vol > 0.5)
+    lo = np.maximum(nz.min(axis=0) - pad, 0)
+    hi = np.minimum(nz.max(axis=0) + pad, np.array(seg_vol.shape) - 1)
+    return lo, hi
 
 
 def _normalize_slice(s: np.ndarray) -> np.ndarray:
@@ -82,7 +103,10 @@ class MRIGeneDataset(Dataset):
             providing appropriate normalisation for their backbone.
         mri_type: "preprocessed" uses Radiomics/arterial (intensity-normalised,
             already at 1×1×3 mm); "raw" uses Resections_with_rna and resamples
-            to 1×1×3 mm on load.
+            to 1×1×3 mm on load; "raw_bbox" crops the resampled volume to the
+            tumour bounding box (from hcc_seg_reg*.nii.gz) before slicing.
+        bbox_pad: Voxel padding added to each face of the tumour bounding box
+            (raw_bbox mode only). Default 10.
     """
 
     def __init__(
@@ -95,22 +119,37 @@ class MRIGeneDataset(Dataset):
         img_size: int = 224,
         transform: Callable | None = None,
         mri_type: MRIType = MRIType.PREPROCESSED,
+        bbox_pad: int = 10,
     ):
         self.gene_matrix = gene_matrix
         self.outcomes = outcomes
         self.resize = transforms.Resize((img_size, img_size), antialias=True)
         self.transform = transform
         self.mri_type = MRIType(mri_type)
+        self.bbox_pad = bbox_pad
 
         _axes = axes if axes is not None else [0, 1, 2]
+
+        # Pre-computed bounding boxes for RAW_BBOX mode (pid → (lo, hi) arrays).
+        self._bboxes: dict[int, tuple[np.ndarray, np.ndarray]] = {}
 
         # Build flat index: (patient_id, axis, slice_idx)
         self._index: list[tuple[int, int, int]] = []
         for pid in sorted(set(patient_ids)):
             path = _mri_path(pid, mri_type)
             img = nib.load(path)   # header only, no data loaded
-            needs_resample = mri_type == MRIType.RAW and not str(path).startswith(str(_MRI_ROOT_RAW_CACHE))
-            shape = resampled_shape(img) if needs_resample else img.shape
+            needs_resample = self.mri_type in (MRIType.RAW, MRIType.RAW_BBOX) and not str(path).startswith(str(_MRI_ROOT_RAW_CACHE))
+
+            if self.mri_type == MRIType.RAW_BBOX:
+                # Resample the seg mask to determine the tumour bbox.
+                seg = nib.load(_seg_path(pid))
+                seg_vol = resample_to_spacing(seg)
+                lo, hi = _compute_bbox(seg_vol, bbox_pad)
+                self._bboxes[pid] = (lo, hi)
+                shape = tuple((hi - lo + 1).tolist())
+            else:
+                shape = resampled_shape(img) if needs_resample else img.shape
+
             for axis in _axes:
                 for i in _sample_indices(shape[axis], n_per_axis):
                     self._index.append((pid, axis, i))
@@ -123,8 +162,15 @@ class MRIGeneDataset(Dataset):
 
         path = _mri_path(pid, self.mri_type)
         img = nib.load(path)
-        needs_resample = self.mri_type == MRIType.RAW and not str(path).startswith(str(_MRI_ROOT_RAW_CACHE))
+        needs_resample = self.mri_type in (MRIType.RAW, MRIType.RAW_BBOX) and not str(path).startswith(str(_MRI_ROOT_RAW_CACHE))
         vol = resample_to_spacing(img) if needs_resample else np.array(img.dataobj)
+
+        if self.mri_type == MRIType.RAW_BBOX:
+            lo, hi = self._bboxes[pid]
+            hi_safe = np.minimum(hi, np.array(vol.shape) - 1)
+            vol = vol[lo[0]:hi_safe[0]+1, lo[1]:hi_safe[1]+1, lo[2]:hi_safe[2]+1]
+            slice_idx = min(slice_idx, vol.shape[axis] - 1)
+
         s = np.take(vol, slice_idx, axis=axis)       # (H, W) regardless of axis
 
         s_tensor = torch.from_numpy(_normalize_slice(s)).unsqueeze(0)   # (1, H, W)
@@ -139,6 +185,7 @@ class MRIGeneDataset(Dataset):
 def _mri_path(patient_id: int, mri_type: MRIType = MRIType.PREPROCESSED) -> Path:
     if mri_type == MRIType.PREPROCESSED:
         return _MRI_ROOT_PREPROCESSED / str(patient_id) / f"{patient_id}.nii.gz"
+    # RAW and RAW_BBOX both use the raw arterial volume (cached if available).
     cached = _MRI_ROOT_RAW_CACHE / str(patient_id) / "MRI_liver_arterial.nii.gz"
     if cached.exists():
         return cached
@@ -153,6 +200,7 @@ def build_dataset(
     transform: Callable | None = None,
     genes: set[str] | None = None,
     mri_type: MRIType = MRIType.PREPROCESSED,
+    bbox_pad: int = 10,
 ) -> MRIGeneDataset:
     """Build dataset from patients with MRI, RNA-seq, and a valid outcome.
 
@@ -168,8 +216,11 @@ def build_dataset(
         transform: Normalisation/augmentation to apply after resize + 3-channel
             conversion. None means no normalisation.
         genes: Gene set to use; defaults to GENE_SET from config
-        mri_type: "preprocessed" (Radiomics/arterial) or "raw"
-            (Resections_with_rna, resampled to 1×1×3 mm on load)
+        mri_type: "preprocessed" (Radiomics/arterial), "raw"
+            (Resections_with_rna, resampled to 1×1×3 mm on load), or
+            "raw_bbox" (raw, then cropped to the tumour bounding box)
+        bbox_pad: Voxel padding around the tumour bounding box
+            (raw_bbox mode only). Default 10.
 
     Returns:
         MRIGeneDataset over the valid patient intersection
@@ -191,4 +242,5 @@ def build_dataset(
         img_size=img_size,
         transform=transform,
         mri_type=mri_type,
+        bbox_pad=bbox_pad,
     )

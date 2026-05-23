@@ -1,0 +1,3 @@
+experiment,model,AUC mean,AUC std,Accuracy mean,Accuracy std
+concat_rfs_2year,LR,0.582,0.175,0.519,0.139
+concat_rfs_2year,RF,0.54,0.152,0.519,0.131
