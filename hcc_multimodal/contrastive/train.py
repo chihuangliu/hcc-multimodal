@@ -82,11 +82,21 @@ def train(args: argparse.Namespace) -> None:
         bbox_pad=args.bbox_pad,
     )
 
-    labels = [int(dataset.outcomes[pid]) for pid, _, _ in dataset._index]
-    indices = list(range(len(dataset)))
-    train_idx, val_idx = train_test_split(
-        indices, test_size=args.val_split, stratify=labels, random_state=args.seed
-    )
+    if args.split_unit == "patient":
+        patients = sorted({pid for pid, _, _ in dataset._index})
+        patient_labels = [int(dataset.outcomes[pid]) for pid in patients]
+        train_pids, val_pids = train_test_split(
+            patients, test_size=args.val_split, stratify=patient_labels, random_state=args.seed
+        )
+        train_pid_set, val_pid_set = set(train_pids), set(val_pids)
+        train_idx = [i for i, (pid, _, _) in enumerate(dataset._index) if pid in train_pid_set]
+        val_idx = [i for i, (pid, _, _) in enumerate(dataset._index) if pid in val_pid_set]
+    else:
+        labels = [int(dataset.outcomes[pid]) for pid, _, _ in dataset._index]
+        indices = list(range(len(dataset)))
+        train_idx, val_idx = train_test_split(
+            indices, test_size=args.val_split, stratify=labels, random_state=args.seed
+        )
     train_ds, val_ds = Subset(dataset, train_idx), Subset(dataset, val_idx)
 
     pin = device.type == "cuda"
@@ -256,6 +266,10 @@ def _parse_args() -> argparse.Namespace:
         default=10,
         metavar="N",
         help="Voxel padding around the tumour bounding box (raw_bbox mode only). Default: 10.",
+    )
+    p.add_argument(
+        "--split-unit", default="patient", choices=["patient", "slice"],
+        help="Unit for train/val split. 'patient' (default) keeps all slices from a patient in one split; 'slice' splits across individual slices.",
     )
     p.add_argument("--val_split", type=float, default=0.1)
 
