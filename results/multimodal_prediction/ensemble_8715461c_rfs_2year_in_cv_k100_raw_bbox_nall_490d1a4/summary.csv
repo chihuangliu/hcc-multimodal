@@ -1,0 +1,3 @@
+experiment,model,AUC mean,AUC std
+ensemble_rfs_2year,LR,0.52,0.074
+ensemble_rfs_2year,RF,0.572,0.043

@@ -1,0 +1,7 @@
+experiment,model,fold,train_auc,test_auc
+concat_rfs_2year,LR,1,1.0,0.4375
+concat_rfs_2year,LR,2,1.0,0.7654320987654322
+concat_rfs_2year,LR,3,1.0,0.5555555555555556
+concat_rfs_2year,RF,1,1.0,0.35624999999999996
+concat_rfs_2year,RF,2,1.0,0.5061728395061729
+concat_rfs_2year,RF,3,1.0,0.7037037037037037
