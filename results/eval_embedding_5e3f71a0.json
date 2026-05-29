@@ -1,0 +1,39 @@
+{
+  "git_commit": "fa87c5e3ad51cf77ab6e63f129768b571bfeec43",
+  "timestamp": "2026-05-29T01:10:17.380065",
+  "args": {
+    "model_id": "5e3f71a0",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "average",
+    "select_k": 100,
+    "batch_size": 32,
+    "num_workers": 0,
+    "output": "results/eval_embedding_5e3f71a0.json"
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.6025641025641025,
+          "auprc": 0.7657937604540447,
+          "sensitivity": 0.9743589743589743,
+          "specificity": 0.0,
+          "ppv": 0.6785714285714286,
+          "npv": 0.0,
+          "f1": 0.8
+        },
+        "rf": {
+          "auroc": 0.670940170940171,
+          "auprc": 0.8337756024678746,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.6842105263157895,
+          "npv": NaN,
+          "f1": 0.8125
+        }
+      }
+    }
+  }
+}

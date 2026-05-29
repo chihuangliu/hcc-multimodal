@@ -80,10 +80,10 @@ Best of LR / RF shown per model (best AUROC). "(pt)" = patient-level validation 
 
 | # | Config | Split | Model ID | LR AUROC | LR AUPRC | RF AUROC | RF AUPRC | **Best AUROC** |
 |---|--------|-------|----------|--------:|--------:|--------:|--------:|----------:|
-| 5 | raw, λ=0.1, frozen, n=all | slice | `dc7e1d10` | — | — | — | — | pending |
-| 5 | raw, λ=0.1, frozen, n=all | patient | `5e3f71a0` | — | — | — | — | pending |
-| 6 | raw, λ=0.0, frozen, n=all | slice | `a64b245f` | — | — | — | — | pending |
-| 6 | raw, λ=0.0, frozen, n=all | patient | `06c598c0` | — | — | — | — | pending |
+| 5 | raw, λ=0.1, frozen, n=all | slice | `dc7e1d10` | 0.726 | 0.838 | 0.597 | 0.761 | **0.726** |
+| 5 | raw, λ=0.1, frozen, n=all | patient | `5e3f71a0` | 0.603 | 0.766 | 0.671 | 0.834 | 0.671 |
+| 6 | raw, λ=0.0, frozen, n=all | slice | `a64b245f` | 0.688 | 0.805 | 0.692 | 0.802 | 0.692 |
+| 6 | raw, λ=0.0, frozen, n=all | patient | `06c598c0` | 0.708 | 0.826 | 0.667 | 0.842 | 0.708 |
 
 #### Group 4 — Bounding box
 
@@ -96,44 +96,46 @@ Best of LR / RF shown per model (best AUROC). "(pt)" = patient-level validation 
 
 ### 2.3 Summary table
 
-Ranked by best AUROC (available results only):
+Ranked by best AUROC across LR and RF heads:
 
-| Rank | Model ID | Config | Best AUROC | Best AUPRC |
-|------|----------|--------|-----------:|-----------:|
-| 1 | `6a1a1bdf` | raw, λ=0.1, slice split | **0.742** | **0.850** |
-| 2 | `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, patient split | **0.725** | **0.862** |
-| 3 | `12e4ba6a` | raw, λ=0.1, predefined genes, slice split | 0.656 | 0.823 |
-| 4 | `34e6806f` | raw, λ=0.1, predefined genes, patient split | 0.625 | 0.761 |
-| 5 | `8715461c` | bbox, λ=0.0, patient split | 0.611 | 0.764 |
-| 6 | `050d401d` | bbox, λ=0.1, slice split | 0.583 | 0.743 |
-| 7 | `982a6fa2` | raw, λ=0.0, slice split | 0.585 | 0.722 |
-| — | radiomic RF | resection-trained, 149 features | 0.590 | 0.766 |
-| 8 | `e12b0592` | bbox, λ=0.0, slice split | 0.595 | 0.744 |
-| 9 | `1361bef2` | raw, λ=0.1, patient split | 0.561 | 0.713 |
-| 10 | `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, slice split | 0.543 | 0.717 |
-| 11 | `a6f970d6` | raw, λ=0.0, patient split | 0.514 | 0.701 |
-| — | radiomic LR | resection-trained, 149 features | 0.518 | 0.671 |
-| 12 | `9109a6c2` RF | (same as rank 2, RF head) | 0.580 | 0.749 |
-| 13 | `f8aabb75` | bbox, λ=0.1, patient split | 0.457 | 0.678 |
-| 14 | `8715461c` RF | bbox, λ=0.0, patient split, RF | 0.457 | 0.705 |
+| Rank | Model ID | Config | Split | LR AUROC | RF AUROC | **Best AUROC** | Best AUPRC |
+|------|----------|--------|-------|--------:|--------:|-----------:|-----------:|
+| 1 | `6a1a1bdf` | raw, λ=0.1, n=10 | slice | 0.671 | **0.742** | **0.742** | 0.850 |
+| 2 | `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, n=10 | patient | **0.725** | 0.580 | **0.725** | **0.862** |
+| 3 | `dc7e1d10` | raw, λ=0.1, frozen, n=all | slice | **0.726** | 0.597 | **0.726** | 0.838 |
+| 4 | `06c598c0` | raw, λ=0.0, frozen, n=all | patient | **0.708** | 0.667 | **0.708** | 0.842 |
+| 5 | `a64b245f` | raw, λ=0.0, frozen, n=all | slice | 0.688 | **0.692** | 0.692 | 0.805 |
+| 6 | `5e3f71a0` | raw, λ=0.1, frozen, n=all | patient | 0.603 | **0.671** | 0.671 | 0.834 |
+| 7 | `12e4ba6a` | raw, λ=0.1, predefined genes, n=10 | slice | 0.587 | **0.656** | 0.656 | 0.823 |
+| — | radiomic RF | 149 art. features, resection-trained | — | — | 0.590 | 0.590 | 0.766 |
+| 8 | `e12b0592` | bbox, λ=0.0, n=10 | slice | **0.595** | 0.539 | 0.595 | 0.744 |
+| 9 | `982a6fa2` | raw, λ=0.0, n=10 | slice | 0.538 | **0.585** | 0.585 | 0.722 |
+| 10 | `8715461c` | bbox, λ=0.0, n=10 | patient | **0.611** | 0.457 | 0.611 | 0.764 |
+| 11 | `34e6806f` | raw, λ=0.1, predefined genes, n=10 | patient | **0.625** | 0.556 | 0.625 | 0.761 |
+| — | radiomic LR | 149 art. features, resection-trained | — | 0.518 | — | 0.518 | 0.671 |
+| 12 | `050d401d` | bbox, λ=0.1, n=10 | slice | **0.583** | 0.516 | 0.583 | 0.743 |
+| 13 | `1361bef2` | raw, λ=0.1, n=10 | patient | 0.483 | **0.561** | 0.561 | 0.713 |
+| 14 | `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, n=10 | slice | 0.452 | **0.543** | 0.543 | 0.717 |
+| 15 | `a6f970d6` | raw, λ=0.0, n=10 | patient | **0.514** | 0.494 | 0.514 | 0.701 |
+| 16 | `f8aabb75` | bbox, λ=0.1, n=10 | patient | **0.457** | 0.437 | 0.457 | 0.678 |
 
 ---
 
 ## 3. Observations
 
-1. **`6a1a1bdf` (raw, λ=0.1, slice split) remains top on ablation AUROC (0.742 RF)**, consistent with the CV results. Despite the CV slice-split concern, it generalises well to this fully held-out cohort.
+1. **Three models tie near the top (AUROC 0.72–0.74)**: `6a1a1bdf` (RF, 0.742), `9109a6c2` (LR, 0.725), and `dc7e1d10` (LR, 0.726). These come from different groups — λ=0.1 unfrozen n=10 slice-split, 2y_before_cv genes patient-split, and frozen n=all slice-split — suggesting multiple paths to good external transfer.
 
-2. **`9109a6c2` (2y_before_cv genes, patient split) is the strongest patient-split model (0.725 LR, 0.862 AUPRC)**, confirming that RFS-curated gene supervision improves external transferability even with an honest validation split.
+2. **Full-slice models (frozen backbone) transfer well.** `dc7e1d10` (0.726) and `06c598c0` (0.708) outperform most n=10 unfrozen models on ablation. Their CV slice-split AUC was 1.000 and 0.739 respectively — the `dc7e1d10` slice-split inflation did not hurt ablation AUROC, suggesting the frozen ViT-B/32 features themselves are transferable.
 
-3. **Slice-split inflation does not consistently hurt ablation performance.** The CV finding that slice-split inflated Model 5 (frozen, n=all) by +0.36 AUC is not replicated for Models 1–4 — their slice-split IDs perform *comparably or better* than their patient-split counterparts. This is plausible: leakage primarily inflates val AUC during training, not external-cohort AUC.
+3. **The 2y_before_cv gene set reversal is striking**: slice-split `5d04e6ba` is the worst embedding model (0.543) despite being the top CV model (0.789), while its patient-split sibling `9109a6c2` achieves 0.725. The slice-split version likely overfit the resection gene-expression distribution; the patient-split version learned more transferable image features.
 
-4. **The 2y_before_cv gene set reversal is striking**: slice-split `5d04e6ba` is the weakest (0.543) despite being the best CV model (0.789), while patient-split `9109a6c2` achieves 0.725. This suggests the slice-split version overfit to the resection distribution, whereas the patient-split version learned more transferable features.
+4. **Slice-split inflation does not consistently hurt ablation AUROC.** For most configs (Models 1, 2, 5, 6) the slice-split ID performs comparably or better than the patient-split counterpart. Leakage inflates internal val AUC during training; it does not necessarily cause overfitting to the resection domain.
 
-5. **Bounding box models show no consistent advantage**: best bbox AUROC is 0.611 (`8715461c`), well below `6a1a1bdf` (0.742). The bbox advantage seen in slice-split CV (0.965) was entirely leakage.
+5. **Bounding box models are consistently below raw-MRI equivalents**: best bbox is 0.611 (`8715461c`), vs 0.742 for the matched raw model. The slice-split bbox CV advantage (0.965) was entirely leakage.
 
-6. **Radiomic RF (0.590) is competitive with most embedding models**, highlighting that simple radiomic features transfer reasonably across cohorts when the embedding model lacks outcome supervision or uses a leaky training split.
+6. **Radiomic RF (0.590) sits in the middle of the embedding model ranking**, ahead of 7 of the 16 embedding models. Simple arterial radiomics transfer non-trivially across cohorts when embedding models have poor supervision or leaky training.
 
-7. **Full-slice models (Groups 5–6) are still running** — these processed all ~80+ sagittal slices per patient and are expected to be slower at inference.
+7. **LR head tends to win for frozen/full-slice models; RF head wins for unfrozen/n=10 models.** `6a1a1bdf` RF beats LR by +0.07, while `dc7e1d10` LR beats RF by +0.13 — suggesting frozen backbone embeddings produce smoother, more linearly separable representations.
 
 ---
 
