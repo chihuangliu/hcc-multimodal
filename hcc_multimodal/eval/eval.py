@@ -691,7 +691,7 @@ def run(args: argparse.Namespace) -> None:
             parts.append(args.model_id)
         parts.append(args.target)
         parts.append(datetime.now().strftime("%Y%m%d_%H%M%S"))
-        out_path = PROJECT_ROOT / "results" / "eval" / f"{'_'.join(parts)}.json"
+        out_path = PROJECT_ROOT / "results" / "eval" / "ablation" / f"{'_'.join(parts)}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(output, indent=2))
     print(f"\nSaved → {out_path}")

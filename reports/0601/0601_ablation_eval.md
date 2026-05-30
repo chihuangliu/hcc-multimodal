@@ -166,9 +166,9 @@ Ranked by best AUROC across LR and RF heads:
 
 | Artifact | Path |
 |---|---|
-| Radiomic LR | `results/eval/radiomic_lr_rfs_2year_{timestamp}.json` |
-| Radiomic RF | `results/eval/radiomic_rf_rfs_2year_{timestamp}.json` |
-| Embedding results (per model) | `results/eval/embedding_{model_id}_rfs_2year_{timestamp}.json` |
+| Radiomic LR | `results/eval/ablation/radiomic_lr_rfs_2year_{timestamp}.json` |
+| Radiomic RF | `results/eval/ablation/radiomic_rf_rfs_2year_{timestamp}.json` |
+| Embedding results (per model) | `results/eval/ablation/embedding_{model_id}_rfs_2year_{timestamp}.json` |
 | Radiomic models | `models/radiomics/radiomic_rfs_2year_{lr,rf}.joblib` |
 | Contrastive models | `training/contrastive/{model_id}/best_model.pt` |
 | Cached ablation embeddings | `training/contrastive/{model_id}/cached_embeddings/ablation_img_emb.parquet` |
