@@ -17,6 +17,29 @@
 
 ---
 
+## 0. Re-run checklist (resample fix)
+
+| Model ID | Config | Status |
+|----------|--------|--------|
+| `6a1a1bdf` | raw, λ=0.1, unfrozen, n=10, slice | ✅ done |
+| `1361bef2` | raw, λ=0.1, unfrozen, n=10, patient | ✅ done |
+| `982a6fa2` | raw, λ=0.0, unfrozen, n=10, slice | ✅ done |
+| `a6f970d6` | raw, λ=0.0, unfrozen, n=10, patient | ✅ done |
+| `12e4ba6a` | raw, λ=0.1, predefined genes, slice | ✅ done |
+| `34e6806f` | raw, λ=0.1, predefined genes, patient | ✅ done |
+| `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, slice | ✅ done |
+| `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, patient | ✅ done |
+| `dc7e1d10` | raw, λ=0.1, frozen, n=all, slice | ⬜ pending |
+| `5e3f71a0` | raw, λ=0.1, frozen, n=all, patient | ⬜ pending |
+| `a64b245f` | raw, λ=0.0, frozen, n=all, slice | ⬜ pending |
+| `06c598c0` | raw, λ=0.0, frozen, n=all, patient | ⬜ pending |
+| `050d401d` | raw_bbox, λ=0.1, unfrozen, n=10, slice | ⬜ pending |
+| `f8aabb75` | raw_bbox, λ=0.1, unfrozen, n=10, patient | ⬜ pending |
+| `e12b0592` | raw_bbox, λ=0.0, unfrozen, n=10, slice | ⬜ pending |
+| `8715461c` | raw_bbox, λ=0.0, unfrozen, n=10, patient | ⬜ pending |
+
+---
+
 ## 1. Setup
 
 ### 1.1 Cohorts
@@ -62,19 +85,19 @@ Best of LR / RF shown per model (best AUROC). "(pt)" = patient-level validation 
 
 | # | Config | Split | Model ID | LR AUROC | LR AUPRC | RF AUROC | RF AUPRC | **Best AUROC** |
 |---|--------|-------|----------|--------:|--------:|--------:|--------:|----------:|
-| 1 | raw, λ=0.1, unfrozen, n=10 | slice | `6a1a1bdf` | 0.671 | 0.833 | 0.742 | 0.850 | **0.742** |
-| 1 | raw, λ=0.1, unfrozen, n=10 | patient | `1361bef2` | 0.483 | 0.666 | 0.561 | 0.713 | 0.561 |
-| 2 | raw, λ=0.0, unfrozen, n=10 | slice | `982a6fa2` | 0.538 | 0.754 | 0.585 | 0.722 | 0.585 |
-| 2 | raw, λ=0.0, unfrozen, n=10 | patient | `a6f970d6` | 0.514 | 0.701 | 0.494 | 0.673 | 0.514 |
+| 1 | raw, λ=0.1, unfrozen, n=10 | slice | `6a1a1bdf` | 0.615 | 0.816 | 0.583 | 0.744 | **0.615** |
+| 1 | raw, λ=0.1, unfrozen, n=10 | patient | `1361bef2` | 0.470 | 0.657 | 0.522 | 0.707 | 0.522 |
+| 2 | raw, λ=0.0, unfrozen, n=10 | slice | `982a6fa2` | 0.514 | 0.721 | 0.606 | 0.734 | **0.606** |
+| 2 | raw, λ=0.0, unfrozen, n=10 | patient | `a6f970d6` | 0.494 | 0.674 | 0.450 | 0.651 | **0.494** |
 
 #### Group 2 — Gene set ablation
 
 | # | Config | Split | Model ID | LR AUROC | LR AUPRC | RF AUROC | RF AUPRC | **Best AUROC** |
 |---|--------|-------|----------|--------:|--------:|--------:|--------:|----------:|
-| 3 | raw, λ=0.1, predefined genes | slice | `12e4ba6a` | 0.587 | 0.807 | 0.656 | 0.823 | 0.656 |
-| 3 | raw, λ=0.1, predefined genes | patient | `34e6806f` | 0.625 | 0.761 | 0.556 | 0.686 | 0.625 |
-| 4 | raw, λ=0.1, 2y_before_cv genes | slice | `5d04e6ba` | 0.452 | 0.661 | 0.543 | 0.717 | 0.543 |
-| 4 | raw, λ=0.1, 2y_before_cv genes | patient | `9109a6c2` | **0.725** | **0.862** | 0.580 | 0.749 | **0.725** |
+| 3 | raw, λ=0.1, predefined genes | slice | `12e4ba6a` | 0.578 | 0.798 | 0.670 | 0.820 | **0.670** |
+| 3 | raw, λ=0.1, predefined genes | patient | `34e6806f` | 0.574 | 0.734 | 0.507 | 0.676 | **0.574** |
+| 4 | raw, λ=0.1, 2y_before_cv genes | slice | `5d04e6ba` | 0.436 | 0.636 | 0.516 | 0.712 | **0.516** |
+| 4 | raw, λ=0.1, 2y_before_cv genes | patient | `9109a6c2` | **0.732** | **0.865** | 0.568 | 0.724 | **0.732** |
 
 #### Group 3 — Full slices (n=all, frozen backbone)
 

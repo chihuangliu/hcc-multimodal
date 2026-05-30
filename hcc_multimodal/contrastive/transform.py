@@ -23,6 +23,8 @@ def resample_to_spacing(
     zoom_factors = native_spacing / target
 
     data = np.asarray(img.dataobj, dtype=np.float32)
+    if data.ndim == 4:
+        data = data[..., 0]
     if np.allclose(zoom_factors, 1.0, atol=1e-3):
         return data
     return zoom(data, zoom_factors, order=1).astype(np.float32)

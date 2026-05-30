@@ -1,6 +1,6 @@
 {
-  "git_commit": "716ab9eeab9415e9af056ab52666d70ed8540c2d",
-  "timestamp": "2026-05-28T18:28:47.697244",
+  "git_commit": "f021bb3e5ac1a277f491e1d2b8a4cac66875bdec",
+  "timestamp": "2026-05-29T17:38:47.582365",
   "args": {
     "model_id": "6a1a1bdf",
     "radiomic_model": null,
@@ -10,28 +10,29 @@
     "select_k": 100,
     "batch_size": 32,
     "num_workers": 0,
-    "output": "results/eval_embedding_6a1a1bdf.json"
+    "output": "results/eval_embedding_6a1a1bdf.json",
+    "overwrite_cache": true
   },
   "results": {
     "average": {
       "embedding": {
         "lr": {
-          "auroc": 0.670940170940171,
-          "auprc": 0.8329362652881404,
-          "sensitivity": 0.46153846153846156,
-          "specificity": 0.8333333333333334,
-          "ppv": 0.8571428571428571,
-          "npv": 0.4166666666666667,
-          "f1": 0.6
+          "auroc": 0.6153846153846154,
+          "auprc": 0.8155607131261611,
+          "sensitivity": 0.38461538461538464,
+          "specificity": 0.7777777777777778,
+          "ppv": 0.7894736842105263,
+          "npv": 0.3684210526315789,
+          "f1": 0.5172413793103449
         },
         "rf": {
-          "auroc": 0.7421652421652423,
-          "auprc": 0.8496694979876003,
-          "sensitivity": 0.9743589743589743,
-          "specificity": 0.05555555555555555,
-          "ppv": 0.6909090909090909,
-          "npv": 0.5,
-          "f1": 0.8085106382978723
+          "auroc": 0.5826210826210826,
+          "auprc": 0.7440428046160332,
+          "sensitivity": 1.0,
+          "specificity": 0.1111111111111111,
+          "ppv": 0.7090909090909091,
+          "npv": 1.0,
+          "f1": 0.8297872340425532
         }
       }
     }
