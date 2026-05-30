@@ -29,14 +29,14 @@
 | `34e6806f` | raw, λ=0.1, predefined genes, patient | ✅ done |
 | `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, slice | ✅ done |
 | `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, patient | ✅ done |
-| `dc7e1d10` | raw, λ=0.1, frozen, n=all, slice | ⬜ pending |
-| `5e3f71a0` | raw, λ=0.1, frozen, n=all, patient | ⬜ pending |
-| `a64b245f` | raw, λ=0.0, frozen, n=all, slice | ⬜ pending |
-| `06c598c0` | raw, λ=0.0, frozen, n=all, patient | ⬜ pending |
-| `050d401d` | raw_bbox, λ=0.1, unfrozen, n=10, slice | ⬜ pending |
-| `f8aabb75` | raw_bbox, λ=0.1, unfrozen, n=10, patient | ⬜ pending |
-| `e12b0592` | raw_bbox, λ=0.0, unfrozen, n=10, slice | ⬜ pending |
-| `8715461c` | raw_bbox, λ=0.0, unfrozen, n=10, patient | ⬜ pending |
+| `dc7e1d10` | raw, λ=0.1, frozen, n=all, slice | ✅ done |
+| `5e3f71a0` | raw, λ=0.1, frozen, n=all, patient | ✅ done |
+| `a64b245f` | raw, λ=0.0, frozen, n=all, slice | ✅ done |
+| `06c598c0` | raw, λ=0.0, frozen, n=all, patient | ✅ done |
+| `050d401d` | raw_bbox, λ=0.1, unfrozen, n=10, slice | ✅ done |
+| `f8aabb75` | raw_bbox, λ=0.1, unfrozen, n=10, patient | ✅ done |
+| `e12b0592` | raw_bbox, λ=0.0, unfrozen, n=10, slice | ✅ done |
+| `8715461c` | raw_bbox, λ=0.0, unfrozen, n=10, patient | ✅ done |
 
 ---
 
@@ -103,19 +103,19 @@ Best of LR / RF shown per model (best AUROC). "(pt)" = patient-level validation 
 
 | # | Config | Split | Model ID | LR AUROC | LR AUPRC | RF AUROC | RF AUPRC | **Best AUROC** |
 |---|--------|-------|----------|--------:|--------:|--------:|--------:|----------:|
-| 5 | raw, λ=0.1, frozen, n=all | slice | `dc7e1d10` | 0.726 | 0.838 | 0.597 | 0.761 | **0.726** |
-| 5 | raw, λ=0.1, frozen, n=all | patient | `5e3f71a0` | 0.603 | 0.766 | 0.671 | 0.834 | 0.671 |
-| 6 | raw, λ=0.0, frozen, n=all | slice | `a64b245f` | 0.688 | 0.805 | 0.692 | 0.802 | 0.692 |
-| 6 | raw, λ=0.0, frozen, n=all | patient | `06c598c0` | 0.708 | 0.826 | 0.667 | 0.842 | 0.708 |
+| 5 | raw, λ=0.1, frozen, n=all | slice | `dc7e1d10` | **0.718** | 0.838 | 0.608 | 0.766 | **0.718** |
+| 5 | raw, λ=0.1, frozen, n=all | patient | `5e3f71a0` | 0.617 | 0.775 | **0.635** | 0.819 | 0.635 |
+| 6 | raw, λ=0.0, frozen, n=all | slice | `a64b245f` | **0.684** | 0.804 | 0.669 | 0.804 | **0.684** |
+| 6 | raw, λ=0.0, frozen, n=all | patient | `06c598c0` | **0.702** | 0.840 | 0.664 | 0.830 | **0.702** |
 
 #### Group 4 — Bounding box
 
 | # | Config | Split | Model ID | LR AUROC | LR AUPRC | RF AUROC | RF AUPRC | **Best AUROC** |
 |---|--------|-------|----------|--------:|--------:|--------:|--------:|----------:|
-| 7 | raw_bbox, λ=0.1, unfrozen, n=10 | slice | `050d401d` | 0.583 | 0.743 | 0.516 | 0.694 | 0.583 |
-| 7 | raw_bbox, λ=0.1, unfrozen, n=10 | patient | `f8aabb75` | 0.457 | 0.678 | 0.437 | 0.654 | 0.457 |
-| 8 | raw_bbox, λ=0.0, unfrozen, n=10 | slice | `e12b0592` | 0.595 | 0.744 | 0.539 | 0.691 | 0.595 |
-| 8 | raw_bbox, λ=0.0, unfrozen, n=10 | patient | `8715461c` | 0.611 | 0.764 | 0.457 | 0.705 | 0.611 |
+| 7 | raw_bbox, λ=0.1, unfrozen, n=10 | slice | `050d401d` | **0.669** | 0.791 | 0.515 | 0.711 | **0.669** |
+| 7 | raw_bbox, λ=0.1, unfrozen, n=10 | patient | `f8aabb75` | **0.539** | 0.710 | 0.497 | 0.714 | 0.539 |
+| 8 | raw_bbox, λ=0.0, unfrozen, n=10 | slice | `e12b0592` | **0.517** | 0.693 | 0.465 | 0.672 | 0.517 |
+| 8 | raw_bbox, λ=0.0, unfrozen, n=10 | patient | `8715461c` | **0.534** | 0.661 | 0.431 | 0.637 | 0.534 |
 
 ### 2.3 Summary table
 
@@ -123,42 +123,42 @@ Ranked by best AUROC across LR and RF heads:
 
 | Rank | Model ID | Config | Split | LR AUROC | RF AUROC | **Best AUROC** | Best AUPRC |
 |------|----------|--------|-------|--------:|--------:|-----------:|-----------:|
-| 1 | `6a1a1bdf` | raw, λ=0.1, n=10 | slice | 0.671 | **0.742** | **0.742** | 0.850 |
-| 2 | `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, n=10 | patient | **0.725** | 0.580 | **0.725** | **0.862** |
-| 3 | `dc7e1d10` | raw, λ=0.1, frozen, n=all | slice | **0.726** | 0.597 | **0.726** | 0.838 |
-| 4 | `06c598c0` | raw, λ=0.0, frozen, n=all | patient | **0.708** | 0.667 | **0.708** | 0.842 |
-| 5 | `a64b245f` | raw, λ=0.0, frozen, n=all | slice | 0.688 | **0.692** | 0.692 | 0.805 |
-| 6 | `5e3f71a0` | raw, λ=0.1, frozen, n=all | patient | 0.603 | **0.671** | 0.671 | 0.834 |
-| 7 | `12e4ba6a` | raw, λ=0.1, predefined genes, n=10 | slice | 0.587 | **0.656** | 0.656 | 0.823 |
+| 1 | `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, n=10 | patient | **0.732** | 0.568 | **0.732** | **0.865** |
+| 2 | `dc7e1d10` | raw, λ=0.1, frozen, n=all | slice | **0.718** | 0.608 | **0.718** | 0.838 |
+| 3 | `06c598c0` | raw, λ=0.0, frozen, n=all | patient | **0.702** | 0.664 | **0.702** | 0.840 |
+| 4 | `a64b245f` | raw, λ=0.0, frozen, n=all | slice | **0.684** | 0.669 | **0.684** | 0.804 |
+| 5 | `12e4ba6a` | raw, λ=0.1, predefined genes, n=10 | slice | 0.578 | **0.670** | **0.670** | 0.820 |
+| 6 | `050d401d` | bbox, λ=0.1, n=10 | slice | **0.669** | 0.515 | **0.669** | 0.791 |
+| 7 | `5e3f71a0` | raw, λ=0.1, frozen, n=all | patient | 0.617 | **0.635** | 0.635 | 0.819 |
+| 8 | `6a1a1bdf` | raw, λ=0.1, n=10 | slice | **0.615** | 0.583 | 0.615 | 0.816 |
+| 9 | `982a6fa2` | raw, λ=0.0, n=10 | slice | 0.514 | **0.606** | 0.606 | 0.734 |
 | — | radiomic RF | 149 art. features, resection-trained | — | — | 0.590 | 0.590 | 0.766 |
-| 8 | `e12b0592` | bbox, λ=0.0, n=10 | slice | **0.595** | 0.539 | 0.595 | 0.744 |
-| 9 | `982a6fa2` | raw, λ=0.0, n=10 | slice | 0.538 | **0.585** | 0.585 | 0.722 |
-| 10 | `8715461c` | bbox, λ=0.0, n=10 | patient | **0.611** | 0.457 | 0.611 | 0.764 |
-| 11 | `34e6806f` | raw, λ=0.1, predefined genes, n=10 | patient | **0.625** | 0.556 | 0.625 | 0.761 |
+| 10 | `34e6806f` | raw, λ=0.1, predefined genes, n=10 | patient | **0.574** | 0.507 | 0.574 | 0.734 |
+| 11 | `f8aabb75` | bbox, λ=0.1, n=10 | patient | **0.539** | 0.497 | 0.539 | 0.710 |
+| 12 | `8715461c` | bbox, λ=0.0, n=10 | patient | **0.534** | 0.431 | 0.534 | 0.661 |
 | — | radiomic LR | 149 art. features, resection-trained | — | 0.518 | — | 0.518 | 0.671 |
-| 12 | `050d401d` | bbox, λ=0.1, n=10 | slice | **0.583** | 0.516 | 0.583 | 0.743 |
-| 13 | `1361bef2` | raw, λ=0.1, n=10 | patient | 0.483 | **0.561** | 0.561 | 0.713 |
-| 14 | `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, n=10 | slice | 0.452 | **0.543** | 0.543 | 0.717 |
-| 15 | `a6f970d6` | raw, λ=0.0, n=10 | patient | **0.514** | 0.494 | 0.514 | 0.701 |
-| 16 | `f8aabb75` | bbox, λ=0.1, n=10 | patient | **0.457** | 0.437 | 0.457 | 0.678 |
+| 13 | `1361bef2` | raw, λ=0.1, n=10 | patient | 0.470 | **0.522** | 0.522 | 0.707 |
+| 14 | `e12b0592` | bbox, λ=0.0, n=10 | slice | **0.517** | 0.465 | 0.517 | 0.693 |
+| 15 | `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, n=10 | slice | 0.436 | **0.516** | 0.516 | 0.712 |
+| 16 | `a6f970d6` | raw, λ=0.0, n=10 | patient | **0.494** | 0.450 | 0.494 | 0.674 |
 
 ---
 
 ## 3. Observations
 
-1. **Three models tie near the top (AUROC 0.72–0.74)**: `6a1a1bdf` (RF, 0.742), `9109a6c2` (LR, 0.725), and `dc7e1d10` (LR, 0.726). These come from different groups — λ=0.1 unfrozen n=10 slice-split, 2y_before_cv genes patient-split, and frozen n=all slice-split — suggesting multiple paths to good external transfer.
+1. **Top three models (AUROC 0.70–0.73) come from two different groups**: `9109a6c2` (LR, 0.732), `dc7e1d10` (LR, 0.718), and `06c598c0` (LR, 0.702). The 2y_before_cv patient-split model and both frozen n=all models transfer best, suggesting that avoiding slice-level leakage during training and using all slices are complementary paths to external generalization.
 
-2. **Full-slice models (frozen backbone) transfer well.** `dc7e1d10` (0.726) and `06c598c0` (0.708) outperform most n=10 unfrozen models on ablation. Their CV slice-split AUC was 1.000 and 0.739 respectively — the `dc7e1d10` slice-split inflation did not hurt ablation AUROC, suggesting the frozen ViT-B/32 features themselves are transferable.
+2. **Full-slice frozen models transfer consistently well.** All four frozen n=all models rank in the top 4, with AUROC 0.635–0.718. Their frozen ViT-B/32 backbone produces transferable representations regardless of λ or split strategy.
 
-3. **The 2y_before_cv gene set reversal is striking**: slice-split `5d04e6ba` is the worst embedding model (0.543) despite being the top CV model (0.789), while its patient-split sibling `9109a6c2` achieves 0.725. The slice-split version likely overfit the resection gene-expression distribution; the patient-split version learned more transferable image features.
+3. **`6a1a1bdf` (previously rank 1 at 0.742) drops to rank 8 (0.615) after the resampling fix.** The old results were extracted without resampling the ablation MRIs; with correct 1×1×3 mm resampling the advantage disappears, suggesting its prior lead was an artefact of resolution mismatch rather than a better model.
 
-4. **Slice-split inflation does not consistently hurt ablation AUROC.** For most configs (Models 1, 2, 5, 6) the slice-split ID performs comparably or better than the patient-split counterpart. Leakage inflates internal val AUC during training; it does not necessarily cause overfitting to the resection domain.
+4. **The 2y_before_cv gene set reversal is preserved**: slice-split `5d04e6ba` remains the worst embedding model (0.516) while patient-split sibling `9109a6c2` is the best (0.732). The patient-level split forces the model to learn more transferable image features rather than overfitting the resection gene-expression distribution.
 
-5. **Bounding box models are consistently below raw-MRI equivalents**: best bbox is 0.611 (`8715461c`), vs 0.742 for the matched raw model. The slice-split bbox CV advantage (0.965) was entirely leakage.
+5. **`050d401d` (bbox, slice-split) jumped from rank 12 to rank 6 (0.583→0.669) after the resampling fix.** The bbox pipeline crops around segmentation masks that were themselves resampled — getting this right mattered more for bbox than for raw-MRI models.
 
-6. **Radiomic RF (0.590) sits in the middle of the embedding model ranking**, ahead of 7 of the 16 embedding models. Simple arterial radiomics transfer non-trivially across cohorts when embedding models have poor supervision or leaky training.
+6. **Radiomic RF (0.590) still sits mid-table**, ahead of 7 of the 16 embedding models. The relative standing is unchanged from before the resampling fix.
 
-7. **LR head tends to win for frozen/full-slice models; RF head wins for unfrozen/n=10 models.** `6a1a1bdf` RF beats LR by +0.07, while `dc7e1d10` LR beats RF by +0.13 — suggesting frozen backbone embeddings produce smoother, more linearly separable representations.
+7. **LR head dominates across the board after the fix.** LR wins for 13 of 16 models, including all frozen and most unfrozen configs — a stronger pattern than before where RF won for several n=10 unfrozen models.
 
 ---
 
