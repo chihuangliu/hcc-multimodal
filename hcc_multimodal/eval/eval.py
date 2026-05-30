@@ -246,30 +246,27 @@ class _MRIDataset(Dataset):
         seg_root: Path | None = None,
         bbox_pad: int = 10,
     ):
-        self.mri_root = mri_root
-        self.mri_filename_fn = mri_filename_fn
         self.axis = axis
         self.resize = transforms.Resize((img_size, img_size), antialias=True)
         self.vit_transform = vit_transform
-        self.resample = resample
-        self.seg_root = seg_root
-        self.bbox_pad = bbox_pad
-        self._bbox_mode = seg_root is not None
+        bbox_mode = seg_root is not None
 
-        # (pid, lo, hi) for each lesion crop; indexed by crop_idx
-        self._crops: list[tuple[int, np.ndarray, np.ndarray]] = []
         # unified: (pid, crop_idx, si) — crop_idx=-1 in plain mode
         self._index: list[tuple[int, int, int]] = []
+        # pre-loaded volumes: plain → pid: vol, bbox → crop_idx: cropped vol
+        self._vols: dict[int, np.ndarray] = {}        # pid → vol (plain mode)
+        self._crop_vols: list[np.ndarray] = []        # crop_idx → cropped vol (bbox mode)
 
         for pid in patient_ids:
             mri_path = mri_root / str(pid) / mri_filename_fn(pid)
             if not mri_path.exists():
                 continue
 
-            if self._bbox_mode:
+            if bbox_mode:
                 lesion_dirs = sorted(seg_root.glob(f"{pid}_*"))
                 if not lesion_dirs:
                     continue
+                full_vol = resample_to_spacing(nib.load(mri_path))
                 for lesion_dir in lesion_dirs:
                     lesion_id = lesion_dir.name.rsplit("_", 1)[1]
                     seg_path = lesion_dir / ABLATION_SEG_FILENAME_TEMPLATE.format(sid=pid, lesion_id=lesion_id)
@@ -279,15 +276,22 @@ class _MRIDataset(Dataset):
                     if seg_vol.max() < 0.5:
                         continue
                     lo, hi = _compute_bbox(seg_vol, bbox_pad)
-                    crop_shape = tuple((hi - lo + 1).tolist())
-                    crop_idx = len(self._crops)
-                    self._crops.append((pid, lo, hi))
-                    for si in _sample_indices(crop_shape[axis], n_per_axis):
+                    hi_safe = np.minimum(hi, np.array(full_vol.shape[:3]) - 1)
+                    crop_vol = full_vol[lo[0]:hi_safe[0]+1, lo[1]:hi_safe[1]+1, lo[2]:hi_safe[2]+1]
+                    crop_idx = len(self._crop_vols)
+                    self._crop_vols.append(crop_vol)
+                    for si in _sample_indices(crop_vol.shape[axis], n_per_axis):
                         self._index.append((pid, crop_idx, si))
             else:
                 img = nib.load(mri_path)
-                shape = resampled_shape(img)[:3] if resample else img.shape[:3]
-                for si in _sample_indices(shape[axis], n_per_axis):
+                if resample:
+                    vol = resample_to_spacing(img)
+                else:
+                    vol = np.squeeze(np.array(img.dataobj))
+                    if vol.ndim == 4:
+                        vol = vol[..., 0]
+                self._vols[pid] = vol
+                for si in _sample_indices(vol.shape[axis], n_per_axis):
                     self._index.append((pid, -1, si))
 
     def __len__(self) -> int:
@@ -295,21 +299,12 @@ class _MRIDataset(Dataset):
 
     def __getitem__(self, i: int) -> tuple[torch.Tensor, int]:
         pid, crop_idx, si = self._index[i]
-        path = self.mri_root / str(pid) / self.mri_filename_fn(pid)
 
-        img = nib.load(path)
-        if self.resample or self._bbox_mode:
-            vol = resample_to_spacing(img)
-        else:
-            vol = np.squeeze(np.array(img.dataobj))
-            if vol.ndim == 4:
-                vol = vol[..., 0]
-
-        if self._bbox_mode:
-            _, lo, hi = self._crops[crop_idx]
-            hi_safe = np.minimum(hi, np.array(vol.shape[:3]) - 1)
-            vol = vol[lo[0]:hi_safe[0]+1, lo[1]:hi_safe[1]+1, lo[2]:hi_safe[2]+1]
+        if crop_idx >= 0:
+            vol = self._crop_vols[crop_idx]
             si = min(si, vol.shape[self.axis] - 1)
+        else:
+            vol = self._vols[pid]
 
         s = np.take(vol, si, axis=self.axis)
         t = torch.from_numpy(_normalize_slice(s)).unsqueeze(0)
