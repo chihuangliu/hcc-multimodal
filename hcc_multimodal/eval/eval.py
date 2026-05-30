@@ -683,16 +683,15 @@ def run(args: argparse.Namespace) -> None:
         "args": vars(args),
         "results": all_results,
     }
-    out_path = (
-        Path(args.output)
-        if args.output
-        else (
-            PROJECT_ROOT
-            / "results"
-            / "eval"
-            / f"{args.target}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        )
-    )
+    if args.output:
+        out_path = Path(args.output)
+    else:
+        parts = [args.mode]
+        if args.model_id:
+            parts.append(args.model_id)
+        parts.append(args.target)
+        parts.append(datetime.now().strftime("%Y%m%d_%H%M%S"))
+        out_path = PROJECT_ROOT / "results" / "eval" / f"{'_'.join(parts)}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(output, indent=2))
     print(f"\nSaved → {out_path}")
