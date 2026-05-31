@@ -360,6 +360,8 @@ def run(args: argparse.Namespace) -> None:
 
     selector_tag = "before_cv" if args.selector_before_cv else "in_cv"
     git_hash = _git_hash()
+    # None = all slices; int = exactly that many slices
+    _n_override = args.n_per_axis
     if args.task == "radiomics":
         dir_name = f"radiomics_{args.outcome}_{selector_tag}_k{args.k}_{git_hash}"
     else:
@@ -373,8 +375,6 @@ def run(args: argparse.Namespace) -> None:
             ).read_text()
         )
         mri_tag = model_meta.get("mri_type", "preprocessed")
-        # None = all slices; int = exactly that many slices
-        _n_override = args.n_per_axis
         slice_tag = "nall" if _n_override is None else f"n{_n_override}"
         dir_name = f"{args.task}_{args.model_id}_{args.outcome}_{selector_tag}_k{args.k}_{mri_tag}_{slice_tag}_{git_hash}"
 
@@ -427,11 +427,11 @@ def run(args: argparse.Namespace) -> None:
             _TRAINING_ROOT
             / args.model_id
             / "cached_embeddings"
-            / f"emb_{slice_tag}.csv"
+            / f"emb_{slice_tag}.parquet"
         )
         if cache_path.exists():
             print(f"Loading cached embeddings from {cache_path}")
-            emb_df = pd.read_csv(cache_path, index_col=0)
+            emb_df = pd.read_parquet(cache_path)
         else:
             img_enc, gene_enc = _load_model(
                 model_path, meta, gene_matrix.shape[1], device
@@ -449,7 +449,7 @@ def run(args: argparse.Namespace) -> None:
                 n_per_axis_override=_n_override,
             )
             cache_path.parent.mkdir(exist_ok=True)
-            emb_df.to_csv(cache_path)
+            emb_df.to_parquet(cache_path)
             print(f"Cached embeddings → {cache_path}")
         print(f"Embedding matrix: {emb_df.shape}")
         y = outcomes.loc[emb_df.index]

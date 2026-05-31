@@ -1,0 +1,32 @@
+{
+  "git_commit": "3da198e3db0f34bc57c548fa697ef4d8fd834af8",
+  "args": {
+    "target": "rfs_2year",
+    "output_dir": "/Users/amo/programData/hcc-multimodal/models/radiomics"
+  },
+  "hyperparameters": {
+    "select_k": 100,
+    "random_state": 42,
+    "lr": {
+      "solver": "saga",
+      "C": 1.0,
+      "l1_ratio": 1.0,
+      "max_iter": 1000
+    },
+    "rf": {
+      "max_depth": 2,
+      "min_samples_leaf": 10,
+      "n_estimators": 100
+    }
+  },
+  "data": {
+    "n_samples": 54,
+    "n_positives": 26,
+    "n_features_input": 149,
+    "n_features_selected": 100
+  },
+  "saved_models": [
+    "radiomic_rfs_2year_lr.joblib",
+    "radiomic_rfs_2year_rf.joblib"
+  ]
+}

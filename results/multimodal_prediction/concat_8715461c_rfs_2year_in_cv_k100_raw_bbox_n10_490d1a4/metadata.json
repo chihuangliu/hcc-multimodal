@@ -1,0 +1,13 @@
+{
+  "task": "concat",
+  "outcome": "rfs_2year",
+  "model_id": "8715461c",
+  "k": 100,
+  "n_splits": 3,
+  "selector_before_cv": false,
+  "n_per_axis_override": 10,
+  "batch_size": 32,
+  "num_workers": 0,
+  "git_hash": "490d1a4",
+  "timestamp": "2026-05-26T13:34:07.572913"
+}

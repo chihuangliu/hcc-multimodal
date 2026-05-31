@@ -1,0 +1,13 @@
+{
+  "task": "ensemble",
+  "outcome": "rfs_2year",
+  "model_id": "a6f970d6",
+  "k": 100,
+  "n_splits": 3,
+  "selector_before_cv": false,
+  "n_per_axis_override": null,
+  "batch_size": 32,
+  "num_workers": 0,
+  "git_hash": "9e4ce38",
+  "timestamp": "2026-05-25T21:22:23.989547"
+}
