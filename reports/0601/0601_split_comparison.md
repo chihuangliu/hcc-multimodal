@@ -125,18 +125,18 @@ Inference conditions per model group:
 
 ---
 
-# 4. Training results
+# 4. Training loss and best epochs
 
-| # | Old ID (slice split) | New ID (patient split) | Train loss (final ep) | Best val loss (epoch) |
-|---|---------------------|----------------------|----------------------|----------------------|
-| 1 | `6a1a1bdf` | `1361bef2` | 1.097 | 1.474 (ep 19) |
-| 2 | `982a6fa2` | `a6f970d6` | 1.481 | 4.255 (ep 14) |
-| 3 | `12e4ba6a` | `34e6806f` | 0.844 | 1.495 (ep 15) |
-| 4 | `5d04e6ba` | `9109a6c2` | 1.282 | 1.466 (ep 25) |
-| 5 | `dc7e1d10` | `5e3f71a0` | -0.422 | 2.598 (ep 1) |
-| 6 | `a64b245f` | `06c598c0` | 0.947 | 9.417 (ep 1) |
-| 7 | `050d401d` | `f8aabb75` | -0.350 | 1.580 (ep 11) |
-| 8 | `e12b0592` | `8715461c` | 0.717 | 4.368 (ep 5) |
+| # | Config | Slice split ID | Best val loss (ep) | Patient split ID | Best val loss (ep) |
+|---|--------|----------------|--------------------|------------------|--------------------|
+| 1 | raw, λ=0.1, n=10 | `6a1a1bdf` | 1.327 (ep 28) | `1361bef2` | 1.474 (ep 19) |
+| 2 | raw, λ=0.0, n=10 | `982a6fa2` | 3.941 (ep 15) | `a6f970d6` | 4.255 (ep 14) |
+| 3 | raw, λ=0.1, predefined genes | `12e4ba6a` | 1.430 (ep 15) | `34e6806f` | 1.495 (ep 15) |
+| 4 | raw, λ=0.1, 2y_before_cv genes | `5d04e6ba` | 1.417 (ep 19) | `9109a6c2` | 1.466 (ep 25) |
+| 5 | raw, λ=0.1, frozen, n=all | `dc7e1d10` | 0.259 (ep 1) | `5e3f71a0` | 2.598 (ep 1) |
+| 6 | raw, λ=0.0, frozen, n=all | `a64b245f` | −0.085 (ep 1) | `06c598c0` | 9.417 (ep 1) |
+| 7 | bbox, λ=0.1, n=10 | `050d401d` | 0.396 (ep 49) | `f8aabb75` | 1.580 (ep 11) |
+| 8 | bbox, λ=0.0, n=10 | `e12b0592` | 1.637 (ep 45) | `8715461c` | 4.368 (ep 5) |
 
 ---
 
