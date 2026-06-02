@@ -19,10 +19,13 @@ import glob
 import json
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+matplotlib.rcParams['svg.fonttype'] = 'none'
 
 ROOT = Path(__file__).resolve().parents[1]
 MULTIMODAL_DIR = ROOT / "results" / "multimodal_prediction"
@@ -123,10 +126,10 @@ def _draw_panel(
     ylabel: str,
     annotate: bool = True,
 ) -> None:
-    ax.set_title(title, fontsize=9, fontweight="bold", pad=5)
-    ax.set_xlabel(xlabel, fontsize=8)
-    ax.set_ylabel(ylabel, fontsize=8)
-    ax.tick_params(labelsize=7)
+    ax.set_title(title, fontsize=16, fontweight="bold", pad=5)
+    ax.set_xlabel(xlabel, fontsize=16)
+    ax.set_ylabel(ylabel, fontsize=16)
+    ax.tick_params(labelsize=14)
     ax.grid(True, alpha=0.2, linewidth=0.6)
 
     ax.set_xlim(_axis_limits(xs, pad=0.08))
@@ -134,12 +137,12 @@ def _draw_panel(
 
     for x, y, lbl, g in zip(xs, ys, labels, groups):
         color = GROUP_COLORS[g]
-        ax.plot(x, y, "o", color=color, ms=6, alpha=0.9, zorder=3)
+        ax.plot(x, y, "o", color=color, ms=7, alpha=0.9, zorder=3)
         if annotate:
             ax.annotate(
                 lbl, (x, y),
                 textcoords="offset points", xytext=(5, 2),
-                fontsize=5.5, color=color, alpha=0.85,
+                fontsize=11, color=color, alpha=0.85,
             )
 
     if len(xs) >= 3:
@@ -147,7 +150,7 @@ def _draw_panel(
         pstr = f"p={p:.3f}" if p >= 0.001 else "p<0.001"
         ax.text(
             0.04, 0.96, f"r = {r:+.2f},  {pstr}",
-            transform=ax.transAxes, fontsize=8, va="top",
+            transform=ax.transAxes, fontsize=13, va="top",
             bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="0.7", alpha=0.85),
         )
         # Fitted regression line
@@ -174,8 +177,11 @@ def main(out: Path) -> None:
     slice_pair  = [p[0] for p in PAIRS]   # slice model of each matched pair
     patient_pair = [p[1] for p in PAIRS]  # patient model of each matched pair
 
-    fig, axes = plt.subplots(2, 2, figsize=(11, 9))
-    fig.suptitle("In-CV AUC (n=all) vs Ablation AUROC — 2-year RFS", fontsize=12, fontweight="bold", y=0.995)
+    fig, axes = plt.subplots(2, 2, figsize=(14, 11))
+    fig.suptitle(
+        "Cross-validation AUROC vs Hold-out AUROC — 2-year Recurrence-free Survival",
+        fontsize=18, fontweight="bold", y=0.995,
+    )
 
     # 1. Slice CV vs slice ablation
     _draw_panel(
@@ -184,9 +190,9 @@ def main(out: Path) -> None:
         ys=[abl[m]   for m in slice_ids],
         labels=[MODEL_META[m][0] for m in slice_ids],
         groups=[MODEL_META[m][2] for m in slice_ids],
-        title="1. Slice-split CV vs Slice-split Ablation",
-        xlabel="In-CV AUC  (slice split, n=all)",
-        ylabel="Ablation AUROC  (slice-split model)",
+        title="1. Slice-split CV vs Slice-split Hold-out",
+        xlabel="Cross-validation AUROC",
+        ylabel="Hold-out AUROC",
     )
 
     # 2. Patient CV vs patient ablation
@@ -196,9 +202,9 @@ def main(out: Path) -> None:
         ys=[abl[m]   for m in patient_ids],
         labels=[MODEL_META[m][0] for m in patient_ids],
         groups=[MODEL_META[m][2] for m in patient_ids],
-        title="2. Patient-split CV vs Patient-split Ablation",
-        xlabel="In-CV AUC  (patient split, n=all)",
-        ylabel="Ablation AUROC  (patient-split model)",
+        title="2. Patient-split CV vs Patient-split Hold-out",
+        xlabel="Cross-validation AUROC",
+        ylabel="Hold-out AUROC",
     )
 
     # 3. Patient CV vs slice ablation  (matched pairs)
@@ -208,9 +214,9 @@ def main(out: Path) -> None:
         ys=[abl[m]    for m in slice_pair],
         labels=[MODEL_META[m][0] for m in patient_pair],
         groups=[MODEL_META[m][2] for m in patient_pair],
-        title="3. Patient-split CV vs Slice-split Ablation  (matched pairs)",
-        xlabel="In-CV AUC  (patient split, n=all)",
-        ylabel="Ablation AUROC  (slice-split counterpart)",
+        title="3. Patient-split CV vs Slice-split Hold-out (matched pairs)",
+        xlabel="Cross-validation AUROC",
+        ylabel="Hold-out AUROC",
     )
 
     # 4. Slice CV vs patient ablation  (matched pairs)
@@ -220,9 +226,9 @@ def main(out: Path) -> None:
         ys=[abl[m]    for m in patient_pair],
         labels=[MODEL_META[m][0] for m in slice_pair],
         groups=[MODEL_META[m][2] for m in slice_pair],
-        title="4. Slice-split CV vs Patient-split Ablation  (matched pairs)",
-        xlabel="In-CV AUC  (slice split, n=all)",
-        ylabel="Ablation AUROC  (patient-split counterpart)",
+        title="4. Slice-split CV vs Patient-split Hold-out (matched pairs)",
+        xlabel="Cross-validation AUROC",
+        ylabel="Hold-out AUROC",
     )
 
     # Shared legend
@@ -234,19 +240,20 @@ def main(out: Path) -> None:
     ]
     fig.legend(
         handles=legend_handles,
-        loc="lower center", ncol=4, fontsize=8,
+        loc="lower center", ncol=4, fontsize=14,
         framealpha=0.9, edgecolor="0.7",
         bbox_to_anchor=(0.5, 0.0),
     )
     fig.text(
         0.5, -0.01,
         "Solid line = OLS regression fit.",
-        ha="center", fontsize=7.5, color="0.4",
+        ha="center", fontsize=13, color="0.4",
     )
 
     plt.tight_layout(rect=[0, 0.05, 1, 0.995])
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=150, bbox_inches="tight")
+    fig.savefig(out.with_suffix(".svg"), bbox_inches="tight")
     print(f"Saved → {out}")
 
     # Print Pearson r summary to stdout

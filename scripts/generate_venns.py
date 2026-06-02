@@ -11,6 +11,8 @@ Outputs saved to reports/0504/venns/:
 import warnings
 from pathlib import Path
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -19,8 +21,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 
-ROOT = Path(__file__).resolve().parents[2]
-HERE = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
+HERE = ROOT / "reports" / "0504"
 C1_DIR = HERE / "deseq_p0.05_before_cv_all_genes"
 C2_DIR = HERE / "deseq_p0.05_before_cv_predefined"
 C3_DIR = HERE / "deseq_p0.05_in_cv_predefined"
@@ -135,8 +137,8 @@ for yr, label in [("1y", "1-year"), ("2y", "2-year")]:
 # ===========================================================================
 print("\n=== C1: non-zero LR C=1 coef features ===")
 
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-fig.suptitle("C1 (before_cv, all genes) — LR C=1 non-zero coef genes per fold", fontsize=12)
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+fig.suptitle("C1 (before_cv, all genes) — LR C=1 non-zero coef genes per fold", fontsize=18)
 
 for ax, (rfs_year, yr, label) in zip(axes, [(1, "1y", "1-year"), (2, "2y", "2-year")]):
     # Load preselected features
@@ -170,8 +172,8 @@ save_venn_figure(fig, OUT_DIR / "c1_lr_nonzero.png")
 # ===========================================================================
 print("\n=== C2: non-zero LR C=1 coef features ===")
 
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-fig.suptitle("C2 (before_cv, predefined) — LR C=1 non-zero coef genes per fold", fontsize=12)
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+fig.suptitle("C2 (before_cv, predefined) — LR C=1 non-zero coef genes per fold", fontsize=18)
 
 for ax, (rfs_year, yr, label) in zip(axes, [(1, "1y", "1-year"), (2, "2y", "2-year")]):
     presel = pd.read_csv(C2_DIR / f"rfs_{yr}_preselected_features.csv")["feature"].tolist()
@@ -195,8 +197,8 @@ save_venn_figure(fig, OUT_DIR / "c2_lr_nonzero.png")
 print("\n=== C1: preselected features vs HCC gene set ===")
 
 hcc_set = set(hcc_genes)
-fig, axes = plt.subplots(1, 2, figsize=(11, 5))
-fig.suptitle("C1 (before_cv, all genes) — DESeq-selected features vs HCC gene set", fontsize=12)
+fig, axes = plt.subplots(1, 2, figsize=(13, 6))
+fig.suptitle("C1 (before_cv, all genes) — DESeq-selected features vs HCC gene set", fontsize=18)
 
 for ax, (yr, label) in zip(axes, [("1y", "1-year"), ("2y", "2-year")]):
     presel = set(pd.read_csv(C1_DIR / f"rfs_{yr}_preselected_features.csv")["feature"].tolist())
