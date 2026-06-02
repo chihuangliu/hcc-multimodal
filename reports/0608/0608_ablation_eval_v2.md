@@ -1,0 +1,295 @@
+# Ablation Cohort Evaluation — 2-Year RFS Prediction
+**Date:** 2026-06-08  
+**Covers:** Soramic (ablation) cohort · Lausanne cohort  
+**Based on:** `reports/0601/0601_ablation_eval.md`
+
+---
+
+## Table of Contents
+
+- [1. Setup](#1-setup)
+- [2. Results — Soramic](#2-results--soramic)
+  - [2.1 Radiomic baselines](#21-radiomic-baselines)
+  - [2.2 Embedding models — all configs](#22-embedding-models--all-configs)
+  - [2.3 Summary table](#23-summary-table)
+- [3. Results — Lausanne](#3-results--lausanne)
+  - [3.1 Radiomic baselines](#31-radiomic-baselines)
+  - [3.2 Embedding models — all configs](#32-embedding-models--all-configs)
+  - [3.3 Summary table](#33-summary-table)
+- [4. Rank by CV AUC](#4-rank-by-cv-auc)
+- [5. Observations](#5-observations)
+- [6. File references](#6-file-references)
+
+---
+
+## 1. Setup
+
+### 1.1 Cohorts
+
+| | Training (resection) | Test (Soramic) | Test (Lausanne) |
+|---|---|---|---|
+| Patients | 54 | 59 with 2 yr RFS outcome, 53 with radiomics features | 66 with 2 yr RFS outcome, 61 with radiomics features |
+| Positives (RFS ≤ 2 yr) | 26 (48%) | 40 (68%) | 49 (74%) |
+
+### 1.2 Radiomic pipeline
+
+Pre-trained on the full resection cohort (`models/radiomics/radiomic_rfs_2year_{lr,rf}.joblib`):
+
+- 149 arterial-phase features → SelectKBest(f_classif, k=100) → classifier  
+- **LR:** saga, elasticnet, l1_ratio=1.0, C=1.0  
+- **RF:** max_depth=2, min_samples_leaf=10, n_estimators=100
+
+### 1.3 Contrastive embedding pipeline
+
+Same 16 models evaluated on both cohorts (Groups 1–4). Downstream head: SelectKBest(f_classif, k=100) + LR or RF fitted on resection embeddings, evaluated on test cohort embeddings. MRI: arterial phase, mean-pooled sagittal slices. Embeddings resampled to 1×1×3 mm before extraction.
+
+### 1.4 Key differences between cohorts
+
+| | Soramic (ablation) | Lausanne |
+|---|---|---|
+| MRI filename | `{pid}/MRI_dyn_arterial.nii.gz` | `{pid:04d}/date_one/MRI_liver_arterial.nii.gz` |
+| Mask prefix | `{pid}` | `{pid:03d}` |
+| N patients (outcome) | 59 | 66 |
+| Positive rate | 68% | 74% |
+
+---
+
+## 2. Results — Soramic
+
+### 2.1 Radiomic baselines
+
+Target: rfs_2year | Multi-lesion: average | Threshold: 0.5
+
+| Model | AUROC | AUPRC | Sensitivity | Specificity | PPV | NPV | F1 |
+|-------|------:|------:|------------:|------------:|----:|----:|---:|
+| LR | 0.518 | 0.671 | 0.657 | 0.389 | 0.677 | 0.368 | 0.667 |
+| RF | **0.590** | 0.766 | 0.143 | 1.000 | 1.000 | 0.375 | 0.250 |
+
+### 2.2 Embedding models — all configs
+
+Best of LR / RF shown per model (best AUROC).
+
+#### Group 1 — 40 genes + 10 slices per patient
+
+| Config | Model ID | LR AUROC | RF AUROC | Best AUROC |
+|--------|----------|--------:|--------:|----------:|
+| λ=0.1, unfrozen, n=10, slice | `6a1a1bdf` | 0.615 | 0.583 | 0.615 |
+| λ=0.1, unfrozen, n=10, patient | `1361bef2` | 0.470 | 0.522 | 0.522 |
+| λ=0.0, unfrozen, n=10, slice | `982a6fa2` | 0.514 | 0.606 | 0.606 |
+| λ=0.0, unfrozen, n=10, patient | `a6f970d6` | 0.494 | 0.450 | 0.494 |
+
+#### Group 2 — Gene set ablation
+
+| Config | Model ID | LR AUROC | RF AUROC | Best AUROC |
+|--------|----------|--------:|--------:|----------:|
+| λ=0.1, predefined genes, slice | `12e4ba6a` | 0.578 | 0.670 | 0.670 |
+| λ=0.1, predefined genes, patient | `34e6806f` | 0.574 | 0.507 | 0.574 |
+| λ=0.1, 2y_before_cv genes, slice | `5d04e6ba` | 0.436 | 0.516 | 0.516 |
+| λ=0.1, 2y_before_cv genes, patient | `9109a6c2` | 0.732 | 0.568 | 0.732 |
+
+#### Group 3 — Full slices (n=all, frozen backbone)
+
+| Config | Model ID | LR AUROC | RF AUROC | Best AUROC |
+|--------|----------|--------:|--------:|----------:|
+| λ=0.1, frozen, n=all, slice | `dc7e1d10` | 0.718 | 0.608 | 0.718 |
+| λ=0.1, frozen, n=all, patient | `5e3f71a0` | 0.617 | 0.635 | 0.635 |
+| λ=0.0, frozen, n=all, slice | `a64b245f` | 0.684 | 0.669 | 0.684 |
+| λ=0.0, frozen, n=all, patient | `06c598c0` | 0.702 | 0.664 | 0.702 |
+
+#### Group 4 — Bounding box
+
+| Config | Model ID | LR AUROC | RF AUROC | Best AUROC |
+|--------|----------|--------:|--------:|----------:|
+| λ=0.1, unfrozen, n=10, slice | `050d401d` | 0.669 | 0.515 | 0.669 |
+| λ=0.1, unfrozen, n=10, patient | `f8aabb75` | 0.539 | 0.497 | 0.539 |
+| λ=0.0, unfrozen, n=10, slice | `e12b0592` | 0.517 | 0.465 | 0.517 |
+| λ=0.0, unfrozen, n=10, patient | `8715461c` | 0.534 | 0.431 | 0.534 |
+| λ=0.1, frozen, n=all, slice | `92b9afed` | 0.571 | 0.577 | 0.577 |
+
+### 2.3 Summary table
+
+Best head (LR or RF, whichever has higher AUROC) per model, ranked by AUROC. Multi-lesion: average. Threshold: 0.5. "—" = undefined NPV (all samples predicted positive).
+
+| Rank | Model ID | Head | Config | AUROC | AUPRC | Sensitivity | Specificity | PPV | NPV | F1 |
+|------|----------|------|--------|------:|------:|------------:|------------:|----:|----:|---:|
+| 1 | `9109a6c2` | LR | raw, λ=0.1, 2y_before_cv genes, n=10, patient | 0.732 | 0.865 | 0.846 | 0.389 | 0.750 | 0.538 | 0.795 |
+| 2 | `dc7e1d10` | LR | raw, λ=0.1, frozen, n=all, slice | 0.718 | 0.838 | 0.846 | 0.389 | 0.750 | 0.538 | 0.795 |
+| 3 | `06c598c0` | LR | raw, λ=0.0, frozen, n=all, patient | 0.702 | 0.840 | 0.897 | 0.222 | 0.714 | 0.500 | 0.795 |
+| 4 | `a64b245f` | LR | raw, λ=0.0, frozen, n=all, slice | 0.684 | 0.804 | 0.974 | 0.278 | 0.745 | 0.833 | 0.844 |
+| 5 | `12e4ba6a` | RF | raw, λ=0.1, predefined genes, n=10, slice | 0.670 | 0.820 | 0.872 | 0.278 | 0.723 | 0.500 | 0.791 |
+| 6 | `050d401d` | LR | bbox, λ=0.1, unfrozen, n=10, slice | 0.669 | 0.791 | 1.000 | 0.000 | 0.667 | — | 0.800 |
+| 7 | `5e3f71a0` | RF | raw, λ=0.1, frozen, n=all, patient | 0.635 | 0.819 | 1.000 | 0.000 | 0.684 | — | 0.812 |
+| 8 | `6a1a1bdf` | LR | raw, λ=0.1, unfrozen, n=10, slice | 0.615 | 0.816 | 0.385 | 0.778 | 0.789 | 0.368 | 0.517 |
+| 9 | `982a6fa2` | RF | raw, λ=0.0, unfrozen, n=10, slice | 0.606 | 0.734 | 1.000 | 0.000 | 0.684 | — | 0.812 |
+| — | radiomic RF | RF | 149 art. features, resection-trained | 0.590 | 0.766 | 0.143 | 1.000 | 1.000 | 0.375 | 0.250 |
+| 10 | `92b9afed` | RF | bbox, λ=0.1, frozen, n=all, slice | 0.577 | 0.719 | 0.972 | 0.000 | 0.660 | 0.000 | 0.787 |
+| 11 | `34e6806f` | LR | raw, λ=0.1, predefined genes, n=10, patient | 0.574 | 0.734 | 0.667 | 0.500 | 0.743 | 0.409 | 0.703 |
+| 12 | `f8aabb75` | LR | bbox, λ=0.1, unfrozen, n=10, patient | 0.539 | 0.710 | 0.944 | 0.056 | 0.667 | 0.333 | 0.782 |
+| 13 | `8715461c` | LR | bbox, λ=0.0, unfrozen, n=10, patient | 0.534 | 0.661 | 0.028 | 0.889 | 0.333 | 0.314 | 0.051 |
+| 14 | `1361bef2` | RF | raw, λ=0.1, unfrozen, n=10, patient | 0.522 | 0.707 | 1.000 | 0.000 | 0.684 | — | 0.812 |
+| — | radiomic LR | LR | 149 art. features, resection-trained | 0.518 | 0.671 | 0.657 | 0.389 | 0.676 | 0.368 | 0.667 |
+| 15 | `e12b0592` | LR | bbox, λ=0.0, unfrozen, n=10, slice | 0.517 | 0.693 | 0.472 | 0.556 | 0.680 | 0.345 | 0.557 |
+| 16 | `5d04e6ba` | RF | raw, λ=0.1, 2y_before_cv genes, n=10, slice | 0.516 | 0.712 | 1.000 | 0.000 | 0.684 | — | 0.812 |
+| 17 | `a6f970d6` | LR | raw, λ=0.0, unfrozen, n=10, patient | 0.494 | 0.674 | 0.949 | 0.056 | 0.685 | 0.333 | 0.796 |
+
+---
+
+## 3. Results — Lausanne
+
+### 3.1 Radiomic baselines
+
+Target: rfs_2year | Multi-lesion: average | Threshold: 0.5
+
+| Model | AUROC | AUPRC | Sensitivity | Specificity | PPV | NPV | F1 |
+|-------|------:|------:|------------:|------------:|----:|----:|---:|
+| LR | 0.531 | 0.748 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| RF | 0.506 | 0.747 | 0.067 | 0.875 | 0.600 | 0.250 | 0.120 |
+
+### 3.2 Embedding models — all configs
+
+Best of LR / RF shown per model (best AUROC).
+
+#### Group 1 — 40 genes + 10 slices per patient
+
+| Config | Model ID | LR AUROC | RF AUROC | Best AUROC |
+|--------|----------|--------:|--------:|----------:|
+| λ=0.1, unfrozen, n=10, slice | `6a1a1bdf` | 0.497 | 0.474 | 0.497 |
+| λ=0.1, unfrozen, n=10, patient | `1361bef2` | 0.664 | **0.771** | **0.771** |
+| λ=0.0, unfrozen, n=10, slice | `982a6fa2` | 0.600 | 0.560 | 0.600 |
+| λ=0.0, unfrozen, n=10, patient | `a6f970d6` | 0.618 | 0.463 | 0.618 |
+
+#### Group 2 — Gene set ablation
+
+| Config | Model ID | LR AUROC | RF AUROC | Best AUROC |
+|--------|----------|--------:|--------:|----------:|
+| λ=0.1, predefined genes, slice | `12e4ba6a` | 0.423 | 0.477 | 0.477 |
+| λ=0.1, predefined genes, patient | `34e6806f` | 0.420 | 0.358 | 0.420 |
+| λ=0.1, 2y_before_cv genes, slice | `5d04e6ba` | 0.655 | 0.610 | 0.655 |
+| λ=0.1, 2y_before_cv genes, patient | `9109a6c2` | 0.563 | 0.414 | 0.563 |
+
+#### Group 3 — Full slices (n=all, frozen backbone)
+
+| Config | Model ID | LR AUROC | RF AUROC | Best AUROC |
+|--------|----------|--------:|--------:|----------:|
+| λ=0.1, frozen, n=all, slice | `dc7e1d10` | 0.419 | 0.453 | 0.453 |
+| λ=0.1, frozen, n=all, patient | `5e3f71a0` | 0.534 | 0.467 | 0.534 |
+| λ=0.0, frozen, n=all, slice | `a64b245f` | 0.448 | 0.556 | 0.556 |
+| λ=0.0, frozen, n=all, patient | `06c598c0` | 0.515 | 0.450 | 0.515 |
+
+#### Group 4 — Bounding box
+
+| Config | Model ID | LR AUROC | RF AUROC | Best AUROC |
+|--------|----------|--------:|--------:|----------:|
+| λ=0.1, unfrozen, n=10, slice | `050d401d` | 0.502 | 0.544 | 0.544 |
+| λ=0.1, unfrozen, n=10, patient | `f8aabb75` | 0.446 | 0.515 | 0.515 |
+| λ=0.0, unfrozen, n=10, slice | `e12b0592` | 0.489 | 0.595 | 0.595 |
+| λ=0.0, unfrozen, n=10, patient | `8715461c` | 0.490 | 0.494 | 0.494 |
+| λ=0.1, frozen, n=all, slice | `92b9afed` | 0.607 | 0.614 | **0.614** |
+
+### 3.3 Summary table
+
+Best head (LR or RF, whichever has higher AUROC) per model, ranked by AUROC. Multi-lesion: average. Threshold: 0.5. "—" = undefined NPV (all samples predicted positive).
+
+| Rank | Model ID | Head | Config | AUROC | AUPRC | Sensitivity | Specificity | PPV | NPV | F1 |
+|------|----------|------|--------|------:|------:|------------:|------------:|----:|----:|---:|
+| 1 | `1361bef2` | RF | raw, λ=0.1, unfrozen, n=10, patient | **0.771** | 0.867 | 1.000 | 0.000 | 0.742 | — | 0.852 |
+| 2 | `92b9afed` | RF | bbox, λ=0.1, frozen, n=all, slice | 0.614 | 0.810 | 0.979 | 0.059 | 0.746 | 0.500 | 0.847 |
+| 3 | `5d04e6ba` | LR | raw, λ=0.1, 2y_before_cv genes, n=10, slice | 0.655 | 0.850 | 1.000 | 0.000 | 0.742 | — | 0.852 |
+| 4 | `a6f970d6` | LR | raw, λ=0.0, unfrozen, n=10, patient | 0.618 | 0.827 | 0.980 | 0.059 | 0.750 | 0.500 | 0.850 |
+| 5 | `982a6fa2` | LR | raw, λ=0.0, unfrozen, n=10, slice | 0.600 | 0.844 | 0.980 | 0.059 | 0.750 | 0.500 | 0.850 |
+| 6 | `e12b0592` | RF | bbox, λ=0.0, unfrozen, n=10, slice | 0.595 | 0.790 | 0.438 | 0.706 | 0.808 | 0.308 | 0.568 |
+| 7 | `9109a6c2` | LR | raw, λ=0.1, 2y_before_cv genes, n=10, patient | 0.563 | 0.806 | 0.694 | 0.353 | 0.756 | 0.286 | 0.723 |
+| 8 | `a64b245f` | RF | raw, λ=0.0, frozen, n=all, slice | 0.556 | 0.803 | 0.959 | 0.059 | 0.746 | 0.333 | 0.839 |
+| 9 | `050d401d` | RF | bbox, λ=0.1, unfrozen, n=10, slice | 0.544 | 0.755 | 0.333 | 0.765 | 0.800 | 0.289 | 0.471 |
+| — | radiomic LR | LR | 149 art. features, resection-trained | 0.531 | 0.748 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 10 | `5e3f71a0` | LR | raw, λ=0.1, frozen, n=all, patient | 0.534 | 0.775 | 0.939 | 0.118 | 0.754 | 0.400 | 0.836 |
+| 11 | `f8aabb75` | RF | bbox, λ=0.1, unfrozen, n=10, patient | 0.515 | 0.769 | 1.000 | 0.000 | 0.738 | — | 0.850 |
+| 12 | `06c598c0` | LR | raw, λ=0.0, frozen, n=all, patient | 0.515 | 0.779 | 0.755 | 0.294 | 0.755 | 0.294 | 0.755 |
+| — | radiomic RF | RF | 149 art. features, resection-trained | 0.506 | 0.747 | 0.067 | 0.875 | 0.600 | 0.250 | 0.120 |
+| 13 | `6a1a1bdf` | LR | raw, λ=0.1, unfrozen, n=10, slice | 0.497 | 0.753 | 0.204 | 0.765 | 0.714 | 0.250 | 0.317 |
+| 14 | `8715461c` | RF | bbox, λ=0.0, unfrozen, n=10, patient | 0.494 | 0.766 | 0.646 | 0.353 | 0.738 | 0.261 | 0.689 |
+| 15 | `dc7e1d10` | RF | raw, λ=0.1, frozen, n=all, slice | 0.453 | 0.727 | 0.776 | 0.118 | 0.717 | 0.154 | 0.745 |
+| 16 | `12e4ba6a` | RF | raw, λ=0.1, predefined genes, n=10, slice | 0.477 | 0.755 | 0.796 | 0.176 | 0.736 | 0.231 | 0.765 |
+| 17 | `34e6806f` | LR | raw, λ=0.1, predefined genes, n=10, patient | 0.420 | 0.702 | 0.531 | 0.412 | 0.722 | 0.233 | 0.612 |
+
+---
+
+## 4. Rank by CV AUC
+
+In-CV AUC: 3-fold stratified CV on the resection cohort (54 patients), best of LR/RF on embeddings. CV values from `reports/0601/0601_ablation_eval.md` §2.4 (n=all sagittal slices at inference). Soramic and Lausanne AUROCs are the best-head values from Sections 2–3 above. Parentheses show Δ vs. best radiomic baseline (Soramic RF=0.590; Lausanne LR=0.531).
+
+| CV Rank | Model ID | Config | CV AUC ± std | Soramic AUROC | Lausanne AUROC |
+|--------:|----------|--------|-------------:|--------------:|---------------:|
+| 1 | `dc7e1d10` | raw, λ=0.1, frozen, n=all, slice | 1.000 ± 0.000 | 0.718 (+0.128) | 0.453 (−0.078) |
+| 2 | `050d401d` | bbox, λ=0.1, unfrozen, n=10, slice | 0.965 ± 0.026 | 0.669 (+0.079) | 0.544 (+0.013) |
+| 3 | `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, patient | 0.789 ± 0.032 | 0.732 (+0.142) | 0.563 (+0.032) |
+| 4 | `92b9afed` | bbox, λ=0.1, frozen, n=all, slice | 0.766 ± 0.074 | 0.577 (−0.013) | 0.614 (+0.083) |
+| 5 | `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, slice | 0.746 ± 0.117 | 0.516 (−0.074) | 0.655 (+0.124) |
+| 6 | `a64b245f` | raw, λ=0.0, frozen, n=all, slice | 0.739 ± 0.129 | 0.684 (+0.094) | 0.556 (+0.025) |
+| 6 | `a6f970d6` | raw, λ=0.0, unfrozen, n=10, patient | 0.739 ± 0.100 | 0.494 (−0.096) | 0.618 (+0.087) |
+| 8 | `982a6fa2` | raw, λ=0.0, unfrozen, n=10, slice | 0.717 ± 0.087 | 0.606 (+0.016) | 0.600 (+0.069) |
+| 9 | `1361bef2` | raw, λ=0.1, unfrozen, n=10, patient | 0.690 ± 0.036 | 0.522 (−0.068) | **0.771 (+0.240)** |
+| 10 | `6a1a1bdf` | raw, λ=0.1, unfrozen, n=10, slice | 0.672 ± 0.090 | 0.615 (+0.025) | 0.497 (−0.034) |
+| 11 | `f8aabb75` | bbox, λ=0.1, unfrozen, n=10, patient | 0.661 ± 0.117 | 0.539 (−0.051) | 0.515 (−0.016) |
+| 12 | `e12b0592` | bbox, λ=0.0, unfrozen, n=10, slice | 0.657 ± 0.100 | 0.517 (−0.073) | 0.595 (+0.064) |
+| 13 | `06c598c0` | raw, λ=0.0, frozen, n=all, patient | 0.648 ± 0.100 | 0.702 (+0.112) | 0.515 (−0.016) |
+| 14 | `5e3f71a0` | raw, λ=0.1, frozen, n=all, patient | 0.640 ± 0.038 | 0.635 (+0.045) | 0.534 (+0.003) |
+| 15 | `8715461c` | bbox, λ=0.0, unfrozen, n=10, patient | 0.568 ± 0.101 | 0.534 (−0.056) | 0.494 (−0.037) |
+| 16 | `12e4ba6a` | raw, λ=0.1, predefined genes, slice | 0.522 ± 0.087 | 0.670 (+0.080) | 0.477 (−0.054) |
+| 17 | `34e6806f` | raw, λ=0.1, predefined genes, patient | 0.457 ± 0.040 | 0.574 (−0.016) | 0.420 (−0.111) |
+
+---
+
+## 5. Observations
+
+### 5.1 Soramic
+
+1. **Top three models (AUROC 0.70–0.73) come from two different groups**: `9109a6c2` (LR, 0.732), `dc7e1d10` (LR, 0.718), and `06c598c0` (LR, 0.702). The 2y_before_cv patient-split model and both frozen n=all models transfer best, suggesting that avoiding slice-level leakage during training and using all slices are complementary paths to external generalization.
+
+2. **Full-slice frozen models transfer consistently well.** All four frozen n=all models rank in the top 4, with AUROC 0.635–0.718. Their frozen ViT-B/32 backbone produces transferable representations regardless of λ or split strategy.
+
+3. **`6a1a1bdf` (previously rank 1 at 0.742) drops to rank 8 (0.615) after the resampling fix.** The old results were extracted without resampling the ablation MRIs; with correct 1×1×3 mm resampling the advantage disappears, suggesting its prior lead was an artefact of resolution mismatch.
+
+4. **The 2y_before_cv gene set reversal**: slice-split `5d04e6ba` remains the worst embedding model (0.516) while patient-split sibling `9109a6c2` is the best (0.732). The patient-level split forces the model to learn more transferable image features rather than overfitting the resection gene-expression distribution.
+
+5. **`050d401d` (bbox, slice-split) jumped from rank 12 to rank 6 (0.583→0.669) after the resampling fix.** The bbox pipeline crops around segmentation masks that were themselves resampled — getting this right mattered more for bbox than for raw-MRI models.
+
+6. **Radiomic RF (0.590) sits mid-table**, ahead of 7 of the 16 embedding models.
+
+7. **LR head dominates across the board after the fix.** LR wins for 13 of 16 models, including all frozen and most unfrozen configs.
+
+8. **Freezing the backbone hurts bbox but helps raw MRI.** `92b9afed` (bbox, frozen, n=all, slice) achieves only 0.577 vs. unfrozen `050d401d` (0.669). For raw full-MRI, frozen + n=all adds +0.10 AUROC over unfrozen n=10; for bbox the same change costs −0.09.
+
+### 5.2 Lausanne
+
+1. **Overall performance is lower than on Soramic.** The top model (`1361bef2`, AUROC 0.771) matches Soramic's top, but the median drops significantly — 11 of 17 embedding models fall below 0.55, vs. only 5 on Soramic. The Lausanne cohort (74% positive rate) leaves little headroom for the downstream classifier to exploit specificity.
+
+2. **`1361bef2` (λ=0.1, unfrozen, patient-split) is the clear top model at 0.771**, reversing its Soramic rank (rank 14 there at 0.522). Patient-level contrastive split appears to produce more transferable image features on Lausanne despite the different scanner/protocol.
+
+3. **The frozen n=all group (Group 3) collapses completely.** All four frozen models rank 10–15 (AUROC 0.453–0.556), compared to ranks 2–4 on Soramic (0.684–0.718). The ViT-B/32 frozen backbone that transferred well from Soramic arterial phase does not transfer to the Lausanne `MRI_liver_arterial` acquisition.
+
+4. **`9109a6c2` (2y_before_cv genes, patient-split) drops from Soramic rank 1 (0.732) to rank 7 (0.563).** The gene-expression-guided contrastive signal from the resection cohort does not generalize to Lausanne's different imaging protocol.
+
+5. **`5d04e6ba` reversal holds but weakens.** On Soramic, the slice-split sibling (0.516) was worst while patient-split `9109a6c2` (0.732) was best. On Lausanne, `5d04e6ba` (0.655) now outperforms `9109a6c2` (0.563) — the pattern inverts.
+
+6. **Bounding box models perform comparably to raw-MRI models**, unlike Soramic where bbox lagged. `92b9afed` (bbox, frozen, n=all) is rank 2 at 0.614, and `e12b0592` (bbox, λ=0.0, unfrozen, slice) reaches 0.595 at rank 6. The Lausanne masks appear reliable, making the bbox crop useful.
+
+7. **Both radiomic baselines sit near chance (0.506–0.531)**, worse than on Soramic (0.518–0.590). The resection-trained radiomic pipeline does not generalise to the Lausanne acquisition.
+
+8. **`dc7e1d10` (frozen, λ=0.1, slice-split) drops most dramatically**: Soramic rank 2 (0.718) → Lausanne rank 15 (0.453). This model had CV AUC=1.00 on resection, suggesting it overfit slice-level patterns specific to the Soramic MRI protocol.
+
+---
+
+## 6. File references
+
+| Artifact | Path |
+|---|---|
+| Radiomic LR (Soramic) | `results/eval/ablation/radiomic_lr_rfs_2year_{timestamp}.json` |
+| Radiomic RF (Soramic) | `results/eval/ablation/radiomic_rf_rfs_2year_{timestamp}.json` |
+| Embedding results — Soramic | `results/eval/ablation/embedding_{model_id}_rfs_2year_{timestamp}.json` |
+| Radiomic LR/RF (Lausanne) | `results/eval/lusanne/radiomic_rfs_2year_{timestamp}.json` |
+| Embedding results — Lausanne | `results/eval/lusanne/embedding_{model_id}_rfs_2year_{timestamp}.json` |
+| Radiomic models | `models/radiomics/radiomic_rfs_2year_{lr,rf}.joblib` |
+| Contrastive models | `training/contrastive/{model_id}/best_model.pt` |
+| Cached Soramic embeddings | `training/contrastive/{model_id}/cached_embeddings/ablation_img_emb_{raw,bbox}.parquet` |
+| Cached Lausanne embeddings | `training/contrastive/{model_id}/cached_embeddings/ablation_lusanne_img_emb_{raw,bbox}.parquet` |

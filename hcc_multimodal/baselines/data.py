@@ -76,26 +76,37 @@ def get_hcc_genes() -> list[str]:
     return sorted(all_genes & matrix_genes)
 
 
-def rfs(rfs_central: float, rfs_central_event: float, months: int) -> int | None:
+def rfs(
+    rfs_central: float,
+    rfs_central_event: float,
+    months: int,
+    tolerance_months: int = 0,
+) -> int | None:
     if rfs_central_event == 1:
         if rfs_central <= months:
             return 1
         else:
             return 0
     else:
-        if rfs_central < months:
+        # Censored: drop only if follow-up is shorter than (threshold - tolerance).
+        # e.g. threshold=24, tolerance=3: a patient last seen at 21 months with no
+        # event is retained as negative because 21 >= 24 - 3.
+        if rfs_central < (months - tolerance_months):
             return None
         else:
             return 0
 
 
-def add_rfs_columns(clinical_data: pd.DataFrame) -> pd.DataFrame:
+def add_rfs_columns(
+    clinical_data: pd.DataFrame,
+    tolerance_months: int = 0,
+) -> pd.DataFrame:
     """Return a copy of *clinical_data* with ``rfs_1year`` and ``rfs_2year`` columns."""
     clinical_data = clinical_data.copy()
     clinical_data["rfs_1year"] = clinical_data.apply(
-        lambda row: rfs(row["RFS_central"], row["RFS_central_event"], 1 * 12), axis=1
+        lambda row: rfs(row["RFS_central"], row["RFS_central_event"], 1 * 12, tolerance_months), axis=1
     )
     clinical_data["rfs_2year"] = clinical_data.apply(
-        lambda row: rfs(row["RFS_central"], row["RFS_central_event"], 2 * 12), axis=1
+        lambda row: rfs(row["RFS_central"], row["RFS_central_event"], 2 * 12, tolerance_months), axis=1
     )
     return clinical_data
