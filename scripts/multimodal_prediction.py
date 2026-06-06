@@ -54,13 +54,16 @@ from hcc_multimodal.contrastive.data import (
     _load_gene_matrix,
     _load_outcomes,
 )
-from hcc_multimodal.contrastive.encoders import BACKBONES, GeneEncoder, ImageEncoder
+from hcc_multimodal.contrastive.encoders import (
+    BACKBONE_TRANSFORMS,
+    GeneEncoder,
+    ImageEncoder,
+)
 
 _DATA_ROOT = Path(hcc_multimodal.__file__).parent.parent / "data"
 _RADIOMICS_PATH = _DATA_ROOT / "Radiomics" / "arterial_radiomics.csv"
 # "N voxels" is a radiomics feature, not metadata — kept intentionally
 _RADIOMICS_META = {"Scan name", "VOI name", "Scan path", "VOI path"}
-
 
 
 def _git_hash() -> str:
@@ -111,8 +114,6 @@ def extract_embeddings(
     n_per_axis_override: int | None = None,
 ) -> pd.DataFrame:
     """Return (patients × 2*embed_dim) DataFrame of mean-pooled img + gene embeddings."""
-    _, weights, _ = BACKBONES[meta["model"]]
-
     mri_type = MRIType(meta.get("mri_type", "preprocessed"))
     mri_root = (
         _MRI_ROOT_PREPROCESSED if mri_type == MRIType.PREPROCESSED else _MRI_ROOT_RAW
@@ -132,7 +133,7 @@ def extract_embeddings(
         n_per_axis=n_per_axis,
         axes=axes,
         img_size=meta["img_size"],
-        transform=weights.transforms(),
+        transform=BACKBONE_TRANSFORMS[meta["model"]](),
         mri_type=mri_type,
         bbox_pad=meta.get("bbox_pad", 10),
     )
