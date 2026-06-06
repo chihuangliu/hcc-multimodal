@@ -18,7 +18,10 @@
   - [3.3 Summary table](#33-summary-table)
 - [4. Rank by CV AUC](#4-rank-by-cv-auc)
 - [5. Observations](#5-observations)
-- [6. File references](#6-file-references)
+- [6. Ensemble results](#6-ensemble-results)
+  - [6.1 Soramic — ensemble summary](#61-soramic--ensemble-summary)
+  - [6.2 Lausanne — ensemble summary](#62-lausanne--ensemble-summary)
+- [7. File references](#7-file-references)
 
 ---
 
@@ -280,7 +283,68 @@ In-CV AUC: 3-fold stratified CV on the resection cohort (54 patients), best of L
 
 ---
 
-## 6. File references
+## 6. Ensemble results
+
+Ensemble mode averages softmax probabilities from (a) the pre-trained radiomic pipeline and (b) an embedding head (SelectKBest k=100 + LR or RF, fitted on resection embeddings). The radiomic component is fixed to the model with the highest AUROC on each cohort:
+
+- **Soramic**: radiomic RF (AUROC 0.590), `models/radiomics/radiomic_rfs_2year_rf.joblib`
+- **Lausanne**: radiomic LR (AUROC 0.531), `models/radiomics/radiomic_rfs_2year_lr.joblib`
+
+Multi-lesion strategy: average. Threshold: 0.5. Embedding AUROC column shows the best embedding-only head from Sections 2–3 for direct comparison.
+
+### 6.1 Soramic — ensemble summary
+
+Best ensemble head (LR or RF) per model, ranked by ensemble AUROC.
+
+| Rank | Model ID | Head | Config | Emb AUROC | Ens AUROC | AUPRC | Sensitivity | Specificity | PPV | NPV | F1 |
+|------|----------|------|--------|----------:|----------:|------:|------------:|------------:|----:|----:|---:|
+| 1 | `dc7e1d10` | LR | raw, λ=0.1, frozen, n=all, slice | 0.718 | **0.765** | 0.880 | 0.829 | 0.389 | 0.725 | 0.538 | 0.773 |
+| 2 | `a64b245f` | LR | raw, λ=0.0, frozen, n=all, slice | 0.684 | 0.735 | 0.865 | 0.971 | 0.278 | 0.723 | 0.833 | 0.829 |
+| 3 | `9109a6c2` | LR | raw, λ=0.1, 2y_before_cv genes, n=10, patient | 0.732 | 0.733 | 0.844 | 0.829 | 0.389 | 0.725 | 0.538 | 0.773 |
+| 4 | `12e4ba6a` | RF | raw, λ=0.1, predefined genes, n=10, slice | 0.670 | 0.729 | 0.853 | 0.857 | 0.444 | 0.750 | 0.615 | 0.800 |
+| 5 | `06c598c0` | LR | raw, λ=0.0, frozen, n=all, patient | 0.702 | 0.717 | 0.846 | 0.914 | 0.222 | 0.696 | 0.571 | 0.790 |
+| 6 | `5e3f71a0` | LR | raw, λ=0.1, frozen, n=all, patient | 0.635 | 0.681 | 0.835 | 0.971 | 0.000 | 0.654 | 0.000 | 0.782 |
+| 7 | `6a1a1bdf` | LR | raw, λ=0.1, unfrozen, n=10, slice | 0.615 | 0.657 | 0.811 | 0.400 | 0.778 | 0.778 | 0.400 | 0.528 |
+| 8 | `982a6fa2` | RF | raw, λ=0.0, unfrozen, n=10, slice | 0.606 | 0.618 | 0.740 | 0.971 | 0.167 | 0.694 | 0.750 | 0.810 |
+| 9 | `a6f970d6` | LR | raw, λ=0.0, unfrozen, n=10, patient | 0.494 | 0.608 | 0.771 | 0.943 | 0.056 | 0.660 | 0.333 | 0.776 |
+| — | radiomic RF | RF | 149 art. features, resection-trained | — | 0.590 | 0.766 | 0.143 | 1.000 | 1.000 | 0.375 | 0.250 |
+| 10 | `1361bef2` | LR | raw, λ=0.1, unfrozen, n=10, patient | 0.522 | 0.598 | 0.762 | 1.000 | 0.056 | 0.673 | 1.000 | 0.805 |
+| 11 | `5d04e6ba` | LR | raw, λ=0.1, 2y_before_cv genes, n=10, slice | 0.516 | 0.590 | 0.766 | 1.000 | 0.000 | 0.660 | — | 0.795 |
+| 12 | `92b9afed` | RF | bbox, λ=0.1, frozen, n=all, slice | 0.577 | 0.590 | 0.763 | 0.857 | 0.056 | 0.638 | 0.167 | 0.732 |
+| 13 | `f8aabb75` | LR | bbox, λ=0.1, unfrozen, n=10, patient | 0.539 | 0.587 | 0.765 | 0.943 | 0.056 | 0.660 | 0.333 | 0.776 |
+| 14 | `050d401d` | LR | bbox, λ=0.1, unfrozen, n=10, slice | 0.669 | 0.583 | 0.761 | 1.000 | 0.000 | 0.660 | — | 0.795 |
+| 15 | `34e6806f` | LR | raw, λ=0.1, predefined genes, n=10, patient | 0.574 | 0.571 | 0.704 | 0.657 | 0.500 | 0.719 | 0.429 | 0.687 |
+| 16 | `8715461c` | LR | bbox, λ=0.0, unfrozen, n=10, patient | 0.534 | 0.548 | 0.688 | 0.029 | 0.889 | 0.333 | 0.320 | 0.053 |
+| 17 | `e12b0592` | LR | bbox, λ=0.0, unfrozen, n=10, slice | 0.517 | 0.533 | 0.724 | 0.457 | 0.556 | 0.667 | 0.345 | 0.542 |
+
+### 6.2 Lausanne — ensemble summary
+
+Best ensemble head (LR or RF) per model, ranked by ensemble AUROC.
+
+| Rank | Model ID | Head | Config | Emb AUROC | Ens AUROC | AUPRC | Sensitivity | Specificity | PPV | NPV | F1 |
+|------|----------|------|--------|----------:|----------:|------:|------------:|------------:|----:|----:|---:|
+| 1 | `1361bef2` | RF | raw, λ=0.1, unfrozen, n=10, patient | 0.771 | **0.653** | 0.839 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 2 | `5d04e6ba` | LR | raw, λ=0.1, 2y_before_cv genes, n=10, slice | 0.655 | 0.592 | 0.805 | 0.600 | 0.625 | 0.818 | 0.357 | 0.692 |
+| 3 | `a6f970d6` | LR | raw, λ=0.0, unfrozen, n=10, patient | 0.618 | 0.585 | 0.798 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 4 | `92b9afed` | LR | bbox, λ=0.1, frozen, n=all, slice | 0.614 | 0.578 | 0.817 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 5 | `982a6fa2` | LR | raw, λ=0.0, unfrozen, n=10, slice | 0.600 | 0.575 | 0.796 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 6 | `e12b0592` | RF | bbox, λ=0.0, unfrozen, n=10, slice | 0.595 | 0.556 | 0.790 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 7 | `5e3f71a0` | LR | raw, λ=0.1, frozen, n=all, patient | 0.534 | 0.554 | 0.784 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 8 | `9109a6c2` | LR | raw, λ=0.1, 2y_before_cv genes, n=10, patient | 0.563 | 0.550 | 0.797 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 9 | `a64b245f` | RF | raw, λ=0.0, frozen, n=all, slice | 0.556 | 0.542 | 0.817 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| — | radiomic LR | LR | 149 art. features, resection-trained | — | 0.531 | 0.748 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 10 | `6a1a1bdf` | LR | raw, λ=0.1, unfrozen, n=10, slice | 0.497 | 0.538 | 0.767 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 11 | `06c598c0` | LR | raw, λ=0.0, frozen, n=all, patient | 0.515 | 0.536 | 0.794 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 12 | `050d401d` | RF | bbox, λ=0.1, unfrozen, n=10, slice | 0.544 | 0.534 | 0.747 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 13 | `f8aabb75` | RF | bbox, λ=0.1, unfrozen, n=10, patient | 0.515 | 0.530 | 0.793 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 14 | `8715461c` | LR | bbox, λ=0.0, unfrozen, n=10, patient | 0.494 | 0.519 | 0.753 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 15 | `dc7e1d10` | RF | raw, λ=0.1, frozen, n=all, slice | 0.453 | 0.504 | 0.784 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 16 | `12e4ba6a` | RF | raw, λ=0.1, predefined genes, n=10, slice | 0.477 | 0.497 | 0.762 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+| 17 | `34e6806f` | LR | raw, λ=0.1, predefined genes, n=10, patient | 0.420 | 0.478 | 0.714 | 0.422 | 0.625 | 0.760 | 0.278 | 0.543 |
+
+---
+
+## 7. File references
 
 | Artifact | Path |
 |---|---|
