@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 from torchvision.models import ViT_B_32_Weights, vit_b_32
+from torchvision.transforms import v2
 
 
 class _HFViTWrapper(nn.Module):
@@ -34,11 +35,26 @@ def _load_dinov3_vitb16():
     return _HFViTWrapper(m), 768
 
 
+def _imagenet_transforms():
+    return v2.Compose([
+        v2.ToImage(),
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
+
 # Each entry: backbone_name -> loader() returns (nn.Module, feat_dim)
 BACKBONES = {
     "vit_b_32": _load_vit_b_32,
     "dinov2_vitb14": _load_dinov2_vitb14,
     "dinov3_vitb16": _load_dinov3_vitb16,
+}
+
+# Normalisation transforms for each backbone (all use ImageNet stats)
+BACKBONE_TRANSFORMS = {
+    "vit_b_32": ViT_B_32_Weights.IMAGENET1K_V1.transforms,
+    "dinov2_vitb14": _imagenet_transforms,
+    "dinov3_vitb16": _imagenet_transforms,
 }
 
 
