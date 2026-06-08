@@ -46,6 +46,41 @@ Pre-trained on the full resection cohort (`models/radiomics/radiomic_rfs_2year_{
 
 Same 16 models evaluated on both cohorts (Groups 1–4). Downstream head: SelectKBest(f_classif, k=100) + LR or RF fitted on resection embeddings, evaluated on test cohort embeddings. MRI: arterial phase, mean-pooled sagittal slices. Embeddings resampled to 1×1×3 mm before extraction.
 
+#### 1.3.1 Contrastive training configurations
+
+All 16 models share the same ViT-B/32 backbone and triplet contrastive objective. The four axes varied across the ablation are described below.
+
+| Parameter | Values | Notes |
+|---|---|---|
+| **λ** | 0.0, 0.1 | Weight of the contrastive loss relative to the supervised classification loss. λ=0.0 trains without contrastive signal. |
+| **Frozen backbone** | frozen, unfrozen | Whether the ViT-B/32 weights are kept fixed (only the projection head trains) or fine-tuned end-to-end. |
+| **n slices per patient** | 10, all | Number of axial slices sampled per patient during training. "all" uses every sagittal slice available. |
+| **Validation split** | slice, patient | Unit of train/val split during training. Slice-level split may allow the same patient's slices to appear in both train and val; patient-level split holds out full patients. |
+
+The 16 model configurations:
+
+| Group | Model ID | Input | Gene set | λ | Frozen | n slices | Val split |
+|-------|----------|-------|----------|---|--------|----------|-----------|
+| 1 | `6a1a1bdf` | raw | 40 genes | 0.1 | no | 10 | slice |
+| 1 | `1361bef2` | raw | 40 genes | 0.1 | no | 10 | patient |
+| 1 | `982a6fa2` | raw | 40 genes | 0.0 | no | 10 | slice |
+| 1 | `a6f970d6` | raw | 40 genes | 0.0 | no | 10 | patient |
+| 2 | `12e4ba6a` | raw | predefined | 0.1 | no | 10 | slice |
+| 2 | `34e6806f` | raw | predefined | 0.1 | no | 10 | patient |
+| 2 | `5d04e6ba` | raw | 2y\_before\_cv | 0.1 | no | 10 | slice |
+| 2 | `9109a6c2` | raw | 2y\_before\_cv | 0.1 | no | 10 | patient |
+| 3 | `dc7e1d10` | raw | 40 genes | 0.1 | yes | all | slice |
+| 3 | `5e3f71a0` | raw | 40 genes | 0.1 | yes | all | patient |
+| 3 | `a64b245f` | raw | 40 genes | 0.0 | yes | all | slice |
+| 3 | `06c598c0` | raw | 40 genes | 0.0 | yes | all | patient |
+| 4 | `050d401d` | bbox | 40 genes | 0.1 | no | 10 | slice |
+| 4 | `f8aabb75` | bbox | 40 genes | 0.1 | no | 10 | patient |
+| 4 | `e12b0592` | bbox | 40 genes | 0.0 | no | 10 | slice |
+| 4 | `8715461c` | bbox | 40 genes | 0.0 | no | 10 | patient |
+| 4 | `92b9afed` | bbox | 40 genes | 0.1 | yes | all | slice |
+
+Group 1: baseline raw-MRI configs; Group 2: gene-set ablation (same backbone/training as Group 1); Group 3: frozen backbone with all slices; Group 4: bounding-box crop input.
+
 ### 1.4 Key differences between cohorts
 
 | | Soramic (ablation) | Lausanne |
