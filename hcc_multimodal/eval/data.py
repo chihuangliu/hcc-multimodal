@@ -12,8 +12,8 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
-import hcc_multimodal
 from hcc_multimodal.baselines.data import add_rfs_columns
+from hcc_multimodal.eval.eval_utils import PROJECT_ROOT
 from hcc_multimodal.contrastive.encoders import ImageEncoder
 from hcc_multimodal.contrastive.transform import resample_to_spacing
 from hcc_multimodal.utils.data import RADIOMICS_FEATURES
@@ -21,7 +21,6 @@ from hcc_multimodal.utils.data import RADIOMICS_FEATURES
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-PROJECT_ROOT = Path(hcc_multimodal.__file__).resolve().parents[1]
 DATA_ROOT = PROJECT_ROOT / "data"
 TRAINING_ROOT = PROJECT_ROOT / "training" / "contrastive"
 
