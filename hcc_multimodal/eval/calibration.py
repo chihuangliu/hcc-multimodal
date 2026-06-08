@@ -32,7 +32,11 @@ from hcc_multimodal.eval.data import (
     load_ablation_outcomes,
     load_resection_outcomes,
 )
-from hcc_multimodal.eval.eval_utils import DOWNSTREAM_MODELS, PROJECT_ROOT, build_pipeline
+from hcc_multimodal.eval.eval_utils import (
+    DOWNSTREAM_MODELS,
+    PROJECT_ROOT,
+    build_pipeline,
+)
 from hcc_multimodal.eval.metrics import compute_metrics
 from hcc_multimodal.train.config import RANDOM_STATE, SELECT_K
 from hcc_multimodal.utils.git import git_commit
@@ -84,7 +88,7 @@ def _platt_cv(
     cal_proba = np.empty_like(raw_scores)
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
     for train_idx, val_idx in skf.split(raw_scores, y_true):
-        scaler = LogisticRegression(C=1e10, solver="lbfgs", max_iter=1000)
+        scaler = LogisticRegression(solver="lbfgs", max_iter=1000)
         scaler.fit(raw_scores[train_idx].reshape(-1, 1), y_true[train_idx])
         cal_proba[val_idx] = scaler.predict_proba(raw_scores[val_idx].reshape(-1, 1))[
             :, 1

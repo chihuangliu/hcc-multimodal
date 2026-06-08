@@ -25,12 +25,7 @@ DOWNSTREAM_MODELS = {
         max_iter=1000,
         random_state=RANDOM_STATE,
     ),
-    "rf": RandomForestClassifier(
-        n_estimators=100,
-        max_depth=2,
-        min_samples_leaf=10,
-        random_state=RANDOM_STATE,
-    ),
+    "rf": RandomForestClassifier(n_estimators=100, random_state=RANDOM_STATE),
 }
 
 
