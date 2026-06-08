@@ -291,10 +291,9 @@ def extract_image_embeddings(
         print(f"  Loading cached embeddings from {cache_path}")
         return pd.read_parquet(cache_path)
 
-    from hcc_multimodal.contrastive.encoders import BACKBONES
+    from hcc_multimodal.contrastive.encoders import BACKBONE_TRANSFORMS
 
-    _, weights, _ = BACKBONES[meta["model"]]
-    vit_transform = weights.transforms()
+    vit_transform = BACKBONE_TRANSFORMS[meta["model"]]()
 
     dataset = _MRIDataset(
         patient_ids=patient_ids,

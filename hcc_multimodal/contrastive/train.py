@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 import hcc_multimodal
 from hcc_multimodal.contrastive.data import build_dataset
-from hcc_multimodal.contrastive.encoders import BACKBONES, GeneEncoder, ImageEncoder
+from hcc_multimodal.contrastive.encoders import BACKBONES, BACKBONE_TRANSFORMS, GeneEncoder, ImageEncoder
 from hcc_multimodal.contrastive.config import (
     GENE_SET,
     PREDEFINED_HCC_2Y_CV_GENES,
@@ -62,12 +62,11 @@ def train(args: argparse.Namespace) -> None:
     else:
         device = torch.device("cpu")
 
-    _, weights, _ = BACKBONES[args.model]
     augment = v2.Compose(
         [
             v2.RandomHorizontalFlip(),
             v2.RandomVerticalFlip(),
-            weights.transforms(),
+            BACKBONE_TRANSFORMS[args.model](),
         ]
     )
 
@@ -128,7 +127,7 @@ def train(args: argparse.Namespace) -> None:
         print(f"Loaded weights from {ckpt_path}")
 
     optimizer = torch.optim.AdamW(
-        list(img_enc.parameters()) + list(gene_enc.parameters()),
+        [p for p in list(img_enc.parameters()) + list(gene_enc.parameters()) if p.requires_grad],
         lr=args.lr,
         weight_decay=args.weight_decay,
     )

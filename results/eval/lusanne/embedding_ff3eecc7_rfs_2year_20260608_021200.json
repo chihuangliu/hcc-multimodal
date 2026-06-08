@@ -1,0 +1,42 @@
+{
+  "git_commit": "ec73b39eb3f5384bc8e9f54ff906884862eaca0c",
+  "timestamp": "2026-06-08T02:12:00.514177",
+  "args": {
+    "ablation_set": "lusanne",
+    "model_id": "ff3eecc7",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "average",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 0,
+    "output": null,
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.41536614645858344,
+          "auprc": 0.7243096260116982,
+          "sensitivity": 0.6122448979591837,
+          "specificity": 0.23529411764705882,
+          "ppv": 0.6976744186046512,
+          "npv": 0.17391304347826086,
+          "f1": 0.6521739130434783
+        },
+        "rf": {
+          "auroc": 0.47418967587034816,
+          "auprc": 0.7489104742420626,
+          "sensitivity": 0.8367346938775511,
+          "specificity": 0.11764705882352941,
+          "ppv": 0.7321428571428571,
+          "npv": 0.2,
+          "f1": 0.780952380952381
+        }
+      }
+    }
+  }
+}
