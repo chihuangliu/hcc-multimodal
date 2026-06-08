@@ -161,7 +161,7 @@ Best head per config (higher AUROC):
 
 † Lausanne AUROC exceeds Soramic — the model has no useful Soramic signal at 10 epochs.
 
-### 7.2 DINOv2 vs ViT-B/32 — matched config comparison
+### 7.2 DINOv2 vs ViT-B/32 ablation
 
 ViT-B/32 values from `0608_ablation_eval_v2.md` Group 3 (frozen, n=all, raw, sagittal). Best head used for each model.
 
@@ -173,7 +173,19 @@ ViT-B/32 values from `0608_ablation_eval_v2.md` Group 3 (frozen, n=all, raw, sag
 | 0.0 | slice | `a64b245f` | **0.684** | **0.556** | **0.620** | 0.128 | `ff3eecc7` | 0.405 | 0.474 | 0.440 | −0.069 | −0.180 |
 
 
-### 7.3 Slice splitting: 3 epochs vs 10 epochs
+### 7.3 DINOv2 vs ViT-B/32 vs ViT-B/16
+
+Best-head AUROC per backbone (patient-split, λ=0.1 for DINOv2 and ViT-B/32 matched config; all using frozen backbone, n=all, sagittal).
+
+| Backbone | Soramic AUROC | Lausanne AUROC |
+|----------|------:|-------:|
+| ViT-B/32 | 0.635 | 0.534 |
+| DINOv2 ViT-B/14 | **0.645** | **0.561** |
+| ViT-B/16 | 0.519 | 0.510 |
+
+---
+
+### 7.4 Slice splitting: 3 epochs vs 10 epochs
 
 The 3-epoch checkpoints of the slice-split models (`137bd456` for λ=0.1, `b1aebfa3` for λ=0.0) were evaluated before extension to 10 epochs. They show better downstream performance than the 10-epoch versions despite higher val loss — evidence that slice-split val loss is not a reliable early-stopping proxy.
 
