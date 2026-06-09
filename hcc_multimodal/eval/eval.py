@@ -15,23 +15,14 @@ Multi-lesion strategies for ablation radiomic data (--multi-lesion):
 
 import argparse
 import json
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
 import joblib
 import pandas as pd
 import torch
-from sklearn.base import clone
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 
 from hcc_multimodal.eval.data import (
-    PROJECT_ROOT,
     RESECTION_MRI_ROOT,
     RESECTION_EMB_CACHE,
     TRAINING_ROOT,
@@ -43,61 +34,21 @@ from hcc_multimodal.eval.data import (
     load_resection_outcomes,
     load_resection_radiomics,
 )
+from hcc_multimodal.eval.eval_utils import DOWNSTREAM_MODELS, PROJECT_ROOT, build_pipeline
 from hcc_multimodal.eval.metrics import compute_metrics
-from hcc_multimodal.train.config import RANDOM_STATE, SELECT_K
-
-# downstream classifiers (matches report §3.3 for embedding/concat tasks)
-_DOWNSTREAM_MODELS = {
-    "lr": LogisticRegression(
-        solver="saga",
-        penalty="elasticnet",
-        l1_ratio=1.0,
-        C=1.0,
-        max_iter=1000,
-        random_state=RANDOM_STATE,
-    ),
-    "rf": RandomForestClassifier(n_estimators=100, random_state=RANDOM_STATE),
-}
+from hcc_multimodal.train.config import SELECT_K
+from hcc_multimodal.utils.git import git_commit
 
 
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
-def _git_commit() -> str:
-    try:
-        return (
-            subprocess.check_output(
-                ["git", "rev-parse", "HEAD"],
-                cwd=PROJECT_ROOT,
-                stderr=subprocess.DEVNULL,
-            )
-            .decode()
-            .strip()
-        )
-    except Exception:
-        return "unknown"
-
-
 def _device() -> torch.device:
     if torch.cuda.is_available():
         return torch.device("cuda")
     if torch.backends.mps.is_available():
         return torch.device("mps")
     return torch.device("cpu")
-
-
-# ---------------------------------------------------------------------------
-# Downstream pipeline helpers
-# ---------------------------------------------------------------------------
-def _build_pipeline(model, select_k: int) -> Pipeline:
-    return Pipeline(
-        [
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
-            ("selector", SelectKBest(f_classif, k=min(select_k, 9999))),
-            ("model", clone(model)),
-        ]
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -124,9 +75,9 @@ def eval_embedding(
     common_res = X_resection_emb.index.intersection(y_resection.index)
     common_abl = X_ablation_emb.index.intersection(y_ablation.index)
     results = {}
-    for name, model in _DOWNSTREAM_MODELS.items():
+    for name, model in DOWNSTREAM_MODELS.items():
         k = min(select_k, X_resection_emb.shape[1])
-        pipe = _build_pipeline(model, k)
+        pipe = build_pipeline(model, k)
         pipe.fit(X_resection_emb.loc[common_res], y_resection.loc[common_res])
         proba = pipe.predict_proba(X_ablation_emb.loc[common_abl])[:, 1]
         results[name] = compute_metrics(y_ablation.loc[common_abl].values, proba)
@@ -172,9 +123,9 @@ def eval_concat(
     y_abl = y_ablation.loc[abl_radio_abl_emb_common]
 
     results = {}
-    for name, model in _DOWNSTREAM_MODELS.items():
+    for name, model in DOWNSTREAM_MODELS.items():
         k = min(select_k, X_res.shape[1])
-        pipe = _build_pipeline(model, k)
+        pipe = build_pipeline(model, k)
         pipe.fit(X_res, y_res)
         proba = pipe.predict_proba(X_abl)[:, 1]
         results[name] = compute_metrics(y_abl.values, proba)
@@ -208,10 +159,10 @@ def eval_ensemble(
     radio_proba = radio_pipe.predict_proba(X_ablation_radio.loc[common_abl])[:, 1]
 
     results = {}
-    for name, model in _DOWNSTREAM_MODELS.items():
+    for name, model in DOWNSTREAM_MODELS.items():
         common_res = X_resection_emb.index.intersection(y_resection.index)
         k = min(select_k, X_resection_emb.shape[1])
-        emb_pipe = _build_pipeline(model, k)
+        emb_pipe = build_pipeline(model, k)
         emb_pipe.fit(X_resection_emb.loc[common_res], y_resection.loc[common_res])
         emb_proba = emb_pipe.predict_proba(abl_emb_aligned.loc[common_abl])[:, 1]
         avg_proba = (radio_proba + emb_proba) / 2
@@ -365,7 +316,7 @@ def run(args: argparse.Namespace) -> None:
 
     # --- save ---
     output = {
-        "git_commit": _git_commit(),
+        "git_commit": git_commit(),
         "timestamp": datetime.now().isoformat(),
         "args": vars(args),
         "results": all_results,
