@@ -5,6 +5,16 @@ import torch.nn as nn
 from torchvision.models import ViT_B_16_Weights, ViT_B_32_Weights, vit_b_16, vit_b_32
 from torchvision.transforms import v2
 
+# HuggingFace ViT backbone registry: name -> (model_id, feat_dim)
+_HF_BACKBONE_CONFIGS = {
+    "dinov2_vits14": ("facebook/dinov2-small", 384),
+    "dinov2_vitb14": ("facebook/dinov2-base", 768),
+    "dinov2_vitl14": ("facebook/dinov2-large", 1024),
+    "dinov3_vits16": ("facebook/dinov3-vits16-pretrain-lvd1689m", 384),
+    "dinov3_vitb16": ("facebook/dinov3-vitb16-pretrain-lvd1689m", 768),
+    "dinov3_vitl16": ("facebook/dinov3-vitl16-pretrain-lvd1689m", 1024),
+}
+
 
 class _HFViTWrapper(nn.Module):
     """Wraps a HuggingFace ViT to return the CLS token embedding."""
@@ -15,6 +25,13 @@ class _HFViTWrapper(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x).last_hidden_state[:, 0]
+
+
+def _make_hf_loader(model_id: str, feat_dim: int):
+    def load():
+        from transformers import AutoModel
+        return _HFViTWrapper(AutoModel.from_pretrained(model_id)), feat_dim
+    return load
 
 
 def _load_vit_b_32():
@@ -29,18 +46,6 @@ def _load_vit_b_16():
     return m, 768
 
 
-def _load_dinov2_vitb14():
-    from transformers import AutoModel
-    m = AutoModel.from_pretrained("facebook/dinov2-base")
-    return _HFViTWrapper(m), 768
-
-
-def _load_dinov3_vitb16():
-    from transformers import AutoModel
-    m = AutoModel.from_pretrained("facebook/dinov3-vitb16-pretrain-lvd1689m")
-    return _HFViTWrapper(m), 768
-
-
 def _imagenet_transforms():
     return v2.Compose([
         v2.ToImage(),
@@ -49,20 +54,16 @@ def _imagenet_transforms():
     ])
 
 
-# Each entry: backbone_name -> loader() returns (nn.Module, feat_dim)
 BACKBONES = {
     "vit_b_32": _load_vit_b_32,
     "vit_b_16": _load_vit_b_16,
-    "dinov2_vitb14": _load_dinov2_vitb14,
-    "dinov3_vitb16": _load_dinov3_vitb16,
+    **{name: _make_hf_loader(mid, dim) for name, (mid, dim) in _HF_BACKBONE_CONFIGS.items()},
 }
 
-# Normalisation transforms for each backbone (all use ImageNet stats)
 BACKBONE_TRANSFORMS = {
     "vit_b_32": ViT_B_32_Weights.IMAGENET1K_V1.transforms,
     "vit_b_16": ViT_B_16_Weights.IMAGENET1K_V1.transforms,
-    "dinov2_vitb14": _imagenet_transforms,
-    "dinov3_vitb16": _imagenet_transforms,
+    **{name: _imagenet_transforms for name in _HF_BACKBONE_CONFIGS},
 }
 
 
