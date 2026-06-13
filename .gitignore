@@ -5,3 +5,4 @@ data/*
 *.DS_Store
 *.pt
 training/contrastive/*/cached_embeddings/
+models/*
