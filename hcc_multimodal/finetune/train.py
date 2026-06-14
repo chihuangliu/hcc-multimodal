@@ -39,10 +39,14 @@ N_GLOBAL_CROPS = 2
 # ---------------------------------------------------------------------------
 
 class DINOHead(nn.Module):
-    """MLP projection head with L2-normalisation and weight-normed last layer.
+    """MLP projection head with L2-normalised bottleneck and unit-norm last layer.
 
     Architecture: Linear → BN → GELU → Linear → BN → GELU → Linear(bottleneck)
-                  → L2-norm → WeightNorm-Linear(out_dim, no bias)
+                  → L2-norm → Linear(out_dim, no bias, weights unit-normalised in forward)
+
+    The last layer's weights are L2-normalised on every forward pass, which is
+    equivalent to weight_norm with a frozen unit magnitude (g=1). This avoids
+    the deepcopy incompatibility of torch.nn.utils.weight_norm.
     """
 
     def __init__(
@@ -62,16 +66,13 @@ class DINOHead(nn.Module):
             nn.GELU(),
             nn.Linear(hidden_dim, bottleneck_dim),
         )
-        self.last_layer = nn.utils.weight_norm(
-            nn.Linear(bottleneck_dim, out_dim, bias=False)
-        )
-        self.last_layer.weight_g.data.fill_(1)
-        self.last_layer.weight_g.requires_grad = False
+        self.last_layer = nn.Linear(bottleneck_dim, out_dim, bias=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.mlp(x)
         x = F.normalize(x, dim=-1, p=2)
-        return self.last_layer(x)
+        w = F.normalize(self.last_layer.weight, dim=1, p=2)
+        return F.linear(x, w)
 
 
 # ---------------------------------------------------------------------------
