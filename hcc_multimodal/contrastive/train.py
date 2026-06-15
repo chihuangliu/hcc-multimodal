@@ -121,15 +121,20 @@ def train(args: argparse.Namespace) -> None:
     gene_enc = GeneEncoder(gene_dim, args.gene_hidden_dim, args.embed_dim).to(device)
 
     if args.base_model is not None:
-        for search_root in [_OUT_ROOT, _FINETUNE_ROOT]:
+        _FINETUNE_DINO_ROOT = _FINETUNE_ROOT / "dino"
+        for search_root in [_OUT_ROOT, _FINETUNE_DINO_ROOT, _FINETUNE_ROOT]:
             ckpt_path = search_root / args.base_model / "best_model.pt"
             if ckpt_path.exists():
                 break
         ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
-        img_enc.load_state_dict(ckpt["img_enc"])
-        if "gene_enc" in ckpt:
-            gene_enc.load_state_dict(ckpt["gene_enc"])
-        print(f"Loaded img_enc from {ckpt_path}")
+        if "backbone" in ckpt:
+            # new finetune/dino checkpoint: load backbone only, leave proj randomly initialised
+            img_enc.backbone.load_state_dict(ckpt["backbone"])
+        else:
+            img_enc.load_state_dict(ckpt["img_enc"])
+            if "gene_enc" in ckpt:
+                gene_enc.load_state_dict(ckpt["gene_enc"])
+        print(f"Loaded backbone from {ckpt_path}")
 
     optimizer = torch.optim.AdamW(
         [p for p in list(img_enc.parameters()) + list(gene_enc.parameters()) if p.requires_grad],

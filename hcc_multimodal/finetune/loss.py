@@ -1,8 +1,35 @@
-"""DINO self-distillation loss with EMA teacher centering."""
+"""DINO self-distillation loss and projection head."""
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+
+class DINOHead(nn.Module):
+    """MLP projection head with L2-normalised bottleneck and unit-norm last layer.
+
+    Architecture: Linear → BN → GELU → Linear → BN → GELU → Linear(bottleneck)
+                  → L2-norm → Linear(out_dim, no bias, weights unit-normalised in forward)
+    """
+
+    def __init__(self, in_dim: int, out_dim: int = 4096, hidden_dim: int = 2048, bottleneck_dim: int = 256):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, bottleneck_dim),
+        )
+        self.last_layer = nn.Linear(bottleneck_dim, out_dim, bias=False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.mlp(x)
+        x = F.normalize(x, dim=-1, p=2)
+        w = F.normalize(self.last_layer.weight, dim=1, p=2)
+        return F.linear(x, w)
 
 
 class DINOLoss(nn.Module):
