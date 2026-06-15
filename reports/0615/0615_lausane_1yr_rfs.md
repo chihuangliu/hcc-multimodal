@@ -42,7 +42,7 @@ Best head (LR or RF) per model. Multi-lesion: average.
 |--------|----------|---------|---------|---------|-----------|----------------------|
 | raw, λ=0.1, frozen, n=all, patient | `e40ffa0b` | 1yr | 0.475 | 0.544 | **0.544** (RF) | 0.534 (LR) |
 | bbox, λ=0.1, frozen, n=all, slice | `2eb1f3ca` | 1yr | 0.496 | 0.427 | **0.496** (LR) | 0.614 (RF) |
-| Radiomic | — | 1yr | — | 0.569 | 0.557 | **0.569** (LR) | 0.531 (LR) |
+| Radiomic | — | 1yr | 0.569 | 0.557 | **0.569** (LR) | 0.531 (LR) |
 
 ---
 
