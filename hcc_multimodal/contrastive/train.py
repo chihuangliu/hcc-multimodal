@@ -30,6 +30,7 @@ _GENE_SETS = {
 }
 
 _OUT_ROOT = Path(hcc_multimodal.__file__).parent.parent / "training" / "contrastive"
+_FINETUNE_ROOT = Path(hcc_multimodal.__file__).parent.parent / "training" / "finetune"
 
 
 def _setup_run(args: argparse.Namespace) -> Path:
@@ -120,11 +121,15 @@ def train(args: argparse.Namespace) -> None:
     gene_enc = GeneEncoder(gene_dim, args.gene_hidden_dim, args.embed_dim).to(device)
 
     if args.base_model is not None:
-        ckpt_path = _OUT_ROOT / args.base_model / "best_model.pt"
+        for search_root in [_OUT_ROOT, _FINETUNE_ROOT]:
+            ckpt_path = search_root / args.base_model / "best_model.pt"
+            if ckpt_path.exists():
+                break
         ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
         img_enc.load_state_dict(ckpt["img_enc"])
-        gene_enc.load_state_dict(ckpt["gene_enc"])
-        print(f"Loaded weights from {ckpt_path}")
+        if "gene_enc" in ckpt:
+            gene_enc.load_state_dict(ckpt["gene_enc"])
+        print(f"Loaded img_enc from {ckpt_path}")
 
     optimizer = torch.optim.AdamW(
         [p for p in list(img_enc.parameters()) + list(gene_enc.parameters()) if p.requires_grad],
