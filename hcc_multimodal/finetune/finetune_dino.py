@@ -13,15 +13,20 @@ import argparse
 import copy
 import csv
 import json
+import os
 import subprocess
 import uuid
 from pathlib import Path
 
 import numpy as np
 import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, Subset
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, DistributedSampler, Subset
 from torchvision.transforms import v2
 from tqdm import tqdm
 
@@ -94,8 +99,10 @@ def _backbone_forward(backbone, x: torch.Tensor, return_patches: bool = False):
     patch_tokens are L2-normalised and only returned when return_patches=True.
     Gram anchoring requires a HuggingFace ViT backbone (dinov2_* / dinov3_*).
     """
-    if hasattr(backbone, "model"):  # _HFViTWrapper
-        out = backbone.model(x)
+    # Unwrap DDP if needed so we can introspect the underlying module.
+    raw = backbone.module if isinstance(backbone, DDP) else backbone
+    if hasattr(raw, "model"):  # _HFViTWrapper
+        out = raw.model(x)
         cls = out.last_hidden_state[:, 0]
         patches = F.normalize(out.last_hidden_state[:, 1:], dim=-1) if return_patches else None
         return cls, patches
@@ -151,37 +158,41 @@ def _setup_run(args: argparse.Namespace, model_name: str, patient_counts: dict[s
 
 
 # ---------------------------------------------------------------------------
-# Training
+# Per-rank training worker
 # ---------------------------------------------------------------------------
 
-def train(args: argparse.Namespace) -> None:
+def _train_worker(
+    rank: int,
+    world_size: int,
+    args: argparse.Namespace,
+    run_dir: Path,
+    model_name: str,
+    ckpt_path: Path | None,
+) -> None:
+    use_ddp = world_size > 1
+    is_main = rank == 0
+
+    if use_ddp:
+        dist.init_process_group("nccl", rank=rank, world_size=world_size)
+        device = torch.device(f"cuda:{rank}")
+        torch.cuda.set_device(device)
+    else:
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+
     torch.manual_seed(args.seed)
 
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
-
-    model_name, ckpt_path = resolve_base_model(args.base_model)
-
-    # --- Collect patients ---
+    # --- Collect patients (fast; each rank does this independently) ---
     all_entries: list = []
-    patient_counts: dict[str, int] = {}
     cohort_labels: list[int] = []
     for ci, cohort in enumerate(args.cohorts):
         patients = collect_cohort_patients(cohort, phases=args.phases)
-        patient_counts[cohort] = len({p for p, _ in patients})
-        print(f"  {cohort}: {patient_counts[cohort]} patients, {len(patients)} volumes ({', '.join(args.phases)})")
         all_entries.extend(patients)
         cohort_labels.extend([ci] * len(patients))
-    total = sum(patient_counts.values())
-    print(f"  Total: {total} patients across {len(args.cohorts)} cohort(s)")
-    if total == 0:
-        raise RuntimeError("No patients found. Check data paths.")
-
-    run_dir = _setup_run(args, model_name, patient_counts)
 
     # --- Augmentations ---
     backbone_transform = BACKBONE_TRANSFORMS[model_name]
@@ -232,17 +243,33 @@ def train(args: argparse.Namespace) -> None:
     train_idx = [i for i, (pid, _, _, _) in enumerate(dataset._index) if pid in train_pid_set]
     val_idx = [i for i, (pid, _, _, _) in enumerate(dataset._index) if pid in val_pid_set]
 
-    pin = device.type == "cuda"
-    train_loader = DataLoader(
-        Subset(dataset, train_idx), batch_size=args.batch_size, shuffle=True,
-        num_workers=args.num_workers, pin_memory=pin, drop_last=True, collate_fn=multicrop_collate,
-    )
-    val_loader = DataLoader(
-        Subset(dataset, val_idx), batch_size=args.batch_size, shuffle=False,
-        num_workers=args.num_workers, pin_memory=pin, collate_fn=multicrop_collate,
-    )
+    train_subset = Subset(dataset, train_idx)
+    val_subset = Subset(dataset, val_idx)
 
-    # --- Models: backbone only (no contrastive proj) ---
+    pin = device.type == "cuda"
+    if use_ddp:
+        train_sampler = DistributedSampler(train_subset, num_replicas=world_size, rank=rank, shuffle=True, seed=args.seed)
+        val_sampler = DistributedSampler(val_subset, num_replicas=world_size, rank=rank, shuffle=False)
+        train_loader = DataLoader(
+            train_subset, batch_size=args.batch_size, sampler=train_sampler,
+            num_workers=args.num_workers, pin_memory=pin, drop_last=True, collate_fn=multicrop_collate,
+        )
+        val_loader = DataLoader(
+            val_subset, batch_size=args.batch_size, sampler=val_sampler,
+            num_workers=args.num_workers, pin_memory=pin, collate_fn=multicrop_collate,
+        )
+    else:
+        train_sampler = None
+        train_loader = DataLoader(
+            train_subset, batch_size=args.batch_size, shuffle=True,
+            num_workers=args.num_workers, pin_memory=pin, drop_last=True, collate_fn=multicrop_collate,
+        )
+        val_loader = DataLoader(
+            val_subset, batch_size=args.batch_size, shuffle=False,
+            num_workers=args.num_workers, pin_memory=pin, collate_fn=multicrop_collate,
+        )
+
+    # --- Models ---
     student_backbone, feat_dim = BACKBONES[model_name]()
     student_backbone = student_backbone.to(device)
     student_head = DINOHead(
@@ -263,7 +290,6 @@ def train(args: argparse.Namespace) -> None:
         _load_backbone_weights(student_backbone, ckpt_path, device)
         _load_backbone_weights(teacher_backbone, ckpt_path, device)
 
-    # Gram teacher: stale copy of teacher, refreshed every gram_update_interval steps
     if args.gram_anchoring:
         gram_backbone = copy.deepcopy(teacher_backbone).to(device)
         for p in gram_backbone.parameters():
@@ -271,8 +297,18 @@ def train(args: argparse.Namespace) -> None:
     else:
         gram_backbone = None
 
+    if use_ddp:
+        # Sync BN stats across ranks for the student head's BatchNorm layers.
+        student_head = nn.SyncBatchNorm.convert_sync_batchnorm(student_head)
+        student_backbone = DDP(student_backbone, device_ids=[rank])
+        student_head = DDP(student_head, device_ids=[rank])
+
+    # Raw (unwrapped) references for EMA updates and checkpoint saving.
+    raw_student_backbone = student_backbone.module if use_ddp else student_backbone
+    raw_student_head = student_head.module if use_ddp else student_head
+
     # --- Optimizer & schedules ---
-    trainable = [p for p in list(student_backbone.parameters()) + list(student_head.parameters()) if p.requires_grad]
+    trainable = [p for p in list(raw_student_backbone.parameters()) + list(raw_student_head.parameters()) if p.requires_grad]
     optimizer = torch.optim.AdamW(trainable, lr=args.lr, weight_decay=args.weight_decay)
 
     n_steps = args.epochs * len(train_loader)
@@ -285,14 +321,18 @@ def train(args: argparse.Namespace) -> None:
 
     # --- Training loop ---
     csv_path = run_dir / "losses.csv"
-    with open(csv_path, "w", newline="") as f:
-        csv.writer(f).writerow(["epoch", "train_loss", "val_loss"])
+    if is_main:
+        with open(csv_path, "w", newline="") as f:
+            csv.writer(f).writerow(["epoch", "train_loss", "val_loss"])
 
     best_val = float("inf")
     global_step = 0
     checkpoint = {}
 
     for epoch in range(1, args.epochs + 1):
+        if train_sampler is not None:
+            train_sampler.set_epoch(epoch)
+
         if epoch <= args.warmup_teacher_temp_epochs:
             teacher_temp = (
                 args.teacher_temp_start
@@ -306,7 +346,7 @@ def train(args: argparse.Namespace) -> None:
         student_head.train()
         total_train = 0.0
 
-        train_pbar = tqdm(train_loader, desc=f"Epoch {epoch:3d}/{args.epochs} train", leave=False)
+        train_pbar = tqdm(train_loader, desc=f"Epoch {epoch:3d}/{args.epochs} train", leave=False, disable=not is_main)
         for views, _ in train_pbar:
             lr = float(lr_schedule[min(global_step, len(lr_schedule) - 1)])
             wd = float(wd_schedule[min(global_step, len(wd_schedule) - 1)])
@@ -342,22 +382,32 @@ def train(args: argparse.Namespace) -> None:
             torch.nn.utils.clip_grad_norm_(trainable, max_norm=3.0)
             optimizer.step()
 
-            # EMA teacher update
+            # EMA teacher update. DDP keeps all students identical via gradient all-reduce,
+            # so applying EMA locally on each rank produces identical teachers.
             m = float(momentum_schedule[min(global_step, len(momentum_schedule) - 1)])
             with torch.no_grad():
                 for p_s, p_t in zip(
-                    list(student_backbone.parameters()) + list(student_head.parameters()),
+                    list(raw_student_backbone.parameters()) + list(raw_student_head.parameters()),
                     list(teacher_backbone.parameters()) + list(teacher_head.parameters()),
                 ):
                     p_t.data.mul_(m).add_((1 - m) * p_s.detach().data)
 
-            # Gram teacher update: sync to EMA teacher every N steps
             if args.gram_anchoring and (global_step + 1) % args.gram_update_interval == 0:
                 with torch.no_grad():
                     for p_g, p_t in zip(gram_backbone.parameters(), teacher_backbone.parameters()):
                         p_g.data.copy_(p_t.data)
 
-            dino_loss.update_center(teacher_out)
+            # Center update: all-reduce the batch mean across ranks so every rank's
+            # centering buffer stays identical despite seeing different data shards.
+            if use_ddp:
+                batch_center = torch.cat(teacher_out, dim=0).mean(dim=0)
+                dist.all_reduce(batch_center, op=dist.ReduceOp.AVG)
+                dino_loss.center.mul_(dino_loss.center_momentum).add_(
+                    batch_center.unsqueeze(0) * (1 - dino_loss.center_momentum)
+                )
+            else:
+                dino_loss.update_center(teacher_out)
+
             total_train += loss.item()
             train_pbar.set_postfix(loss=f"{loss.item():.4f}", teacher_temp=f"{teacher_temp:.4f}")
             global_step += 1
@@ -367,34 +417,89 @@ def train(args: argparse.Namespace) -> None:
         student_head.eval()
         total_val = 0.0
         with torch.no_grad():
-            for views, _ in tqdm(val_loader, desc=f"Epoch {epoch:3d}/{args.epochs} val  ", leave=False):
+            for views, _ in tqdm(val_loader, desc=f"Epoch {epoch:3d}/{args.epochs} val  ", leave=False, disable=not is_main):
                 views = [v.to(device) for v in views]
                 teacher_out = [teacher_head(_backbone_forward(teacher_backbone, views[i])[0]) for i in range(N_GLOBAL_CROPS)]
                 student_out = [student_head(_backbone_forward(student_backbone, v)[0]) for v in views]
                 total_val += dino_loss(student_out, teacher_out, teacher_temp).item()
 
-        avg_train = total_train / len(train_loader)
-        avg_val = total_val / max(1, len(val_loader))
-        print(f"Epoch {epoch:3d}/{args.epochs}  train={avg_train:.4f}  val={avg_val:.4f}  teacher_temp={teacher_temp:.4f}")
+        # All-reduce per-step averages so rank 0 logs the global mean.
+        if use_ddp:
+            metrics = torch.tensor(
+                [total_train / len(train_loader), total_val / max(1, len(val_loader))],
+                device=device,
+            )
+            dist.all_reduce(metrics, op=dist.ReduceOp.AVG)
+            avg_train, avg_val = metrics[0].item(), metrics[1].item()
+        else:
+            avg_train = total_train / len(train_loader)
+            avg_val = total_val / max(1, len(val_loader))
 
-        with open(csv_path, "a", newline="") as f:
-            csv.writer(f).writerow([epoch, avg_train, avg_val])
+        if is_main:
+            print(f"Epoch {epoch:3d}/{args.epochs}  train={avg_train:.4f}  val={avg_val:.4f}  teacher_temp={teacher_temp:.4f}")
+            with open(csv_path, "a", newline="") as f:
+                csv.writer(f).writerow([epoch, avg_train, avg_val])
 
-        checkpoint = {
-            "backbone": student_backbone.state_dict(),
-            "teacher_backbone": teacher_backbone.state_dict(),
-            "dino_head": student_head.state_dict(),
-            "model": model_name,
-        }
-        if avg_val < best_val:
-            best_val = avg_val
-            torch.save(checkpoint, run_dir / "best_model.pt")
+            checkpoint = {
+                "backbone": raw_student_backbone.state_dict(),
+                "teacher_backbone": teacher_backbone.state_dict(),
+                "dino_head": raw_student_head.state_dict(),
+                "model": model_name,
+            }
+            if avg_val < best_val:
+                best_val = avg_val
+                torch.save(checkpoint, run_dir / "best_model.pt")
 
-    if args.epochs > 0:
+    if is_main and args.epochs > 0:
         torch.save(checkpoint, run_dir / "last_model.pt")
         print(f"Done. Best val loss: {best_val:.4f}  →  {run_dir}")
-    else:
+    elif is_main:
         print(f"Run dir: {run_dir} (no training, --epochs 0)")
+
+    if use_ddp:
+        dist.destroy_process_group()
+
+
+# ---------------------------------------------------------------------------
+# Training entry point
+# ---------------------------------------------------------------------------
+
+def train(args: argparse.Namespace) -> None:
+    if args.ngpu > 1:
+        if not torch.cuda.is_available():
+            raise RuntimeError("--ngpu > 1 requires CUDA")
+        if args.ngpu > torch.cuda.device_count():
+            raise RuntimeError(
+                f"--ngpu {args.ngpu} requested but only {torch.cuda.device_count()} CUDA device(s) available"
+            )
+
+    torch.manual_seed(args.seed)
+
+    model_name, ckpt_path = resolve_base_model(args.base_model)
+
+    all_entries: list = []
+    patient_counts: dict[str, int] = {}
+    cohort_labels: list[int] = []
+    for ci, cohort in enumerate(args.cohorts):
+        patients = collect_cohort_patients(cohort, phases=args.phases)
+        patient_counts[cohort] = len({p for p, _ in patients})
+        print(f"  {cohort}: {patient_counts[cohort]} patients, {len(patients)} volumes ({', '.join(args.phases)})")
+        all_entries.extend(patients)
+        cohort_labels.extend([ci] * len(patients))
+    total = sum(patient_counts.values())
+    print(f"  Total: {total} patients across {len(args.cohorts)} cohort(s)")
+    if total == 0:
+        raise RuntimeError("No patients found. Check data paths.")
+
+    run_dir = _setup_run(args, model_name, patient_counts)
+
+    worker_args = (args.ngpu, args, run_dir, model_name, ckpt_path)
+    if args.ngpu > 1:
+        os.environ.setdefault("MASTER_ADDR", "localhost")
+        os.environ.setdefault("MASTER_PORT", "12355")
+        mp.spawn(_train_worker, args=worker_args, nprocs=args.ngpu, join=True)
+    else:
+        _train_worker(0, *worker_args)
 
 
 # ---------------------------------------------------------------------------
@@ -451,6 +556,8 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--weight_decay_end", type=float, default=0.4)
     p.add_argument("--num_workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--ngpu", type=int, default=1, metavar="N",
+                   help="Number of GPUs for data-parallel training (default: 1).")
 
     return p.parse_args()
 
