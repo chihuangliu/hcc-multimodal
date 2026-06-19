@@ -26,7 +26,6 @@ python -m hcc_multimodal.finetune.finetune_dino \
   --epochs 50 \
   --batch_size 16 \
   --axes 0 \
-  --num_workers 8 \
-  --ngpu
+  --num_workers 8 
 
 echo "=== job ${PBS_JOBID} finished at $(date) with exit code $? ==="
