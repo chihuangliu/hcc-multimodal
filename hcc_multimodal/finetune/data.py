@@ -1,5 +1,6 @@
 """Data loading for DINO self-supervised finetuning on MRI."""
 
+from collections import OrderedDict
 from importlib.resources import files
 from pathlib import Path
 from typing import Callable
@@ -163,6 +164,9 @@ class MultiCropDataset(Dataset):
         global_transform: augmentation applied to global (full-slice) views
         local_transform: augmentation applied to local (cropped) views;
             must handle its own cropping (e.g. starts with v2.RandomCrop)
+        cache_size: number of resampled volumes to keep in a per-worker LRU
+            cache (0 disables). Avoids re-running nib.load + resample_to_spacing
+            once per slice, which dominates epoch time when n_per_axis is large.
     """
 
     def __init__(
@@ -174,11 +178,17 @@ class MultiCropDataset(Dataset):
         n_local_crops: int,
         global_transform: Callable,
         local_transform: Callable,
+        cache_size: int = 64,
     ):
         self.resize = transforms.Resize((img_size, img_size), antialias=True)
         self.n_local_crops = n_local_crops
         self.global_transform = global_transform
         self.local_transform = local_transform
+
+        # Per-instance volume cache. DataLoader workers are separate processes,
+        # so each gets its own copy — no locking needed.
+        self._cache_size = cache_size
+        self._vol_cache: OrderedDict[str, np.ndarray] = OrderedDict()
 
         # (pid, mri_path, axis, slice_idx) — path stored per entry so multiple
         # phases of the same patient are handled correctly.
@@ -197,15 +207,31 @@ class MultiCropDataset(Dataset):
     def __len__(self) -> int:
         return len(self._index)
 
-    def __getitem__(self, i: int) -> tuple[list[torch.Tensor], int]:
-        pid, mri_path, axis, slice_idx = self._index[i]
+    def _get_volume(self, mri_path: Path) -> np.ndarray:
+        """Return the resampled (3D, float32) volume for mri_path, using the LRU cache."""
+        key = str(mri_path)
+        vol = self._vol_cache.get(key)
+        if vol is not None:
+            self._vol_cache.move_to_end(key)
+            return vol
 
         img = nib.load(mri_path)
         vol = resample_to_spacing(img)
-
         # Handle 4D volumes (take first time point)
         if vol.ndim == 4:
             vol = vol[..., 0]
+        vol = np.ascontiguousarray(vol, dtype=np.float32)
+
+        if self._cache_size > 0:
+            self._vol_cache[key] = vol
+            if len(self._vol_cache) > self._cache_size:
+                self._vol_cache.popitem(last=False)
+        return vol
+
+    def __getitem__(self, i: int) -> tuple[list[torch.Tensor], int]:
+        pid, mri_path, axis, slice_idx = self._index[i]
+
+        vol = self._get_volume(mri_path)
 
         slice_idx = min(slice_idx, vol.shape[axis] - 1)
         s = np.take(vol, slice_idx, axis=axis)
