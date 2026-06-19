@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -N dino_finetune
-#PBS -l select=1:ncpus=8:mem=48gb:ngpus=1:gpu_type=L40S
+#PBS -l select=1:ncpus=32:mem=240gb:ngpus=4:gpu_type=L40S
 #PBS -l walltime=72:00:00
 #PBS -q v1_gpu72
 
@@ -26,6 +26,11 @@ python -m hcc_multimodal.finetune.finetune_dino \
   --epochs 50 \
   --batch_size 16 \
   --axes 0 \
-  --num_workers 8 
+  --n_per_axis 100 \
+  --lr 4e-4 \
+  --warmup_epochs 5 \
+  --num_workers 6 \
+  --cache_size 32 \
+  --ngpu 4
 
 echo "=== job ${PBS_JOBID} finished at $(date) with exit code $? ==="

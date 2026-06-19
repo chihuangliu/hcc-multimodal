@@ -222,6 +222,7 @@ def _train_worker(
         n_local_crops=args.n_local_crops,
         global_transform=global_transform,
         local_transform=local_transform,
+        cache_size=args.cache_size,
     )
     pid_to_cohort = {
         pid: ci
@@ -555,6 +556,9 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--weight_decay", type=float, default=0.04)
     p.add_argument("--weight_decay_end", type=float, default=0.4)
     p.add_argument("--num_workers", type=int, default=4)
+    p.add_argument("--cache_size", type=int, default=64, metavar="N",
+                   help="Resampled volumes kept in each worker's LRU cache (0 disables). "
+                        "Approx RAM = ~50MB x N x num_workers.")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--ngpu", type=int, default=1, metavar="N",
                    help="Number of GPUs for data-parallel training (default: 1).")
