@@ -20,7 +20,10 @@ models from `reports/0608/0608_ablation_eval_v2.md`.
 
 ## 2. Key Findings
 
-- TODO (fill after remaining sections complete)
+- **2-Year RFS classifier + kmeans** is the only robust risk-score × cutoff
+  combination.
+- Lausanne — `1361bef2` (RF), which has the highest AUC, also has the highest C-index and reach statistical significance on log-rank.
+- Soramic - the models with the higher AUC and highest C-index both not reach statistical significance on log-rank p, though we can see the trend.
 
 ---
 
