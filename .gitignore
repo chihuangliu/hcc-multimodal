@@ -6,3 +6,4 @@ data/*
 *.pt
 training/contrastive/*/cached_embeddings/
 models/*
+results/**/*.parquet

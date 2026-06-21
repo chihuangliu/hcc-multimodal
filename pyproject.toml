@@ -31,3 +31,6 @@ dev = [
 eval = [
     "openpyxl>=3.1.5",
 ]
+survival = [
+    "lifelines>=0.30.0",
+]

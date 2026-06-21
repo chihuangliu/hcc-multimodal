@@ -1,0 +1,1140 @@
+{
+  "git_commit": "1718fbc",
+  "timestamp": "2026-06-20T21:32:30.455927",
+  "results": {
+    "9109a6c2": {
+      "head": "lr",
+      "routes": {
+        "a": {
+          "cohorts": {
+            "soramic": {
+              "c_index": 0.5297477391718229,
+              "methods": {
+                "median_within": {
+                  "scope": "within_cohort",
+                  "threshold": 0.9136033808920376,
+                  "n_high": 50,
+                  "n_low": 50,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 50,
+                    "n_low": 50,
+                    "events_high": 21,
+                    "events_low": 29,
+                    "logrank_p": 0.9986791849370522,
+                    "hr_high_vs_low": 1.0,
+                    "hr_ci_low": 0.5626946086187148,
+                    "hr_ci_high": 1.777162931158642,
+                    "cox_p": 1.0,
+                    "high": {
+                      "median_rfs": 16.43333333,
+                      "rfs_rate_12mo": 0.8507979626485572,
+                      "rfs_rate_24mo": 0.2552393887945672
+                    },
+                    "low": {
+                      "median_rfs": 18.06557377,
+                      "rfs_rate_12mo": 0.6803515111978983,
+                      "rfs_rate_24mo": 0.45858621598087984
+                    }
+                  }
+                },
+                "median_frozen": {
+                  "scope": "frozen_resection",
+                  "threshold": 0.3359416678769511,
+                  "n_high": 86,
+                  "n_low": 14,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 86,
+                    "n_low": 14,
+                    "events_high": 44,
+                    "events_low": 6,
+                    "logrank_p": 0.18811692688030618,
+                    "hr_high_vs_low": 1.7712363958683617,
+                    "hr_ci_low": 0.7480267312580742,
+                    "hr_ci_high": 4.19407253638154,
+                    "cox_p": 0.1936505774324737,
+                    "high": {
+                      "median_rfs": 16.0,
+                      "rfs_rate_12mo": 0.743662253958722,
+                      "rfs_rate_24mo": 0.3225024878943772
+                    },
+                    "low": {
+                      "median_rfs": 34.03278689,
+                      "rfs_rate_12mo": 0.7857142857142859,
+                      "rfs_rate_24mo": 0.7857142857142859
+                    }
+                  }
+                },
+                "kmeans_within": {
+                  "scope": "within_cohort_kmeans",
+                  "threshold": 0.6064033211773523,
+                  "centers": [
+                    0.28843152239817804,
+                    0.9243751199565267
+                  ],
+                  "n_high": 73,
+                  "n_low": 27,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 73,
+                    "n_low": 27,
+                    "events_high": 37,
+                    "events_low": 13,
+                    "logrank_p": 0.23172404590194465,
+                    "hr_high_vs_low": 1.4747318050167937,
+                    "hr_ci_low": 0.7779246696979405,
+                    "hr_ci_high": 2.795687013721462,
+                    "cox_p": 0.23387855383913667,
+                    "high": {
+                      "median_rfs": 16.0,
+                      "rfs_rate_12mo": 0.7491648983388203,
+                      "rfs_rate_24mo": 0.2836900178784529
+                    },
+                    "low": {
+                      "median_rfs": 29.03333333,
+                      "rfs_rate_12mo": 0.7536057692307694,
+                      "rfs_rate_24mo": 0.6260724852071007
+                    }
+                  }
+                },
+                "kmeans_log_within": {
+                  "scope": "within_cohort_kmeans_log",
+                  "threshold": 0.27457884764524,
+                  "centers": [
+                    0.09073171077325602,
+                    0.8309503141917038
+                  ],
+                  "n_high": 86,
+                  "n_low": 14,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 86,
+                    "n_low": 14,
+                    "events_high": 44,
+                    "events_low": 6,
+                    "logrank_p": 0.18811692688030618,
+                    "hr_high_vs_low": 1.7712363958683617,
+                    "hr_ci_low": 0.7480267312580742,
+                    "hr_ci_high": 4.19407253638154,
+                    "cox_p": 0.1936505774324737,
+                    "high": {
+                      "median_rfs": 16.0,
+                      "rfs_rate_12mo": 0.743662253958722,
+                      "rfs_rate_24mo": 0.3225024878943772
+                    },
+                    "low": {
+                      "median_rfs": 34.03278689,
+                      "rfs_rate_12mo": 0.7857142857142859,
+                      "rfs_rate_24mo": 0.7857142857142859
+                    }
+                  }
+                },
+                "youden_frozen": {
+                  "scope": "frozen_resection_youden",
+                  "threshold": 0.582470766052515,
+                  "n_high": 74,
+                  "n_low": 26,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 74,
+                    "n_low": 26,
+                    "events_high": 38,
+                    "events_low": 12,
+                    "logrank_p": 0.2964948691256395,
+                    "hr_high_vs_low": 1.4156930265546037,
+                    "hr_ci_low": 0.7355525286113758,
+                    "hr_ci_high": 2.7247363953992094,
+                    "cox_p": 0.29807142765923006,
+                    "high": {
+                      "median_rfs": 16.0,
+                      "rfs_rate_12mo": 0.753841309823934,
+                      "rfs_rate_24mo": 0.30249281736011674
+                    },
+                    "low": {
+                      "median_rfs": 29.03333333,
+                      "rfs_rate_12mo": 0.7427368421052631,
+                      "rfs_rate_24mo": 0.6051929824561402
+                    }
+                  }
+                }
+              }
+            },
+            "lusanne": {
+              "c_index": 0.6043906810035843,
+              "methods": {
+                "median_within": {
+                  "scope": "within_cohort",
+                  "threshold": 0.8363751158477633,
+                  "n_high": 34,
+                  "n_low": 34,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 34,
+                    "n_low": 34,
+                    "events_high": 33,
+                    "events_low": 31,
+                    "logrank_p": 0.08575607054091167,
+                    "hr_high_vs_low": 1.5571178922846618,
+                    "hr_ci_low": 0.9368887627910593,
+                    "hr_ci_high": 2.587944510349255,
+                    "cox_p": 0.08755122906929662,
+                    "high": {
+                      "median_rfs": 5.917808219178082,
+                      "rfs_rate_12mo": 0.4411764705882352,
+                      "rfs_rate_24mo": 0.26143790849673193
+                    },
+                    "low": {
+                      "median_rfs": 12.098630136986301,
+                      "rfs_rate_12mo": 0.5294117647058821,
+                      "rfs_rate_24mo": 0.29117647058823526
+                    }
+                  }
+                },
+                "median_frozen": {
+                  "scope": "frozen_resection",
+                  "threshold": 0.3359416678769511,
+                  "n_high": 50,
+                  "n_low": 18,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 50,
+                    "n_low": 18,
+                    "events_high": 48,
+                    "events_low": 16,
+                    "logrank_p": 0.0786283428861535,
+                    "hr_high_vs_low": 1.6816701420760036,
+                    "hr_ci_low": 0.9372497704801512,
+                    "hr_ci_high": 3.0173541310136995,
+                    "cox_p": 0.08138764634395448,
+                    "high": {
+                      "median_rfs": 7.495890410958904,
+                      "rfs_rate_12mo": 0.39999999999999997,
+                      "rfs_rate_24mo": 0.25846153846153846
+                    },
+                    "low": {
+                      "median_rfs": 18.18082191780822,
+                      "rfs_rate_12mo": 0.7222222222222223,
+                      "rfs_rate_24mo": 0.32407407407407407
+                    }
+                  }
+                },
+                "kmeans_within": {
+                  "scope": "within_cohort_kmeans",
+                  "threshold": 0.5416473894785045,
+                  "centers": [
+                    0.1933553429889543,
+                    0.8899394359680548
+                  ],
+                  "n_high": 45,
+                  "n_low": 23,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 45,
+                    "n_low": 23,
+                    "events_high": 43,
+                    "events_low": 21,
+                    "logrank_p": 0.225107604743649,
+                    "hr_high_vs_low": 1.3910094145721226,
+                    "hr_ci_low": 0.81574282014076,
+                    "hr_ci_high": 2.3719573665317735,
+                    "cox_p": 0.2254987045848114,
+                    "high": {
+                      "median_rfs": 7.495890410958904,
+                      "rfs_rate_12mo": 0.4222222222222222,
+                      "rfs_rate_24mo": 0.2648148148148149
+                    },
+                    "low": {
+                      "median_rfs": 14.4,
+                      "rfs_rate_12mo": 0.608695652173913,
+                      "rfs_rate_24mo": 0.29813664596273287
+                    }
+                  }
+                },
+                "kmeans_log_within": {
+                  "scope": "within_cohort_kmeans_log",
+                  "threshold": 0.16548559407853441,
+                  "centers": [
+                    0.038962252441464694,
+                    0.70287214243243
+                  ],
+                  "n_high": 57,
+                  "n_low": 11,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 57,
+                    "n_low": 11,
+                    "events_high": 54,
+                    "events_low": 10,
+                    "logrank_p": 0.03920436571096626,
+                    "hr_high_vs_low": 2.095408169364367,
+                    "hr_ci_low": 1.0225261833232655,
+                    "hr_ci_high": 4.294007789579333,
+                    "cox_p": 0.0432986781651599,
+                    "high": {
+                      "median_rfs": 9.567123287671233,
+                      "rfs_rate_12mo": 0.43859649122807004,
+                      "rfs_rate_24mo": 0.2396616541353384
+                    },
+                    "low": {
+                      "median_rfs": 19.693150684931506,
+                      "rfs_rate_12mo": 0.7272727272727271,
+                      "rfs_rate_24mo": 0.4545454545454544
+                    }
+                  }
+                },
+                "youden_frozen": {
+                  "scope": "frozen_resection_youden",
+                  "threshold": 0.582470766052515,
+                  "n_high": 43,
+                  "n_low": 25,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 43,
+                    "n_low": 25,
+                    "events_high": 41,
+                    "events_low": 23,
+                    "logrank_p": 0.11099672611134201,
+                    "hr_high_vs_low": 1.5307728541612529,
+                    "hr_ci_low": 0.9048028619340627,
+                    "hr_ci_high": 2.589807824024935,
+                    "cox_p": 0.11249658394452051,
+                    "high": {
+                      "median_rfs": 5.983561643835617,
+                      "rfs_rate_12mo": 0.41860465116279066,
+                      "rfs_rate_24mo": 0.25369978858350956
+                    },
+                    "low": {
+                      "median_rfs": 14.4,
+                      "rfs_rate_12mo": 0.6000000000000001,
+                      "rfs_rate_24mo": 0.31500000000000017
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "b": {
+          "cohorts": {
+            "soramic": {
+              "c_index": 0.5592574964302713,
+              "methods": {
+                "median_within": {
+                  "scope": "within_cohort",
+                  "threshold": 0.20432003110507535,
+                  "n_high": 50,
+                  "n_low": 50,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 50,
+                    "n_low": 50,
+                    "events_high": 28,
+                    "events_low": 22,
+                    "logrank_p": 0.2924883737521055,
+                    "hr_high_vs_low": 1.3529174000405597,
+                    "hr_ci_low": 0.7681780455300767,
+                    "hr_ci_high": 2.382762045834649,
+                    "cox_p": 0.29524116279396273,
+                    "high": {
+                      "median_rfs": 14.96666667,
+                      "rfs_rate_12mo": 0.7696832579185517,
+                      "rfs_rate_24mo": 0.26077231591937455
+                    },
+                    "low": {
+                      "median_rfs": 25.08196721,
+                      "rfs_rate_12mo": 0.7241797143035371,
+                      "rfs_rate_24mo": 0.5203139964113649
+                    }
+                  }
+                },
+                "median_frozen": {
+                  "scope": "frozen_resection",
+                  "threshold": 0.9638571669632663,
+                  "n_high": 22,
+                  "n_low": 78,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 22,
+                    "n_low": 78,
+                    "events_high": 11,
+                    "events_low": 39,
+                    "logrank_p": 0.3679592085285808,
+                    "hr_high_vs_low": 1.3616459845196294,
+                    "hr_ci_low": 0.6917220469456971,
+                    "hr_ci_high": 2.680382670098678,
+                    "cox_p": 0.3716740073789835,
+                    "high": {
+                      "median_rfs": 15.16666667,
+                      "rfs_rate_12mo": 0.8653846153846155,
+                      "rfs_rate_24mo": 0.19230769230769232
+                    },
+                    "low": {
+                      "median_rfs": 18.06557377,
+                      "rfs_rate_12mo": 0.7241925705343557,
+                      "rfs_rate_24mo": 0.4393156450514534
+                    }
+                  }
+                },
+                "kmeans_within": {
+                  "scope": "within_cohort_kmeans",
+                  "threshold": 28.960718261007223,
+                  "centers": [
+                    1.303453713091633,
+                    56.61798280892281
+                  ],
+                  "n_high": 2,
+                  "n_low": 98,
+                  "balanced": false,
+                  "survival": null
+                },
+                "kmeans_log_within": {
+                  "scope": "within_cohort_kmeans_log",
+                  "threshold": 0.16286070719294027,
+                  "centers": [
+                    0.024917928264500313,
+                    1.0644388115191694
+                  ],
+                  "n_high": 55,
+                  "n_low": 45,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 55,
+                    "n_low": 45,
+                    "events_high": 32,
+                    "events_low": 18,
+                    "logrank_p": 0.11438452754691153,
+                    "hr_high_vs_low": 1.592627123610331,
+                    "hr_ci_low": 0.888269438411135,
+                    "hr_ci_high": 2.855508751259454,
+                    "cox_p": 0.11823133827766565,
+                    "high": {
+                      "median_rfs": 14.8,
+                      "rfs_rate_12mo": 0.7168458335922454,
+                      "rfs_rate_24mo": 0.2645604028415501
+                    },
+                    "low": {
+                      "median_rfs": 25.08196721,
+                      "rfs_rate_12mo": 0.7835548460548458,
+                      "rfs_rate_24mo": 0.5495986926275386
+                    }
+                  }
+                },
+                "youden_frozen": {
+                  "scope": "frozen_resection_youden",
+                  "threshold": 0.8614400022054872,
+                  "n_high": 23,
+                  "n_low": 77,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 23,
+                    "n_low": 77,
+                    "events_high": 11,
+                    "events_low": 39,
+                    "logrank_p": 0.4073288183682724,
+                    "hr_high_vs_low": 1.3287945024939432,
+                    "hr_ci_low": 0.6748774438483639,
+                    "hr_ci_high": 2.616319223516461,
+                    "cox_p": 0.41085751443706264,
+                    "high": {
+                      "median_rfs": 15.16666667,
+                      "rfs_rate_12mo": 0.8739495798319328,
+                      "rfs_rate_24mo": 0.19421101774042948
+                    },
+                    "low": {
+                      "median_rfs": 18.06557377,
+                      "rfs_rate_12mo": 0.7221103217297374,
+                      "rfs_rate_24mo": 0.43805249417974046
+                    }
+                  }
+                }
+              }
+            },
+            "lusanne": {
+              "c_index": 0.5412186379928315,
+              "methods": {
+                "median_within": {
+                  "scope": "within_cohort",
+                  "threshold": 0.07135976205761235,
+                  "n_high": 34,
+                  "n_low": 34,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 34,
+                    "n_low": 34,
+                    "events_high": 33,
+                    "events_low": 31,
+                    "logrank_p": 0.3646144233726186,
+                    "hr_high_vs_low": 1.258621223304799,
+                    "hr_ci_low": 0.7664942510464872,
+                    "hr_ci_high": 2.0667178933051034,
+                    "cox_p": 0.3633386263013454,
+                    "high": {
+                      "median_rfs": 7.495890410958904,
+                      "rfs_rate_12mo": 0.4117647058823528,
+                      "rfs_rate_24mo": 0.2647058823529412
+                    },
+                    "low": {
+                      "median_rfs": 12.098630136986301,
+                      "rfs_rate_12mo": 0.5588235294117645,
+                      "rfs_rate_24mo": 0.2832244008714596
+                    }
+                  }
+                },
+                "median_frozen": {
+                  "scope": "frozen_resection",
+                  "threshold": 0.9638571669632663,
+                  "n_high": 8,
+                  "n_low": 60,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 8,
+                    "n_low": 60,
+                    "events_high": 8,
+                    "events_low": 56,
+                    "logrank_p": 0.28767738457231523,
+                    "hr_high_vs_low": 1.4989578294923216,
+                    "hr_ci_low": 0.7074497041294636,
+                    "hr_ci_high": 3.1760202336379133,
+                    "cox_p": 0.2907079514354432,
+                    "high": {
+                      "median_rfs": 3.8794520547945206,
+                      "rfs_rate_12mo": 0.25000000000000006,
+                      "rfs_rate_24mo": 0.25000000000000006
+                    },
+                    "low": {
+                      "median_rfs": 12.098630136986301,
+                      "rfs_rate_12mo": 0.5166666666666668,
+                      "rfs_rate_24mo": 0.2779411764705883
+                    }
+                  }
+                },
+                "kmeans_within": {
+                  "scope": "within_cohort_kmeans",
+                  "threshold": 8.719169773270382,
+                  "centers": [
+                    0.3296355206581826,
+                    17.10870402588258
+                  ],
+                  "n_high": 2,
+                  "n_low": 66,
+                  "balanced": false,
+                  "survival": null
+                },
+                "kmeans_log_within": {
+                  "scope": "within_cohort_kmeans_log",
+                  "threshold": 0.12879165676402957,
+                  "centers": [
+                    0.02268502402372349,
+                    0.7312000566839593
+                  ],
+                  "n_high": 27,
+                  "n_low": 41,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 27,
+                    "n_low": 41,
+                    "events_high": 27,
+                    "events_low": 37,
+                    "logrank_p": 0.14837260321294518,
+                    "hr_high_vs_low": 1.4567171068340445,
+                    "hr_ci_low": 0.8722492690952961,
+                    "hr_ci_high": 2.432819154487719,
+                    "cox_p": 0.15053957904829687,
+                    "high": {
+                      "median_rfs": 9.304109589041095,
+                      "rfs_rate_12mo": 0.4444444444444444,
+                      "rfs_rate_24mo": 0.25925925925925924
+                    },
+                    "low": {
+                      "median_rfs": 12.032876712328767,
+                      "rfs_rate_12mo": 0.5121951219512194,
+                      "rfs_rate_24mo": 0.285080772885651
+                    }
+                  }
+                },
+                "youden_frozen": {
+                  "scope": "frozen_resection_youden",
+                  "threshold": 0.8614400022054872,
+                  "n_high": 11,
+                  "n_low": 57,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 11,
+                    "n_low": 57,
+                    "events_high": 11,
+                    "events_low": 53,
+                    "logrank_p": 0.10051774625547555,
+                    "hr_high_vs_low": 1.7304883370716477,
+                    "hr_ci_low": 0.8937298494962354,
+                    "hr_ci_high": 3.3506656249972444,
+                    "cox_p": 0.10380062858832631,
+                    "high": {
+                      "median_rfs": 3.8794520547945206,
+                      "rfs_rate_12mo": 0.18181818181818182,
+                      "rfs_rate_24mo": 0.18181818181818182
+                    },
+                    "low": {
+                      "median_rfs": 12.197260273972603,
+                      "rfs_rate_12mo": 0.5438596491228069,
+                      "rfs_rate_24mo": 0.2925696594427244
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "agreement": {
+        "soramic": {
+          "n": 100,
+          "overlap": 0.72,
+          "cohen_kappa": 0.43999999999999995
+        },
+        "lusanne": {
+          "n": 68,
+          "overlap": 0.7647058823529411,
+          "cohen_kappa": 0.5294117647058824
+        }
+      }
+    },
+    "1361bef2": {
+      "head": "rf",
+      "routes": {
+        "a": {
+          "cohorts": {
+            "soramic": {
+              "c_index": 0.5128510233222275,
+              "methods": {
+                "median_within": {
+                  "scope": "within_cohort",
+                  "threshold": 0.65,
+                  "n_high": 51,
+                  "n_low": 49,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 51,
+                    "n_low": 49,
+                    "events_high": 23,
+                    "events_low": 27,
+                    "logrank_p": 0.6800548195075516,
+                    "hr_high_vs_low": 0.8889019776157551,
+                    "hr_ci_low": 0.5045555733850939,
+                    "hr_ci_high": 1.566025166480786,
+                    "cox_p": 0.6835750037567105,
+                    "high": {
+                      "median_rfs": 21.70491803,
+                      "rfs_rate_12mo": 0.7589911326849584,
+                      "rfs_rate_24mo": 0.42489950017274025
+                    },
+                    "low": {
+                      "median_rfs": 14.96666667,
+                      "rfs_rate_12mo": 0.7409175842509177,
+                      "rfs_rate_24mo": 0.3463348770765651
+                    }
+                  }
+                },
+                "median_frozen": {
+                  "scope": "frozen_resection",
+                  "threshold": 0.43,
+                  "n_high": 100,
+                  "n_low": 0,
+                  "balanced": false,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 100,
+                    "n_low": 0,
+                    "events_high": 50,
+                    "events_low": 0,
+                    "logrank_p": null,
+                    "hr_high_vs_low": null,
+                    "hr_ci_low": null,
+                    "hr_ci_high": null,
+                    "cox_p": null,
+                    "high": {
+                      "median_rfs": 17.70491803,
+                      "rfs_rate_12mo": 0.7495001298394636,
+                      "rfs_rate_24mo": 0.3855987072537612
+                    },
+                    "low": null
+                  }
+                },
+                "kmeans_within": {
+                  "scope": "within_cohort_kmeans",
+                  "threshold": 0.6282843137254902,
+                  "centers": [
+                    0.5832352941176471,
+                    0.6733333333333333
+                  ],
+                  "n_high": 66,
+                  "n_low": 34,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 66,
+                    "n_low": 34,
+                    "events_high": 31,
+                    "events_low": 19,
+                    "logrank_p": 0.8168351122817297,
+                    "hr_high_vs_low": 0.9343261419928257,
+                    "hr_ci_low": 0.5214439704260765,
+                    "hr_ci_high": 1.6741306623948304,
+                    "cox_p": 0.8194266031657954,
+                    "high": {
+                      "median_rfs": 18.23333333,
+                      "rfs_rate_12mo": 0.7407081809176241,
+                      "rfs_rate_24mo": 0.4081420907045559
+                    },
+                    "low": {
+                      "median_rfs": 14.96666667,
+                      "rfs_rate_12mo": 0.7718140929535233,
+                      "rfs_rate_24mo": 0.34838830584707653
+                    }
+                  }
+                },
+                "kmeans_log_within": {
+                  "scope": "within_cohort_kmeans_log",
+                  "threshold": 0.6259894858822629,
+                  "centers": [
+                    0.5825427900519805,
+                    0.6726764851045083
+                  ],
+                  "n_high": 66,
+                  "n_low": 34,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 66,
+                    "n_low": 34,
+                    "events_high": 31,
+                    "events_low": 19,
+                    "logrank_p": 0.8168351122817297,
+                    "hr_high_vs_low": 0.9343261419928257,
+                    "hr_ci_low": 0.5214439704260765,
+                    "hr_ci_high": 1.6741306623948304,
+                    "cox_p": 0.8194266031657954,
+                    "high": {
+                      "median_rfs": 18.23333333,
+                      "rfs_rate_12mo": 0.7407081809176241,
+                      "rfs_rate_24mo": 0.4081420907045559
+                    },
+                    "low": {
+                      "median_rfs": 14.96666667,
+                      "rfs_rate_12mo": 0.7718140929535233,
+                      "rfs_rate_24mo": 0.34838830584707653
+                    }
+                  }
+                },
+                "youden_frozen": {
+                  "scope": "frozen_resection_youden",
+                  "threshold": 0.44,
+                  "n_high": 100,
+                  "n_low": 0,
+                  "balanced": false,
+                  "survival": null
+                }
+              }
+            },
+            "lusanne": {
+              "c_index": 0.6187275985663082,
+              "methods": {
+                "median_within": {
+                  "scope": "within_cohort",
+                  "threshold": 0.66,
+                  "n_high": 37,
+                  "n_low": 31,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 37,
+                    "n_low": 31,
+                    "events_high": 34,
+                    "events_low": 30,
+                    "logrank_p": 0.01348135771358306,
+                    "hr_high_vs_low": 1.887349647598814,
+                    "hr_ci_low": 1.1321300354441948,
+                    "hr_ci_high": 3.146360030006421,
+                    "cox_p": 0.014855169417045445,
+                    "high": {
+                      "median_rfs": 5.983561643835617,
+                      "rfs_rate_12mo": 0.35135135135135137,
+                      "rfs_rate_24mo": 0.15135135135135136
+                    },
+                    "low": {
+                      "median_rfs": 18.18082191780822,
+                      "rfs_rate_12mo": 0.6451612903225805,
+                      "rfs_rate_24mo": 0.41935483870967744
+                    }
+                  }
+                },
+                "median_frozen": {
+                  "scope": "frozen_resection",
+                  "threshold": 0.43,
+                  "n_high": 68,
+                  "n_low": 0,
+                  "balanced": false,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 68,
+                    "n_low": 0,
+                    "events_high": 64,
+                    "events_low": 0,
+                    "logrank_p": null,
+                    "hr_high_vs_low": null,
+                    "hr_ci_low": null,
+                    "hr_ci_high": null,
+                    "cox_p": null,
+                    "high": {
+                      "median_rfs": 11.67123287671233,
+                      "rfs_rate_12mo": 0.4852941176470587,
+                      "rfs_rate_24mo": 0.27511961722488026
+                    },
+                    "low": null
+                  }
+                },
+                "kmeans_within": {
+                  "scope": "within_cohort_kmeans",
+                  "threshold": 0.6447344322344322,
+                  "centers": [
+                    0.6042307692307692,
+                    0.6852380952380952
+                  ],
+                  "n_high": 42,
+                  "n_low": 26,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 42,
+                    "n_low": 26,
+                    "events_high": 39,
+                    "events_low": 25,
+                    "logrank_p": 0.0008730619062820977,
+                    "hr_high_vs_low": 2.4068541377275414,
+                    "hr_ci_low": 1.4166697880298746,
+                    "hr_ci_high": 4.089129936449259,
+                    "cox_p": 0.0011622020481637566,
+                    "high": {
+                      "median_rfs": 5.917808219178082,
+                      "rfs_rate_12mo": 0.3333333333333332,
+                      "rfs_rate_24mo": 0.13333333333333328
+                    },
+                    "low": {
+                      "median_rfs": 23.40821917808219,
+                      "rfs_rate_12mo": 0.7307692307692305,
+                      "rfs_rate_24mo": 0.49999999999999994
+                    }
+                  }
+                },
+                "kmeans_log_within": {
+                  "scope": "within_cohort_kmeans_log",
+                  "threshold": 0.6430367094990327,
+                  "centers": [
+                    0.6037941888792169,
+                    0.6848297273792728
+                  ],
+                  "n_high": 42,
+                  "n_low": 26,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 42,
+                    "n_low": 26,
+                    "events_high": 39,
+                    "events_low": 25,
+                    "logrank_p": 0.0008730619062820977,
+                    "hr_high_vs_low": 2.4068541377275414,
+                    "hr_ci_low": 1.4166697880298746,
+                    "hr_ci_high": 4.089129936449259,
+                    "cox_p": 0.0011622020481637566,
+                    "high": {
+                      "median_rfs": 5.917808219178082,
+                      "rfs_rate_12mo": 0.3333333333333332,
+                      "rfs_rate_24mo": 0.13333333333333328
+                    },
+                    "low": {
+                      "median_rfs": 23.40821917808219,
+                      "rfs_rate_12mo": 0.7307692307692305,
+                      "rfs_rate_24mo": 0.49999999999999994
+                    }
+                  }
+                },
+                "youden_frozen": {
+                  "scope": "frozen_resection_youden",
+                  "threshold": 0.44,
+                  "n_high": 68,
+                  "n_low": 0,
+                  "balanced": false,
+                  "survival": null
+                }
+              }
+            }
+          }
+        },
+        "b": {
+          "cohorts": {
+            "soramic": {
+              "c_index": 0.4783436458829129,
+              "methods": {
+                "median_within": {
+                  "scope": "within_cohort",
+                  "threshold": 135.15393146275318,
+                  "n_high": 50,
+                  "n_low": 50,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 50,
+                    "n_low": 50,
+                    "events_high": 22,
+                    "events_low": 28,
+                    "logrank_p": 0.8906026645815133,
+                    "hr_high_vs_low": 0.9603429489409028,
+                    "hr_ci_low": 0.5418296223315145,
+                    "hr_ci_high": 1.702119156224781,
+                    "cox_p": 0.8897891307893985,
+                    "high": {
+                      "median_rfs": 21.70491803,
+                      "rfs_rate_12mo": 0.7497618456807782,
+                      "rfs_rate_24mo": 0.48449522776447973
+                    },
+                    "low": {
+                      "median_rfs": 15.16666667,
+                      "rfs_rate_12mo": 0.763768276209,
+                      "rfs_rate_24mo": 0.3188050617211675
+                    }
+                  }
+                },
+                "median_frozen": {
+                  "scope": "frozen_resection",
+                  "threshold": 0.9685940194932223,
+                  "n_high": 99,
+                  "n_low": 1,
+                  "balanced": false,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 99,
+                    "n_low": 1,
+                    "events_high": 49,
+                    "events_low": 1,
+                    "logrank_p": 0.35044433027388855,
+                    "hr_high_vs_low": 0.3983312955663222,
+                    "hr_ci_low": 0.053679600478589856,
+                    "hr_ci_high": 2.9558308857166233,
+                    "cox_p": 0.36805001685471816,
+                    "high": {
+                      "median_rfs": 17.70491803,
+                      "rfs_rate_12mo": 0.7461657489080161,
+                      "rfs_rate_24mo": 0.39359345584175465
+                    },
+                    "low": {
+                      "median_rfs": 13.80327869,
+                      "rfs_rate_12mo": 1.0,
+                      "rfs_rate_24mo": 0.0
+                    }
+                  }
+                },
+                "kmeans_within": {
+                  "scope": "within_cohort_kmeans",
+                  "threshold": 1650995.634043309,
+                  "centers": [
+                    2308.8756241323936,
+                    3299682.3924624855
+                  ],
+                  "n_high": 1,
+                  "n_low": 99,
+                  "balanced": false,
+                  "survival": null
+                },
+                "kmeans_log_within": {
+                  "scope": "within_cohort_kmeans_log",
+                  "threshold": 119.18749513832857,
+                  "centers": [
+                    16.039257899844003,
+                    885.6805649023977
+                  ],
+                  "n_high": 52,
+                  "n_low": 48,
+                  "balanced": true,
+                  "survival": {
+                    "n": 100,
+                    "n_high": 52,
+                    "n_low": 48,
+                    "events_high": 23,
+                    "events_low": 27,
+                    "logrank_p": 0.9514508968485467,
+                    "hr_high_vs_low": 0.981985266564406,
+                    "hr_ci_low": 0.5545236096433258,
+                    "hr_ci_high": 1.7389612398465961,
+                    "cox_p": 0.9502852650740391,
+                    "high": {
+                      "median_rfs": 21.70491803,
+                      "rfs_rate_12mo": 0.7558173637832669,
+                      "rfs_rate_24mo": 0.45785090306101744
+                    },
+                    "low": {
+                      "median_rfs": 15.16666667,
+                      "rfs_rate_12mo": 0.7564559378845095,
+                      "rfs_rate_24mo": 0.3315250371250373
+                    }
+                  }
+                },
+                "youden_frozen": {
+                  "scope": "frozen_resection_youden",
+                  "threshold": 1.010843168432789,
+                  "n_high": 99,
+                  "n_low": 1,
+                  "balanced": false,
+                  "survival": null
+                }
+              }
+            },
+            "lusanne": {
+              "c_index": 0.5103046594982079,
+              "methods": {
+                "median_within": {
+                  "scope": "within_cohort",
+                  "threshold": 285.2763349074453,
+                  "n_high": 34,
+                  "n_low": 34,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 34,
+                    "n_low": 34,
+                    "events_high": 32,
+                    "events_low": 32,
+                    "logrank_p": 0.9393195638806942,
+                    "hr_high_vs_low": 0.9811307540807089,
+                    "hr_ci_low": 0.6006361924290344,
+                    "hr_ci_high": 1.6026632572873376,
+                    "cox_p": 0.9393510452131477,
+                    "high": {
+                      "median_rfs": 11.868493150684932,
+                      "rfs_rate_12mo": 0.49999999999999994,
+                      "rfs_rate_24mo": 0.26143790849673193
+                    },
+                    "low": {
+                      "median_rfs": 9.567123287671233,
+                      "rfs_rate_12mo": 0.47058823529411753,
+                      "rfs_rate_24mo": 0.2887700534759358
+                    }
+                  }
+                },
+                "median_frozen": {
+                  "scope": "frozen_resection",
+                  "threshold": 0.9685940194932223,
+                  "n_high": 68,
+                  "n_low": 0,
+                  "balanced": false,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 68,
+                    "n_low": 0,
+                    "events_high": 64,
+                    "events_low": 0,
+                    "logrank_p": null,
+                    "hr_high_vs_low": null,
+                    "hr_ci_low": null,
+                    "hr_ci_high": null,
+                    "cox_p": null,
+                    "high": {
+                      "median_rfs": 11.67123287671233,
+                      "rfs_rate_12mo": 0.4852941176470587,
+                      "rfs_rate_24mo": 0.27511961722488026
+                    },
+                    "low": null
+                  }
+                },
+                "kmeans_within": {
+                  "scope": "within_cohort_kmeans",
+                  "threshold": 70731.14377094875,
+                  "centers": [
+                    1393.3789743675522,
+                    140068.90856752996
+                  ],
+                  "n_high": 1,
+                  "n_low": 67,
+                  "balanced": false,
+                  "survival": null
+                },
+                "kmeans_log_within": {
+                  "scope": "within_cohort_kmeans_log",
+                  "threshold": 249.33221424437733,
+                  "centers": [
+                    39.084071811095725,
+                    1590.5853760701407
+                  ],
+                  "n_high": 36,
+                  "n_low": 32,
+                  "balanced": true,
+                  "survival": {
+                    "n": 68,
+                    "n_high": 36,
+                    "n_low": 32,
+                    "events_high": 34,
+                    "events_low": 30,
+                    "logrank_p": 0.6932046416901809,
+                    "hr_high_vs_low": 1.1038183434285067,
+                    "hr_ci_low": 0.675062664960921,
+                    "hr_ci_high": 1.8048916027074107,
+                    "cox_p": 0.6937965083174078,
+                    "high": {
+                      "median_rfs": 11.506849315068493,
+                      "rfs_rate_12mo": 0.4722222222222223,
+                      "rfs_rate_24mo": 0.24691358024691357
+                    },
+                    "low": {
+                      "median_rfs": 11.67123287671233,
+                      "rfs_rate_12mo": 0.49999999999999994,
+                      "rfs_rate_24mo": 0.3068181818181818
+                    }
+                  }
+                },
+                "youden_frozen": {
+                  "scope": "frozen_resection_youden",
+                  "threshold": 1.010843168432789,
+                  "n_high": 68,
+                  "n_low": 0,
+                  "balanced": false,
+                  "survival": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "agreement": {
+        "soramic": {
+          "n": 100,
+          "overlap": 0.57,
+          "cohen_kappa": 0.14
+        },
+        "lusanne": {
+          "n": 68,
+          "overlap": 0.6323529411764706,
+          "cohen_kappa": 0.2647058823529411
+        }
+      }
+    }
+  }
+}
