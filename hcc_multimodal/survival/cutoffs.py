@@ -11,6 +11,12 @@ cohort. They differ in what information they use:
                                   sensitive to base-rate shift.
   kmeans_within                - KMeans(k=2) on the 1-D test scores. Leakage-free,
                                   data-driven; adapts to the cohort distribution.
+  kmeans_frozen                - KMeans(k=2) fit on the resection out-of-fold scores,
+                                  then the learned boundary is frozen and the test
+                                  cohort is assigned to the nearer centroid. Leakage-
+                                  free; data-driven boundary that transfers from
+                                  resection. ``kmeans_log_frozen`` is the same in log
+                                  space (heavy-tailed Cox partial hazard).
   youden_frozen                - threshold maximizing Youden's J (sens+spec-1) on
                                   resection vs the rfs_2year label, then frozen.
                                   Uses the *training* outcome only, so it is
@@ -86,6 +92,48 @@ def kmeans_log_within(train_scores, train_labels, test_scores):
     }
 
 
+def kmeans_frozen(train_scores, train_labels, test_scores):
+    """KMeans(k=2) fit on resection OOF scores, applied (predict) to the test cohort.
+
+    Leakage-free: the cluster boundary is learned on resection and frozen, then the
+    ablation cohort is assigned to the nearer centroid. Contrast kmeans_within, which
+    fits on the test scores themselves.
+    """
+    km = KMeans(n_clusters=2, n_init=10, random_state=RANDOM_STATE).fit(
+        train_scores.values.reshape(-1, 1)
+    )
+    centers = km.cluster_centers_.ravel()
+    high_cluster = int(np.argmax(centers))
+    labels = km.predict(test_scores.values.reshape(-1, 1))
+    groups = pd.Series(
+        np.where(labels == high_cluster, "high", "low"),
+        index=test_scores.index, name="group",
+    )
+    thr = float(centers.mean())  # boundary between the two 1-D centroids
+    return groups, {"scope": "frozen_resection_kmeans", "threshold": thr,
+                    "centers": sorted(centers.tolist())}
+
+
+def kmeans_log_frozen(train_scores, train_labels, test_scores):
+    """kmeans_frozen in log space (tames heavy-tailed Cox partial hazard)."""
+    xt = np.log(np.clip(train_scores.to_numpy(dtype=float), 1e-12, None)).reshape(-1, 1)
+    km = KMeans(n_clusters=2, n_init=10, random_state=RANDOM_STATE).fit(xt)
+    centers = km.cluster_centers_.ravel()
+    high_cluster = int(np.argmax(centers))
+    xs = np.log(np.clip(test_scores.to_numpy(dtype=float), 1e-12, None)).reshape(-1, 1)
+    labels = km.predict(xs)
+    groups = pd.Series(
+        np.where(labels == high_cluster, "high", "low"),
+        index=test_scores.index, name="group",
+    )
+    thr = float(np.exp(centers.mean()))
+    return groups, {
+        "scope": "frozen_resection_kmeans_log",
+        "threshold": thr,
+        "centers": sorted(float(np.exp(c)) for c in centers),
+    }
+
+
 def youden_frozen(train_scores, train_labels, test_scores):
     mask = train_labels.notna()
     y = train_labels[mask].astype(int).to_numpy()
@@ -103,5 +151,7 @@ CUTOFF_METHODS = {
     "median_frozen": median_frozen,
     "kmeans_within": kmeans_within,
     "kmeans_log_within": kmeans_log_within,
+    "kmeans_frozen": kmeans_frozen,
+    "kmeans_log_frozen": kmeans_log_frozen,
     "youden_frozen": youden_frozen,
 }

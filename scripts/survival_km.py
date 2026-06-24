@@ -25,7 +25,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hcc_multimodal.survival.analysis import analyze_groups, concordance
-from hcc_multimodal.survival.cutoffs import kmeans_within
+from hcc_multimodal.survival.cutoffs import CUTOFF_METHODS
 from hcc_multimodal.survival.data import load_source_aligned
 from hcc_multimodal.survival.plots import _draw_subplot
 from hcc_multimodal.survival.risk_scores import route_a_scores
@@ -41,12 +41,12 @@ def _auroc(scores: pd.Series, rfs_2year: pd.Series) -> float | None:
     return float(roc_auc_score(y, scores.loc[common]))
 
 
-def compute_panel(model_id: str, head: str, cohort: str) -> dict:
+def compute_panel(model_id: str, head: str, cohort: str, cutoff: str = "kmeans_frozen") -> dict:
     train = load_source_aligned(model_id, "resection")
     test = load_source_aligned(model_id, cohort)
 
     oof, test_scores = route_a_scores(head, train, test.X)
-    groups, _ = kmeans_within(oof, train.rfs_2year, test_scores)
+    groups, _ = CUTOFF_METHODS[cutoff](oof, train.rfs_2year, test_scores)
 
     stats = analyze_groups(groups, test.time, test.event)
     cidx = concordance(test_scores, test.time, test.event)
@@ -117,6 +117,8 @@ def parse_args() -> argparse.Namespace:
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--panels", nargs="+", required=True,
                    help="Each panel as 'model_id:head:cohort' (e.g. '9109a6c2:lr:soramic')")
+    p.add_argument("--cutoff", default="kmeans_frozen", choices=list(CUTOFF_METHODS),
+                   help="Cutoff strategy for the high/low split (default: kmeans_frozen)")
     p.add_argument("--output", type=Path, default=Path("reports/0620/km_5_2.png"),
                    help="Output figure path (PNG; SVG auto-generated)")
     return p.parse_args()
@@ -127,8 +129,8 @@ if __name__ == "__main__":
     panels = []
     for spec in args.panels:
         model_id, head, cohort = spec.split(":")
-        print(f"Computing: {model_id} ({head}) on {cohort}...")
-        panels.append(compute_panel(model_id, head, cohort))
+        print(f"Computing: {model_id} ({head}) on {cohort} [{args.cutoff}]...")
+        panels.append(compute_panel(model_id, head, cohort, args.cutoff))
 
     print_stats(panels)
     make_figure(panels, args.output)
