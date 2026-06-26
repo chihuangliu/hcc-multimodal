@@ -30,6 +30,7 @@ from hcc_multimodal.baselines.evaluation import (
     plot_experiment_comparison,
 )
 from hcc_multimodal.baselines.transforms import CLINICAL_X_COLUMNS, DataType, build_preprocessor
+from hcc_multimodal.utils.data import CLINICAL_CSV, RADIOMIC_CLUSTER_CSV
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -88,13 +89,9 @@ def main(args: argparse.Namespace) -> None:
     output_dir = Path(args.output_dir) if args.output_dir else ROOT / "results" / "baseline" / "radiomic_baseline"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    clinical_data = pd.read_csv(
-        ROOT / "data" / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-    ).dropna(how="all")
+    clinical_data = pd.read_csv(CLINICAL_CSV).dropna(how="all")
 
-    radiomics_data = pd.read_csv(
-        ROOT / "data" / "Radiomics" / "radiomic_cluster.csv"
-    ).dropna(how="all")
+    radiomics_data = pd.read_csv(RADIOMIC_CLUSTER_CSV).dropna(how="all")
 
     radiomic_death = radiomics_data[["SID", "death"]].copy()
     radiomic_features = radiomics_data.iloc[:, :447]

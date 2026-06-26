@@ -19,6 +19,7 @@ from hcc_multimodal.baselines.evaluation import (
     DeseqCPMSelector,
     apply_selector_before_cv,
 )
+from hcc_multimodal.utils.data import CLINICAL_CSV, RNA_SEQ_CSV
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -27,13 +28,9 @@ def main(args: argparse.Namespace) -> None:
     output_dir = Path(args.output_dir) if args.output_dir else ROOT / "results" / "baseline" / "rna_rfs"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    clinical_data = pd.read_csv(
-        ROOT / "data" / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-    ).dropna(how="all")
+    clinical_data = pd.read_csv(CLINICAL_CSV).dropna(how="all")
 
-    rna_raw = pd.read_csv(
-        ROOT / "data" / "RNA_seq" / "Matrix_output_radiology_only.csv"
-    ).dropna(how="all")
+    rna_raw = pd.read_csv(RNA_SEQ_CSV).dropna(how="all")
 
     # Transpose to (samples × genes)
     columns = rna_raw["Gene Symbol"]

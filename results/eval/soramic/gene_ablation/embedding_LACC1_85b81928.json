@@ -1,0 +1,64 @@
+{
+  "git_commit": "2e989f232ec5b8b9286a6b61f1a1f25ee6fb9c21",
+  "timestamp": "2026-06-26T04:17:40.590057",
+  "args": {
+    "ablation_set": "soramic",
+    "model_id": "85b81928",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "both",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 6,
+    "output": "results/eval/soramic/gene_ablation/embedding_LACC1_85b81928.json",
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.715099715099715,
+          "auprc": 0.8526783943559013,
+          "sensitivity": 0.8717948717948718,
+          "specificity": 0.2777777777777778,
+          "ppv": 0.723404255319149,
+          "npv": 0.5,
+          "f1": 0.7906976744186046
+        },
+        "rf": {
+          "auroc": 0.628917378917379,
+          "auprc": 0.8132354534356713,
+          "sensitivity": 0.8974358974358975,
+          "specificity": 0.1111111111111111,
+          "ppv": 0.6862745098039216,
+          "npv": 0.3333333333333333,
+          "f1": 0.7777777777777778
+        }
+      }
+    },
+    "per_lesion": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.715099715099715,
+          "auprc": 0.8526783943559013,
+          "sensitivity": 0.8717948717948718,
+          "specificity": 0.2777777777777778,
+          "ppv": 0.723404255319149,
+          "npv": 0.5,
+          "f1": 0.7906976744186046
+        },
+        "rf": {
+          "auroc": 0.628917378917379,
+          "auprc": 0.8132354534356713,
+          "sensitivity": 0.8974358974358975,
+          "specificity": 0.1111111111111111,
+          "ppv": 0.6862745098039216,
+          "npv": 0.3333333333333333,
+          "f1": 0.7777777777777778
+        }
+      }
+    }
+  }
+}

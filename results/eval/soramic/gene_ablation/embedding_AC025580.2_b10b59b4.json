@@ -1,0 +1,64 @@
+{
+  "git_commit": "2e989f232ec5b8b9286a6b61f1a1f25ee6fb9c21",
+  "timestamp": "2026-06-26T04:28:28.410542",
+  "args": {
+    "ablation_set": "soramic",
+    "model_id": "b10b59b4",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "both",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 6,
+    "output": "results/eval/soramic/gene_ablation/embedding_AC025580.2_b10b59b4.json",
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.6438746438746439,
+          "auprc": 0.7668662524262281,
+          "sensitivity": 0.2564102564102564,
+          "specificity": 0.8888888888888888,
+          "ppv": 0.8333333333333334,
+          "npv": 0.35555555555555557,
+          "f1": 0.39215686274509803
+        },
+        "rf": {
+          "auroc": 0.3525641025641026,
+          "auprc": 0.6418601014414819,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.6842105263157895,
+          "npv": NaN,
+          "f1": 0.8125
+        }
+      }
+    },
+    "per_lesion": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.6438746438746439,
+          "auprc": 0.7668662524262281,
+          "sensitivity": 0.2564102564102564,
+          "specificity": 0.8888888888888888,
+          "ppv": 0.8333333333333334,
+          "npv": 0.35555555555555557,
+          "f1": 0.39215686274509803
+        },
+        "rf": {
+          "auroc": 0.3525641025641026,
+          "auprc": 0.6418601014414819,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.6842105263157895,
+          "npv": NaN,
+          "f1": 0.8125
+        }
+      }
+    }
+  }
+}

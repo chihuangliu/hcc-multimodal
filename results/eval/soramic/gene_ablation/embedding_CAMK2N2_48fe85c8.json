@@ -1,0 +1,64 @@
+{
+  "git_commit": "2e989f232ec5b8b9286a6b61f1a1f25ee6fb9c21",
+  "timestamp": "2026-06-26T04:10:28.656306",
+  "args": {
+    "ablation_set": "soramic",
+    "model_id": "48fe85c8",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "both",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 6,
+    "output": "results/eval/soramic/gene_ablation/embedding_CAMK2N2_48fe85c8.json",
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.4757834757834758,
+          "auprc": 0.637513459134843,
+          "sensitivity": 0.9487179487179487,
+          "specificity": 0.0,
+          "ppv": 0.6727272727272727,
+          "npv": 0.0,
+          "f1": 0.7872340425531915
+        },
+        "rf": {
+          "auroc": 0.5933048433048433,
+          "auprc": 0.7284596718664381,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.6842105263157895,
+          "npv": NaN,
+          "f1": 0.8125
+        }
+      }
+    },
+    "per_lesion": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.4757834757834758,
+          "auprc": 0.637513459134843,
+          "sensitivity": 0.9487179487179487,
+          "specificity": 0.0,
+          "ppv": 0.6727272727272727,
+          "npv": 0.0,
+          "f1": 0.7872340425531915
+        },
+        "rf": {
+          "auroc": 0.5933048433048433,
+          "auprc": 0.7284596718664381,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.6842105263157895,
+          "npv": NaN,
+          "f1": 0.8125
+        }
+      }
+    }
+  }
+}

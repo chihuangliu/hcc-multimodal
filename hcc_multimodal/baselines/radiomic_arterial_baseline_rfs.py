@@ -19,6 +19,7 @@ from hcc_multimodal.baselines.evaluation import (
     plot_cv_results,
     apply_selector_before_cv,
 )
+from hcc_multimodal.utils.data import CLINICAL_CSV, load_resection_arterial_radiomics
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -27,12 +28,8 @@ def main(args: argparse.Namespace) -> None:
     output_dir = Path(args.output_dir) if args.output_dir else ROOT / "results" / "baseline" / "radiomic_arterial_rfs"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    clinical_data = pd.read_csv(
-        ROOT / "data" / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-    ).dropna(how="all")
-    arterial_data = pd.read_csv(
-        ROOT / "data" / "Radiomics" / "arterial_radiomics.csv"
-    ).dropna(how="all")
+    clinical_data = pd.read_csv(CLINICAL_CSV).dropna(how="all")
+    arterial_data = load_resection_arterial_radiomics().dropna(how="all")
 
     arterial_data["SID"] = (
         arterial_data["Scan name"].str.replace(r"\.nii\.gz$", "", regex=True).astype(int)

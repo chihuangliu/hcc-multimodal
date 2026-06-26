@@ -1,0 +1,64 @@
+{
+  "git_commit": "2e989f232ec5b8b9286a6b61f1a1f25ee6fb9c21",
+  "timestamp": "2026-06-26T04:03:23.203123",
+  "args": {
+    "ablation_set": "soramic",
+    "model_id": "2ad23ab1",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "both",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 6,
+    "output": "results/eval/soramic/gene_ablation/embedding_OR52N5_2ad23ab1.json",
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.5370370370370371,
+          "auprc": 0.7409600764509773,
+          "sensitivity": 0.2564102564102564,
+          "specificity": 0.7222222222222222,
+          "ppv": 0.6666666666666666,
+          "npv": 0.30952380952380953,
+          "f1": 0.37037037037037035
+        },
+        "rf": {
+          "auroc": 0.44943019943019946,
+          "auprc": 0.6798761206990047,
+          "sensitivity": 0.4358974358974359,
+          "specificity": 0.4444444444444444,
+          "ppv": 0.6296296296296297,
+          "npv": 0.26666666666666666,
+          "f1": 0.5151515151515151
+        }
+      }
+    },
+    "per_lesion": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.5370370370370371,
+          "auprc": 0.7409600764509773,
+          "sensitivity": 0.2564102564102564,
+          "specificity": 0.7222222222222222,
+          "ppv": 0.6666666666666666,
+          "npv": 0.30952380952380953,
+          "f1": 0.37037037037037035
+        },
+        "rf": {
+          "auroc": 0.44943019943019946,
+          "auprc": 0.6798761206990047,
+          "sensitivity": 0.4358974358974359,
+          "specificity": 0.4444444444444444,
+          "ppv": 0.6296296296296297,
+          "npv": 0.26666666666666666,
+          "f1": 0.5151515151515151
+        }
+      }
+    }
+  }
+}

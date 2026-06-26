@@ -59,9 +59,7 @@ from hcc_multimodal.contrastive.encoders import (
     GeneEncoder,
     ImageEncoder,
 )
-
-_DATA_ROOT = Path(hcc_multimodal.__file__).parent.parent / "data"
-_RADIOMICS_PATH = _DATA_ROOT / "Radiomics" / "arterial_radiomics.csv"
+from hcc_multimodal.utils.data import load_resection_arterial_radiomics
 # "N voxels" is a radiomics feature, not metadata — kept intentionally
 _RADIOMICS_META = {"Scan name", "VOI name", "Scan path", "VOI path"}
 
@@ -179,7 +177,7 @@ def load_radiomics(patient_ids: set[int]) -> pd.DataFrame:
     Used when concatenating with contrastive embeddings: returns only the
     patients that are also in patient_ids (i.e. have embeddings).
     """
-    df = pd.read_csv(_RADIOMICS_PATH)
+    df = load_resection_arterial_radiomics()
     df["patient_id"] = (
         df["Scan name"].str.replace(r"\.nii\.gz$", "", regex=True).astype(int)
     )
@@ -199,7 +197,7 @@ def load_radiomics_baseline(outcome: str) -> tuple[pd.DataFrame, pd.Series, dict
     Returns (X, y, x_columns) where X is indexed by SID.
     """
     clinical = add_rfs_columns(pd.read_csv(_CLINICAL_PATH).dropna(how="all"))
-    arterial = pd.read_csv(_RADIOMICS_PATH).dropna(how="all")
+    arterial = load_resection_arterial_radiomics().dropna(how="all")
     arterial["SID"] = (
         arterial["Scan name"].str.replace(r"\.nii\.gz$", "", regex=True).astype(int)
     )

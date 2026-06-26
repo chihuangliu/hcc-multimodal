@@ -14,6 +14,7 @@ from sklearn.pipeline import Pipeline
 from hcc_multimodal.baselines.config import PARAM_GRIDS, RANDOM_STATE
 from hcc_multimodal.baselines.evaluation import run_cv_experiment, plot_cv_results
 from hcc_multimodal.baselines.transforms import CLINICAL_X_COLUMNS, DataType, build_preprocessor
+from hcc_multimodal.utils.data import CLINICAL_CSV
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -22,9 +23,7 @@ def main(args: argparse.Namespace) -> None:
     output_dir = Path(args.output_dir) if args.output_dir else ROOT / "results" / "baseline" / "pure_clinical"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    data = pd.read_csv(
-        ROOT / "data" / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-    ).dropna(how="all")
+    data = pd.read_csv(CLINICAL_CSV).dropna(how="all")
 
     x_columns = CLINICAL_X_COLUMNS
     preprocessor = build_preprocessor(x_columns)

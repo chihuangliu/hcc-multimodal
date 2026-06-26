@@ -21,6 +21,11 @@ from hcc_multimodal.baselines.evaluation import (
     DeseqCPMSelector,
     apply_selector_before_cv,
 )
+from hcc_multimodal.utils.data import (
+    CLINICAL_CSV,
+    RNA_SEQ_CSV,
+    load_resection_arterial_radiomics,
+)
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -38,18 +43,16 @@ def main(args: argparse.Namespace) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load data
-    clinical_data = pd.read_csv(
-        ROOT / "data" / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-    ).dropna(how="all")
+    clinical_data = pd.read_csv(CLINICAL_CSV).dropna(how="all")
     clinical_data = add_rfs_columns(clinical_data)
 
-    arterial_data = pd.read_csv(ROOT / "data" / "Radiomics" / "arterial_radiomics.csv").dropna(how="all")
+    arterial_data = load_resection_arterial_radiomics().dropna(how="all")
     arterial_data["SID"] = (
         arterial_data["Scan name"].str.replace(r"\.nii\.gz$", "", regex=True).astype(int)
     )
     arterial_data = arterial_data.drop(columns=["Scan name", "VOI name", "Scan path", "VOI path"])
 
-    rna_raw = pd.read_csv(ROOT / "data" / "RNA_seq" / "Matrix_output_radiology_only.csv").dropna(how="all")
+    rna_raw = pd.read_csv(RNA_SEQ_CSV).dropna(how="all")
     gene_symbols = rna_raw["Gene Symbol"]
     rna_raw = rna_raw.T.iloc[2:, :]
     rna_raw.columns = gene_symbols.values

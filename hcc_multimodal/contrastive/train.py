@@ -70,6 +70,17 @@ def train(args: argparse.Namespace) -> None:
         ]
     )
 
+    genes = set(_GENE_SETS[args.gene_set])
+    if args.drop_genes:
+        missing = set(args.drop_genes) - genes
+        if missing:
+            raise ValueError(
+                f"--drop-genes contains genes not in gene set '{args.gene_set}': {sorted(missing)}"
+            )
+        genes = genes - set(args.drop_genes)
+        print(f"Dropped {len(args.drop_genes)} gene(s): {sorted(args.drop_genes)} "
+              f"({len(genes)} remaining)")
+
     dataset = build_dataset(
         n_per_axis=args.n_per_axis,
         axes=args.axes or None,
@@ -77,7 +88,7 @@ def train(args: argparse.Namespace) -> None:
         img_size=args.img_size,
         transform=augment,
         mri_type=args.mri_type,
-        genes=_GENE_SETS[args.gene_set],
+        genes=genes,
         bbox_pad=args.bbox_pad,
     )
 
@@ -233,6 +244,14 @@ def _parse_args() -> argparse.Namespace:
         default="all",
         choices=list(_GENE_SETS),
         help="Gene set to use. 'all'=full RNA-seq; 'predefined_2y_cv'=PREDEFINED_HCC_2Y_CV_GENES; '2y_before_cv'=RNA_2Y_BEFORE_CV_GENES.",
+    )
+    p.add_argument(
+        "--drop-genes",
+        nargs="+",
+        default=[],
+        metavar="GENE",
+        help="Gene symbol(s) to drop from the selected gene set (ablation). "
+        "Each must be present in the gene set.",
     )
     p.add_argument(
         "--n_per_axis",

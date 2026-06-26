@@ -1,3 +1,25 @@
+from pathlib import Path
+
+import pandas as pd
+
+# ---------------------------------------------------------------------------
+# Data paths
+# ---------------------------------------------------------------------------
+# Repository data root: …/hcc-multimodal/data
+DATA_ROOT = Path(__file__).resolve().parents[2] / "data"
+RESECTION_ROOT = DATA_ROOT / "Resection"
+
+# Resection cohort inputs (canonical locations under data/Resection/)
+CLINICAL_CSV = RESECTION_ROOT / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
+RNA_SEQ_DIR = RESECTION_ROOT / "RNA_seq"
+RNA_SEQ_CSV = RNA_SEQ_DIR / "Matrix_output_radiology_only.csv"
+GENE_SETS_DIR = RNA_SEQ_DIR / "gene_sets_combined"
+RADIOMIC_CLUSTER_CSV = RESECTION_ROOT / "Images" / "Radiomics" / "radiomic_cluster.csv"
+# Per-lesion arterial radiomic TSVs: arterial/{SID}/{SID}.nii-results.tsv
+# (same layout as the ablation cohorts — read via load_resection_arterial_radiomics).
+MRI_ARTERIAL_ROOT = RESECTION_ROOT / "Images" / "Radiomics" / "arterial"
+
+
 # Radiomic features used during training (from radiomic_cluster.csv, _art phase only).
 # In the ablation TSV files the phase suffix is absent, so these names map directly
 # to TSV column headers.
@@ -152,3 +174,23 @@ RADIOMICS_FEATURES = [
     "GrayLevelDependenceVariance3D",
     "DependenceCountEnergy3D",
 ]
+
+
+def load_resection_arterial_radiomics(root: Path = MRI_ARTERIAL_ROOT) -> pd.DataFrame:
+    """Read per-lesion arterial radiomic TSVs into one wide DataFrame.
+
+    Mirrors the ablation cohorts' layout: each subdirectory ``{name}/`` under
+    ``root`` holds a single-row export ``{name}.nii-results.tsv``. For the
+    resection cohort ``name`` is the patient ``SID``; ``Scan name`` inside each
+    TSV is ``{SID}.nii.gz``. Rows are concatenated to reproduce the (now-absent)
+    ``arterial_radiomics.csv`` — metadata columns (``Scan name``/``VOI name``/…)
+    included — so callers derive ``SID`` and select features exactly as before.
+    """
+    frames = [
+        pd.read_csv(tsv, sep="\t", nrows=1)
+        for lesion_dir in sorted(p for p in root.iterdir() if p.is_dir())
+        if (tsv := lesion_dir / f"{lesion_dir.name}.nii-results.tsv").exists()
+    ]
+    if not frames:
+        raise FileNotFoundError(f"No '*.nii-results.tsv' found under {root}")
+    return pd.concat(frames, ignore_index=True)

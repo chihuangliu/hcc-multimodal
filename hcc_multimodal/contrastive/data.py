@@ -17,11 +17,12 @@ from hcc_multimodal.baselines.data import add_rfs_columns
 from hcc_multimodal.baselines.transforms import CPMTransformer
 from hcc_multimodal.contrastive.config import GENE_SET
 from hcc_multimodal.contrastive.transform import resample_to_spacing, resampled_shape
+from hcc_multimodal.utils.data import CLINICAL_CSV, MRI_ARTERIAL_ROOT, RNA_SEQ_CSV
 
 _DATA_ROOT = Path(files(hcc_multimodal).joinpath("")).parent / "data"
-_RNA_SEQ_PATH = _DATA_ROOT / "RNA_seq" / "Matrix_output_radiology_only.csv"
-_CLINICAL_PATH = _DATA_ROOT / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-_MRI_ROOT_PREPROCESSED = _DATA_ROOT / "Resection" / "Images" / "Radiomics" / "arterial"
+_RNA_SEQ_PATH = RNA_SEQ_CSV
+_CLINICAL_PATH = CLINICAL_CSV
+_MRI_ROOT_PREPROCESSED = MRI_ARTERIAL_ROOT
 _MRI_ROOT_RAW = _DATA_ROOT / "Resection" / "Images" / "Resections_with_rna"
 _MRI_ROOT_RAW_CACHE = _DATA_ROOT / "mri_resampled"
 

@@ -38,15 +38,12 @@ CV_N_FOLDS = 3
 # ---------------------------------------------------------------------------
 from hcc_multimodal.baselines.data import add_rfs_columns, get_hcc_genes
 from hcc_multimodal.baselines.venn_utils import draw_venn2, draw_venn3, save_venn_figure
+from hcc_multimodal.utils.data import CLINICAL_CSV, RNA_SEQ_CSV
 
-clinical_data = pd.read_csv(
-    ROOT / "data" / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-).dropna(how="all")
+clinical_data = pd.read_csv(CLINICAL_CSV).dropna(how="all")
 clinical_data = add_rfs_columns(clinical_data)
 
-rna_data = pd.read_csv(
-    ROOT / "data" / "RNA_seq" / "Matrix_output_radiology_only.csv"
-).dropna(how="all")
+rna_data = pd.read_csv(RNA_SEQ_CSV).dropna(how="all")
 columns = rna_data["Gene Symbol"]
 rna_data = rna_data.T.iloc[2:, :]
 rna_data.columns = columns.values

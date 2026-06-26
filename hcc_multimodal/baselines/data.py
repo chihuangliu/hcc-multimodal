@@ -1,14 +1,10 @@
 """Clinical data helpers for HCC multimodal baselines."""
 
 import warnings
-from importlib.resources import files
-from pathlib import Path
 
 import pandas as pd
 
-import hcc_multimodal
-
-_RNA_SEQ_DIR = Path(files(hcc_multimodal).joinpath("")).parent / "data" / "RNA_seq"
+from hcc_multimodal.utils.data import GENE_SETS_DIR, RNA_SEQ_CSV
 
 
 _GENE_NAME_MAP: dict[str, str] = {
@@ -51,18 +47,15 @@ def get_hcc_genes() -> list[str]:
     Genes present in gene_sets_combined but absent from Matrix_output_radiology_only.csv
     are reported via a warning and excluded from the returned list.
     """
-    gene_sets_dir = _RNA_SEQ_DIR / "gene_sets_combined"
     all_genes: set[str] = set()
-    for path in gene_sets_dir.glob("*.txt"):
+    for path in GENE_SETS_DIR.glob("*.txt"):
         df = pd.read_csv(path, sep="\t")
         all_genes.update(df["GeneName"].tolist())
 
     all_genes = {_GENE_NAME_MAP.get(g, g) for g in all_genes}
 
     matrix_genes: set[str] = set(
-        pd.read_csv(
-            _RNA_SEQ_DIR / "Matrix_output_radiology_only.csv", usecols=["Gene Symbol"]
-        )["Gene Symbol"]
+        pd.read_csv(RNA_SEQ_CSV, usecols=["Gene Symbol"])["Gene Symbol"]
     )
 
     unmatched = all_genes - matrix_genes

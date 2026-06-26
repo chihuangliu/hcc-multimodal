@@ -30,6 +30,7 @@ from hcc_multimodal.baselines.evaluation import (
     plot_experiment_comparison,
 )
 from hcc_multimodal.baselines.transforms import CLINICAL_X_COLUMNS, DataType, build_preprocessor
+from hcc_multimodal.utils.data import CLINICAL_CSV, RADIOMIC_CLUSTER_CSV, RNA_SEQ_CSV
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -84,9 +85,9 @@ def _run_pipeline_experiment(
     return pd.DataFrame(records), pd.DataFrame(fold_records)
 
 
-def _load_rna_raw(root: Path) -> pd.DataFrame:
+def _load_rna_raw() -> pd.DataFrame:
     """Load and transpose RNA-seq count matrix to (samples × genes)."""
-    rna_raw = pd.read_csv(root / "data" / "RNA_seq" / "Matrix_output_radiology_only.csv").dropna(how="all")
+    rna_raw = pd.read_csv(RNA_SEQ_CSV).dropna(how="all")
     columns = rna_raw["Gene Symbol"]
     rna = rna_raw.T.iloc[2:, :]
     rna.columns = columns.values
@@ -103,14 +104,12 @@ def main(args: argparse.Namespace) -> None:
     output_dir = Path(args.output_dir) if args.output_dir else ROOT / "results" / "baseline" / "rna_baseline"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    clinical_data = pd.read_csv(
-        ROOT / "data" / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-    ).dropna(how="all")
-    radiomics_data = pd.read_csv(ROOT / "data" / "Radiomics" / "radiomic_cluster.csv").dropna(how="all")
+    clinical_data = pd.read_csv(CLINICAL_CSV).dropna(how="all")
+    radiomics_data = pd.read_csv(RADIOMIC_CLUSTER_CSV).dropna(how="all")
     radiomic_death = radiomics_data[["SID", "death"]].copy()
 
     # ── Load raw RNA-seq data ─────────────────────────────────────────────────
-    rna_data = _load_rna_raw(ROOT)
+    rna_data = _load_rna_raw()
     rna_cols = [c for c in rna_data.columns if c != "SID"]
     rna_x_columns = {col: DataType.CONTINUOUS for col in rna_cols}
     rna_clin_x_columns = {**CLINICAL_X_COLUMNS, **rna_x_columns}
@@ -216,7 +215,7 @@ def main(args: argparse.Namespace) -> None:
     LR_C_SMALL = args.lr_c_small
 
     # Filter low-expression genes and normalise
-    rna_raw_for_norm = _load_rna_raw(ROOT)
+    rna_raw_for_norm = _load_rna_raw()
     count_matrix = rna_raw_for_norm.set_index("SID")
     count_matrix = count_matrix.apply(pd.to_numeric, errors="coerce")
     min_samples = int(args.min_frac * count_matrix.shape[0])

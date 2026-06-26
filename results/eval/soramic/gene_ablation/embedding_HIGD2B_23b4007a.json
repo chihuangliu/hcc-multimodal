@@ -1,0 +1,64 @@
+{
+  "git_commit": "2e989f232ec5b8b9286a6b61f1a1f25ee6fb9c21",
+  "timestamp": "2026-06-26T03:52:36.537070",
+  "args": {
+    "ablation_set": "soramic",
+    "model_id": "23b4007a",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "both",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 6,
+    "output": "results/eval/soramic/gene_ablation/embedding_HIGD2B_23b4007a.json",
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.5455840455840455,
+          "auprc": 0.6726330930185107,
+          "sensitivity": 0.0,
+          "specificity": 0.8888888888888888,
+          "ppv": 0.0,
+          "npv": 0.2909090909090909,
+          "f1": 0.0
+        },
+        "rf": {
+          "auroc": 0.5135327635327636,
+          "auprc": 0.6831512539867093,
+          "sensitivity": 0.7435897435897436,
+          "specificity": 0.3333333333333333,
+          "ppv": 0.7073170731707317,
+          "npv": 0.375,
+          "f1": 0.725
+        }
+      }
+    },
+    "per_lesion": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.5455840455840455,
+          "auprc": 0.6726330930185107,
+          "sensitivity": 0.0,
+          "specificity": 0.8888888888888888,
+          "ppv": 0.0,
+          "npv": 0.2909090909090909,
+          "f1": 0.0
+        },
+        "rf": {
+          "auroc": 0.5135327635327636,
+          "auprc": 0.6831512539867093,
+          "sensitivity": 0.7435897435897436,
+          "specificity": 0.3333333333333333,
+          "ppv": 0.7073170731707317,
+          "npv": 0.375,
+          "f1": 0.725
+        }
+      }
+    }
+  }
+}

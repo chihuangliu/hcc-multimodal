@@ -16,7 +16,12 @@ from hcc_multimodal.baselines.data import add_rfs_columns
 from hcc_multimodal.eval.eval_utils import PROJECT_ROOT
 from hcc_multimodal.contrastive.encoders import ImageEncoder
 from hcc_multimodal.contrastive.transform import resample_to_spacing
-from hcc_multimodal.utils.data import RADIOMICS_FEATURES
+from hcc_multimodal.utils.data import (
+    CLINICAL_CSV,
+    MRI_ARTERIAL_ROOT,
+    RADIOMICS_FEATURES,
+    RADIOMIC_CLUSTER_CSV,
+)
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -28,15 +33,9 @@ _ABL_ROOT = DATA_ROOT / "Ablation"
 _SORAMIC_ROOT = _ABL_ROOT / "soramic"
 _LUSANNE_ROOT = _ABL_ROOT / "lusanne"
 
-RESECTION_CLINICAL_CSV = (
-    DATA_ROOT
-    / "Clinical"
-    / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-)
-RESECTION_RADIOMIC_CSV = (
-    DATA_ROOT / "Resection" / "Images" / "Radiomics" / "radiomic_cluster.csv"
-)
-RESECTION_MRI_ROOT = DATA_ROOT / "Resection" / "Images" / "Radiomics" / "arterial"
+RESECTION_CLINICAL_CSV = CLINICAL_CSV
+RESECTION_RADIOMIC_CSV = RADIOMIC_CLUSTER_CSV
+RESECTION_MRI_ROOT = MRI_ARTERIAL_ROOT
 
 CONTRASTIVE_METADATA_FILENAME = "metadata.json"
 CONTRASTIVE_CHECKPOINT_FILENAME = "best_model.pt"

@@ -32,13 +32,13 @@ from hcc_multimodal.train.config import (
     LR_C, LR_L1_RATIO, LR_MAX_ITER, LR_SOLVER,
     RANDOM_STATE, RF_MAX_DEPTH, RF_MIN_SAMPLES_LEAF, RF_N_ESTIMATORS, SELECT_K,
 )
-from hcc_multimodal.utils.data import RADIOMICS_FEATURES
+from hcc_multimodal.utils.data import (
+    CLINICAL_CSV,
+    RADIOMICS_FEATURES,
+    RADIOMIC_CLUSTER_CSV as RADIOMIC_CSV,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_ROOT = PROJECT_ROOT / "data"
-
-CLINICAL_CSV = DATA_ROOT / "Clinical" / "2025_Nov_18_ICL_Resection_Clinical_Outcome_soramic_format.csv"
-RADIOMIC_CSV = DATA_ROOT / "Resection" / "Images" / "Radiomics" / "radiomic_cluster.csv"
 
 MODELS = {
     "lr": LogisticRegression(solver=LR_SOLVER, C=LR_C, l1_ratio=LR_L1_RATIO, max_iter=LR_MAX_ITER, random_state=RANDOM_STATE),
