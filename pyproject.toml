@@ -34,3 +34,6 @@ eval = [
 survival = [
     "lifelines>=0.30.0",
 ]
+interpretability = [
+    "scipy>=1.13",
+]

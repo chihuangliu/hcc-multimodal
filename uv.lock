@@ -588,6 +588,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+attribution = [
+    { name = "scipy" },
+]
 dev = [
     { name = "ipykernel" },
 ]
@@ -613,6 +616,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+attribution = [{ name = "scipy", specifier = ">=1.13" }]
 dev = [{ name = "ipykernel", specifier = ">=7.2.0" }]
 eval = [{ name = "openpyxl", specifier = ">=3.1.5" }]
 survival = [{ name = "lifelines", specifier = ">=0.30.0" }]

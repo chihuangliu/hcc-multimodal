@@ -34,7 +34,11 @@ class MRIType(StrEnum):
 
 def _load_gene_matrix(genes: set[str]) -> pd.DataFrame:
     df = pd.read_csv(_RNA_SEQ_PATH, index_col="Gene Symbol").drop(columns=["ENSEMBL Gene ID"])
-    available = [g for g in genes if g in df.index]
+    # Sort gene names for a deterministic column order. `genes` is a set, so
+    # iterating it directly gives a process-dependent order (string hash
+    # randomisation), which makes a trained GeneEncoder's input-slot -> gene
+    # mapping unrecoverable. Sorting pins the order across processes.
+    available = sorted(g for g in genes if g in df.index)
     df = df.loc[available].T                    # (patients, genes)
     df.index = df.index.astype(int)
     values = CPMTransformer().fit_transform(df.values)
