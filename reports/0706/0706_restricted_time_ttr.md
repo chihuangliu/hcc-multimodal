@@ -45,7 +45,7 @@ long tail keeps its horizons distinct.
 
 ## 4. Boruta head (LASSO / Boruta + median)
 
-### 4.1 Soramic — 69 hi / 31 lo
+### 4.1 Soramic — 23 hi / 8 lo
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
 |---:|---:|---|---:|---:|:--:|---:|---:|---:|
@@ -57,7 +57,7 @@ long tail keeps its horizons distinct.
 τ=24 is the lowest-p horizon (0.089) — same 2-year localization as RFS, just under the line
 because TTR halves the events. HR and ΔRMST track the RFS values.
 
-### 4.2 Lausanne — 37 hi / 31 lo
+### 4.2 Lausanne — 31 hi / 24 lo
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
 |---:|---:|---|---:|---:|:--:|---:|---:|---:|
@@ -76,7 +76,7 @@ No separation; ΔRMST sign flips across τ (noise).
 
 Lopsided splits (Soramic 87/13, Lausanne 56/12) → read log-rank/point tests, not HR CIs.
 
-### 5.1 Soramic — 87 hi / 13 lo
+### 5.1 Soramic — 28 hi / 3 lo
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
 |---:|---:|---|---:|---:|:--:|---:|---:|---:|
@@ -88,7 +88,7 @@ Lopsided splits (Soramic 87/13, Lausanne 56/12) → read log-rank/point tests, n
 Log-rank never crosses 0.05 (2 low-arm events), but the **τ=24 point-p 0.013** confirms the 2-year
 separation through the readout robust to the tiny low arm.
 
-### 5.2 Lausanne — 56 hi / 12 lo
+### 5.2 Lausanne — 48 hi / 7 lo
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
 |---:|---:|---|---:|---:|:--:|---:|---:|---:|

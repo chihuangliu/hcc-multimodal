@@ -50,7 +50,7 @@ horizons stay distinct.
 
 Top-5 Soramic-AUROC heads; balanced, correct-direction, lowest full-follow-up log-rank p.
 
-### 5.1 Soramic — 69 hi / 31 lo
+### 5.1 Soramic — 38 hi / 12 lo
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
 |---:|---:|---|---:|---:|:--:|---:|---:|---:|
@@ -65,7 +65,7 @@ The point-in-time test at τ=24 (0.043) independently corroborates. τ=12 barely
 ![Restricted-time KM — Soramic](km_restricted_soramic.png)
 *LASSO/Boruta + median, RFS, Soramic. Arms fan apart between the 12- and 24-mo marks. SVG: `km_restricted_soramic.svg`.*
 
-### 5.2 Lausanne — 37 hi / 31 lo
+### 5.2 Lausanne — 35 hi / 29 lo
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
 |---:|---:|---|---:|---:|:--:|---:|---:|---:|
@@ -86,7 +86,7 @@ not transfer.
 Top-1 by Soramic transfer AUROC (0.736). Frozen cutoff gives **lopsided** splits (Soramic 87/13,
 Lausanne 56/12) → read log-rank / point tests, not the wide HR CIs.
 
-### 7.1 Soramic — 87 hi / 13 lo
+### 7.1 Soramic — 45 hi / 5 lo
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
 |---:|---:|---|---:|---:|:--:|---:|---:|---:|
@@ -99,7 +99,7 @@ Same 2-year story as Boruta, crisper: null at full (0.096), significant at τ=24
 **point-p 0.009 is the strongest 2-year separation of any head**. The τ=24 HR 3.99 is inflated by
 only 2 low-arm events — trust the log-rank/point tests.
 
-### 7.2 Lausanne — 56 hi / 12 lo
+### 7.2 Lausanne — 53 hi / 11 lo
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
 |---:|---:|---|---:|---:|:--:|---:|---:|---:|
