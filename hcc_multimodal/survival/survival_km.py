@@ -4,7 +4,7 @@ Uses 2-Year RFS classifier risk score with kmeans cutoff. Outputs PNG + SVG
 figures and prints a statistics summary.
 
 Example:
-    python scripts/survival_km.py \
+    python -m hcc_multimodal.survival.survival_km \
         --panels "9109a6c2:lr:soramic" "06c598c0:lr:soramic" "1361bef2:rf:lusanne" \
         --output reports/0620/km_5_2.png
 """
@@ -22,7 +22,7 @@ matplotlib.rcParams["svg.fonttype"] = "none"
 import matplotlib.pyplot as plt
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from hcc_multimodal.survival.analysis import analyze_groups, concordance
 from hcc_multimodal.survival.cutoffs import CUTOFF_METHODS

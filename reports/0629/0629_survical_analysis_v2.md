@@ -203,7 +203,7 @@ p = 0.016). Editable SVG: `km_kmeans_log.svg`.*
 | KM figure — §5.2.1 (median) | `reports/0629/km_median.{png,svg}` |
 | KM figure — §5.2.2 (kmeans) | `reports/0629/km_5_2.{png,svg}` |
 | KM figure — §5.2.3 (kmeans on log) | `reports/0629/km_kmeans_log.{png,svg}` |
-| Stratification script | `scripts/survival_stratify.py` |
-| KM figure script | `scripts/survival_km.py` |
+| Stratification script | `hcc_multimodal/survival/survival_stratify.py` |
+| KM figure script | `hcc_multimodal/survival/survival_km.py` |
 | Cutoff strategies (incl. `kmeans_frozen`, `kmeans_log_frozen`) | `hcc_multimodal/survival/cutoffs.py` |
 | Pipeline code | `hcc_multimodal/survival/` |

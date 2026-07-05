@@ -46,19 +46,28 @@ def _read_clinical(cohort: str) -> pd.DataFrame:
     return cfg.read_clinical(cfg.clinical_path).dropna(how="all")
 
 
-def load_survival_outcomes(cohort: str, tolerance_months: int = 0) -> pd.DataFrame:
+def load_survival_outcomes(
+    cohort: str,
+    tolerance_months: int = 0,
+    time_col: str = TIME_COL,
+    event_col: str = EVENT_COL,
+) -> pd.DataFrame:
     """Return per-patient survival outcomes indexed by integer SID.
 
-    Columns: ``time`` (months, =RFS_central), ``event`` (1=recurrence, 0=censored),
-    ``rfs_2year`` (binary label used to stratify Route-A cross-validation).
-    Rows with missing time or event are dropped.
+    Columns: ``time`` (months, =``time_col``), ``event`` (1=event, 0=censored),
+    ``rfs_2year`` (binary 2-year RFS label used to stratify Route-A cross-validation
+    and to freeze cutoffs; always derived from RFS_central regardless of the
+    time-to-event endpoint). Rows with missing time or event are dropped.
+
+    The default endpoint is recurrence-free survival (``RFS_central``); pass
+    ``time_col="TTR_central"`` / ``event_col="TTR_central_event"`` for time-to-recurrence.
     """
     clinical = _read_clinical(cohort)
     clinical = add_rfs_columns(clinical, tolerance_months=tolerance_months)
     clinical = clinical.copy()
     clinical["SID"] = clinical["SID"].astype(int)
-    out = clinical.set_index("SID")[[TIME_COL, EVENT_COL, "rfs_2year"]].rename(
-        columns={TIME_COL: "time", EVENT_COL: "event"}
+    out = clinical.set_index("SID")[[time_col, event_col, "rfs_2year"]].rename(
+        columns={time_col: "time", event_col: "event"}
     )
     out = out.dropna(subset=["time", "event"])
     out["event"] = out["event"].astype(int)
@@ -98,25 +107,49 @@ class CohortData:
     rfs_2year: pd.Series  # may contain NaN where 2yr label undefined
 
 
-def _align(X: pd.DataFrame, cohort: str, tolerance_months: int) -> CohortData:
-    surv = load_survival_outcomes(cohort, tolerance_months=tolerance_months)
+def _align(
+    X: pd.DataFrame,
+    cohort: str,
+    tolerance_months: int,
+    time_col: str = TIME_COL,
+    event_col: str = EVENT_COL,
+) -> CohortData:
+    surv = load_survival_outcomes(
+        cohort, tolerance_months=tolerance_months, time_col=time_col, event_col=event_col
+    )
     common = X.index.intersection(surv.index).sort_values()
     X, surv = X.loc[common], surv.loc[common]
     return CohortData(cohort, X, surv["time"], surv["event"], surv["rfs_2year"])
 
 
-def load_aligned(model_id: str, cohort: str, tolerance_months: int = 0) -> CohortData:
+def load_aligned(
+    model_id: str,
+    cohort: str,
+    tolerance_months: int = 0,
+    time_col: str = TIME_COL,
+    event_col: str = EVENT_COL,
+) -> CohortData:
     """Intersect embeddings and outcomes on SID and return aligned arrays."""
-    return _align(load_embeddings(model_id, cohort), cohort, tolerance_months)
+    return _align(
+        load_embeddings(model_id, cohort), cohort, tolerance_months, time_col, event_col
+    )
 
 
-def load_source_aligned(source: str, cohort: str, tolerance_months: int = 0) -> CohortData:
+def load_source_aligned(
+    source: str,
+    cohort: str,
+    tolerance_months: int = 0,
+    time_col: str = TIME_COL,
+    event_col: str = EVENT_COL,
+) -> CohortData:
     """Aligned features for any risk-score source.
 
     ``source`` is ``"radiomic"`` or a contrastive model_id.
     """
     if source == "radiomic":
-        surv = load_survival_outcomes(cohort, tolerance_months=tolerance_months)
+        surv = load_survival_outcomes(
+            cohort, tolerance_months=tolerance_months, time_col=time_col, event_col=event_col
+        )
         X = load_radiomic_features(cohort, surv.index)
-        return _align(X, cohort, tolerance_months)
-    return load_aligned(source, cohort, tolerance_months)
+        return _align(X, cohort, tolerance_months, time_col, event_col)
+    return load_aligned(source, cohort, tolerance_months, time_col, event_col)

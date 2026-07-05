@@ -214,6 +214,6 @@ reaches significance (log-rank p < 0.001). Editable SVG: `km_5_2.svg`.*
 | Stratification results CSV | `results/eval/survival/stratify_top5.csv` |
 | Screen table (all models) | `results/eval/survival/screen.csv` |
 | KM figure — §5.2 | `reports/0620/km_5_2.{png,svg}` |
-| Stratification script | `scripts/survival_stratify.py` |
-| KM figure script | `scripts/survival_km.py` |
+| Stratification script | `hcc_multimodal/survival/survival_stratify.py` |
+| KM figure script | `hcc_multimodal/survival/survival_km.py` |
 | Pipeline code | `hcc_multimodal/survival/` |

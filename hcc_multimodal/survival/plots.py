@@ -34,7 +34,7 @@ def _annotation(stats: dict) -> str:
     return "\n".join(lines)
 
 
-def _draw_subplot(ax, time: pd.Series, event: pd.Series, groups: pd.Series, stats: dict, title: str, *, ci_show: bool = False):
+def _draw_subplot(ax, time: pd.Series, event: pd.Series, groups: pd.Series, stats: dict, title: str, *, ci_show: bool = False, ylabel: str = "Recurrence-free survival"):
     for grp in ("low", "high"):
         mask = groups == grp
         if mask.sum() == 0:
@@ -44,7 +44,7 @@ def _draw_subplot(ax, time: pd.Series, event: pd.Series, groups: pd.Series, stat
         kmf.plot_survival_function(ax=ax, color=_COLORS[grp], ci_show=ci_show, ci_alpha=0.15)
     ax.set_title(title, fontsize=11)
     ax.set_xlabel("Months")
-    ax.set_ylabel("Recurrence-free survival")
+    ax.set_ylabel(ylabel)
     ax.set_ylim(-0.02, 1.02)
     ax.text(
         0.98, 0.97, _annotation(stats), transform=ax.transAxes,

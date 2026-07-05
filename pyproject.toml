@@ -37,3 +37,7 @@ survival = [
 interpretability = [
     "scipy>=1.13",
 ]
+features = [
+    "xgboost>=2.0",
+    "Boruta>=0.3",
+]

@@ -4,7 +4,7 @@ Outputs a CSV with per-model, per-cohort, per-risk-score, per-cutoff survival
 statistics (n_high/low, median RFS, HR, log-rank p, C-index, AUROC).
 
 Example:
-    python scripts/survival_stratify.py \
+    python -m hcc_multimodal.survival.survival_stratify \
         --models 9109a6c2 1361bef2 06c598c0 \
         --cohorts soramic lusanne \
         --risk-scores a b \
@@ -22,7 +22,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.metrics import roc_auc_score
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from hcc_multimodal.survival import ALL_MODELS, COHORTS
 from hcc_multimodal.survival.analysis import analyze_groups, concordance, is_balanced
