@@ -51,13 +51,17 @@ def _labelled_auroc(scores: pd.Series, rfs_2year: pd.Series) -> float | None:
     return float(roc_auc_score(y, scores.loc[common]))
 
 
-def _stratify_rows(fs, model, oof, test_scores, train, test, cohort, cutoffs):
-    """One row per cutoff for a (fs, model) combo on a cohort."""
+def _stratify_rows(fs, model, freeze_scores, test_scores, train, test, cohort, cutoffs):
+    """One row per cutoff for a (fs, model) combo on a cohort.
+
+    ``freeze_scores`` are the resection scores the frozen cutoffs are calibrated on
+    (out-of-fold or in-sample refit, per --freeze-on).
+    """
     auroc = _labelled_auroc(test_scores, test.rfs_2year)
     cidx = concordance(test_scores, test.time, test.event)
     rows = []
     for cutoff in cutoffs:
-        groups, _ = CUTOFF_METHODS[cutoff](oof, train.rfs_2year, test_scores)
+        groups, _ = CUTOFF_METHODS[cutoff](freeze_scores, train.rfs_2year, test_scores)
         n_high = int((groups == "high").sum())
         n_low = int((groups == "low").sum())
         balanced = is_balanced(n_high, n_low)
@@ -101,6 +105,9 @@ def parse_args():
     p.add_argument("--transfer-csv", type=Path,
                    default=Path("results/eval/grid/grid_transfer_soramic.csv"))
     p.add_argument("--cutoffs", nargs="+", default=DEFAULT_CUTOFFS)
+    p.add_argument("--freeze-on", choices=["oof", "insample"], default="oof",
+                   help="resection scores the frozen cutoffs are calibrated on: out-of-fold "
+                        "(default) or the in-sample refit predictions")
     p.add_argument("--output-dir", type=Path, default=Path("results/eval/survival"))
     p.add_argument("--fig-dir", type=Path, default=Path("reports/0706"))
     p.add_argument("--km", action="store_true", help="draw KM curves for the best combo")
@@ -132,12 +139,18 @@ def main():
     rows = []
     for fs, model in combos:
         oof_p, sc_p, bp = route_grid_scores(fs, model, train, primary.X, args.select_k)
-        oof_c, sc_c, _ = route_grid_scores(fs, model, train, confirm.X, args.select_k)
+        _, sc_c, _ = route_grid_scores(fs, model, train, confirm.X, args.select_k)
+        # Basis the frozen cutoffs are calibrated on: out-of-fold resection scores
+        # (default) or the in-sample refit resection scores (median over all 60 patients).
+        if args.freeze_on == "insample":
+            _, freeze_s, _ = route_grid_scores(fs, model, train, train.X, args.select_k)
+        else:
+            freeze_s = oof_p
         scored[(fs, model)] = {
-            "oof": oof_p, "primary_scores": sc_p, "confirm_scores": sc_c,
-            "confirm_oof": oof_c, "best_params": bp,
+            "freeze": freeze_s, "primary_scores": sc_p, "confirm_scores": sc_c,
+            "best_params": bp,
         }
-        rows += _stratify_rows(fs, model, oof_p, sc_p, train, primary, args.primary, args.cutoffs)
+        rows += _stratify_rows(fs, model, freeze_s, sc_p, train, primary, args.primary, args.cutoffs)
         print(f"  scored {model}/{fs}  (params={bp})")
 
     suffix = f"_{args.tag}" if args.tag else ""
@@ -154,7 +167,7 @@ def main():
     fs_b, model_b = best["fs"], best["model"]
     sc = scored[(fs_b, model_b)]
     confirm_rows = _stratify_rows(
-        fs_b, model_b, sc["confirm_oof"], sc["confirm_scores"],
+        fs_b, model_b, sc["freeze"], sc["confirm_scores"],
         train, confirm, args.confirm, args.cutoffs,
     )
     confirm_df = pd.DataFrame(confirm_rows)
@@ -171,11 +184,11 @@ def _draw_km(best, scored, train, primary, confirm, args, suffix=""):
     fs_b, model_b, cutoff = best["fs"], best["model"], best["cutoff"]
     sc = scored[(fs_b, model_b)]
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.4), squeeze=False)
-    for ax, cohort, cd, scores, oof in [
-        (axes[0][0], args.primary, primary, sc["primary_scores"], sc["oof"]),
-        (axes[0][1], args.confirm, confirm, sc["confirm_scores"], sc["confirm_oof"]),
+    for ax, cohort, cd, scores in [
+        (axes[0][0], args.primary, primary, sc["primary_scores"]),
+        (axes[0][1], args.confirm, confirm, sc["confirm_scores"]),
     ]:
-        groups, _ = CUTOFF_METHODS[cutoff](oof, train.rfs_2year, scores)
+        groups, _ = CUTOFF_METHODS[cutoff](sc["freeze"], train.rfs_2year, scores)
         stats = analyze_groups(groups, cd.time, cd.event)
         stats["c_index"] = concordance(scores, cd.time, cd.event)
         ylabel = "Time to recurrence (event-free)" if "TTR" in args.time_col else "Recurrence-free survival"

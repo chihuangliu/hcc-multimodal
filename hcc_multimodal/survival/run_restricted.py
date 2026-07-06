@@ -96,10 +96,14 @@ def _restricted_rows(groups, scores, cohort_data, cohort, taus):
 
 def _draw_km(cohort_data, groups, cohort, head, cutoff, taus, out_path):
     """Full-follow-up KM with the τ horizons marked by vertical dashed lines."""
-    stats = analyze_groups(groups, cohort_data.time, cohort_data.event)
-    stats["c_index"] = concordance(_pseudo(groups), cohort_data.time, cohort_data.event)
+    # ``groups`` may cover only a subset of the cohort (e.g. resection's out-of-fold
+    # labelled patients); align time/event to it before plotting/scoring.
+    time = cohort_data.time.loc[groups.index]
+    event = cohort_data.event.loc[groups.index]
+    stats = analyze_groups(groups, time, event)
+    stats["c_index"] = concordance(_pseudo(groups), time, event)
     fig, ax = plt.subplots(figsize=(6.0, 4.4))
-    _draw_subplot(ax, cohort_data.time, cohort_data.event, groups, stats,
+    _draw_subplot(ax, time, event, groups, stats,
                   title=f"{head} · {cohort}", ci_show=True)
     for tau in taus:
         ax.axvline(tau, color="0.5", ls="--", lw=0.8)
@@ -134,6 +138,11 @@ def parse_args():
     p.add_argument("--output-dir", type=Path, default=Path("results/eval/survival"))
     p.add_argument("--fig-dir", type=Path, default=Path("reports/0706"))
     p.add_argument("--km", action="store_true", help="draw KM curves with τ horizons")
+    p.add_argument("--no-resection", dest="include_resection", action="store_false",
+                   help="skip the in-sample resection training-cohort table")
+    p.add_argument("--freeze-on", choices=["oof", "insample"], default="oof",
+                   help="resection scores used to freeze the cutoff threshold: out-of-fold "
+                        "(default) or the in-sample refit predictions")
     p.add_argument("--fs", help="force this feature-selection head instead of auto-selecting")
     p.add_argument("--model", help="force this classifier head instead of auto-selecting")
     p.add_argument("--force-cutoff", help="force this cutoff instead of the auto-selected one")
@@ -175,9 +184,19 @@ def main():
     sc_primary = scored[(fs_b, model_b)]["scores"]
     _, sc_confirm, _ = route_grid_scores(fs_b, model_b, train, confirm.X, args.select_k)
 
-    for cohort, cd, sc in [(args.primary, primary, sc_primary),
-                           (args.confirm, confirm, sc_confirm)]:
-        groups, _ = CUTOFF_METHODS[cutoff](oof, train.rfs_2year, sc)
+    # In-sample refit resection scores over all 60 patients: the same refit head that
+    # transfers to Soramic/Lausanne, applied back to resection. Serves as the resection
+    # cohort's own scores and, with --freeze-on insample, as the basis for the frozen
+    # cutoff threshold (median of these scores) instead of the out-of-fold scores.
+    _, sc_resection, _ = route_grid_scores(fs_b, model_b, train, train.X, args.select_k)
+    freeze = sc_resection if args.freeze_on == "insample" else oof
+
+    cohorts = [(args.primary, primary, sc_primary), (args.confirm, confirm, sc_confirm)]
+    if args.include_resection:
+        cohorts.insert(0, ("resection", train, sc_resection))
+
+    for cohort, cd, sc in cohorts:
+        groups, _ = CUTOFF_METHODS[cutoff](freeze, train.rfs_2year, sc)
         rows = _restricted_rows(groups, sc, cd, cohort, args.taus)
         df = pd.DataFrame(rows)
         df.insert(0, "cutoff", cutoff)
