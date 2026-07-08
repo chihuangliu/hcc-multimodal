@@ -43,6 +43,7 @@ from sklearn.preprocessing import StandardScaler
 
 from hcc_multimodal.baselines.config import MODELS as BASELINE_MODELS
 from hcc_multimodal.baselines.config import PARAM_GRIDS as BASELINE_PARAM_GRIDS
+from hcc_multimodal.eval.ensemble import EnsembleGrid, load_ensemble_aligned
 from hcc_multimodal.eval.grid import (
     FS_ORDER,
     MODEL_ORDER,
@@ -211,6 +212,26 @@ def flat_cv_transfer(fs, model, X, y, test_sets, select_k_values, cv, memory):
     return cv_mean, cv_std, gs.best_params_, out
 
 
+def flat_cv_transfer_ensemble(fs, model, X, y, test_sets, select_k_values, blocks, cv, memory):
+    """:func:`flat_cv_transfer` over a mean-probability :class:`EnsembleGrid`.
+
+    One grid pipeline per embedding block (shared tuned hyperparameters); the ensemble's
+    mean positive-class score is what resection CV ranks and what transfers. Returns
+    ``(cv_mean, cv_std, best_params, {cohort: metrics_dict})``.
+    """
+    grid = {**param_grid(model), **select_k_grid(fs, select_k_values)}
+    est = EnsembleGrid(fs, model, select_k_values[0], blocks, memory=memory)
+    gs = GridSearchCV(est, grid, cv=cv, scoring="roc_auc", refit=True, n_jobs=-1,
+                      error_score="raise")
+    gs.fit(X, y)
+    cv_mean = float(gs.best_score_)
+    cv_std = float(gs.cv_results_["std_test_score"][gs.best_index_])
+    out = {}
+    for cohort, (Xt, yt) in test_sets.items():
+        out[cohort] = compute_metrics(yt.values, positive_scores(gs.best_estimator_, Xt))
+    return cv_mean, cv_std, gs.best_params_, out
+
+
 def make_cv(n_splits, repeats, seed):
     """Stratified splitter for flat selection: repeated if ``repeats > 1``."""
     if repeats and repeats > 1:
@@ -260,6 +281,10 @@ def parse_args():
                         "cv-rank: per-model image-only nested-CV AUC for the ablation report §4.")
     p.add_argument("--model-id", default="9109a6c2",
                    help="grid task: embedding(s) to grid (accepts one or more ids).", nargs="+")
+    p.add_argument("--ensemble", action="store_true",
+                   help="grid task: treat all --model-id embeddings as a single mean-probability "
+                        "ensemble (one grid pipeline per embedding, averaged scores) rather than "
+                        "gridding each separately. Requires --cv-mode flat.")
     p.add_argument("--select-k-fracs", type=float, nargs="+", default=None,
                    help="grid task: fraction(s) of features to select, tuned as a "
                         "hyperparameter (e.g. 0.333 0.667). Overrides --select-k.")
@@ -438,10 +463,111 @@ def grid_one_model(model_id, select_k_values, args, out_dir, fig_dir):
     return summary
 
 
+def grid_ensemble(model_ids, select_k_values, args, out_dir, fig_dir):
+    """Full FS × classifier grid on the mean-probability ensemble of ``model_ids``.
+
+    Flat resection CV (repeated k-fold) ranks each cell by ``GridSearchCV.best_score_``;
+    the refit ensemble transfers to Soramic/Lausanne. Writes per-cell CV/transfer CSVs +
+    heatmaps and returns the best-by-CV cell dict.
+    """
+    tag = "+".join(model_ids)
+    res_cd, blocks = load_ensemble_aligned(model_ids, "resection")
+    mask = res_cd.rfs_2year.notna()
+    X_res, y_res = res_cd.X[mask], res_cd.rfs_2year[mask].astype(int)
+    print(f"  ensemble [{tag}] resection labelled: n={len(y_res)} (pos={int(y_res.sum())}), "
+          f"{len(blocks)} blocks × {len(blocks[0])//len(model_ids) if blocks else 0} dims")
+    test_sets = {}
+    for c in args.cohorts:
+        cd, _ = load_ensemble_aligned(model_ids, c)
+        m = cd.rfs_2year.notna()
+        test_sets[c] = (cd.X[m], cd.rfs_2year[m].astype(int))
+        print(f"  {c} labelled: n={int(m.sum())} (pos={int(cd.rfs_2year[m].sum())})")
+
+    cachedir = tempfile.mkdtemp(prefix="ens_grid_cache_")
+    memory = Memory(location=cachedir, verbose=0)
+    flat_cv = make_cv(args.outer_folds, args.cv_repeats, args.seed)
+
+    cv_rows, transfer_rows = [], {c: [] for c in args.cohorts}
+    cell_transfer, cell_params = {}, {}
+    for model in args.models:
+        for fs in args.fs:
+            mean_auc, std_auc, best_params, metrics = flat_cv_transfer_ensemble(
+                fs, model, X_res, y_res, test_sets, select_k_values, blocks, flat_cv, memory,
+            )
+            cv_rows.append({"model": model, "fs": fs,
+                            "cv_auc_mean": mean_auc, "cv_auc_std": std_auc})
+            cell_transfer[(model, fs)] = {c: metrics[c]["auroc"] for c in args.cohorts}
+            cell_params[(model, fs)] = best_params
+            for c in args.cohorts:
+                transfer_rows[c].append({"model": model, "fs": fs, **metrics[c],
+                                         "best_params": json.dumps(best_params)})
+            print(f"  {model:12s} {fs:14s} CV={mean_auc:.3f}±{std_auc:.3f} | "
+                  + " | ".join(f"{c}={metrics[c]['auroc']:.3f}" for c in args.cohorts))
+    memory.clear(warn=False)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    cv_df = pd.DataFrame(cv_rows)
+    cv_df.to_csv(out_dir / "grid_cv_auc.csv", index=False)
+    cv_matrix = cv_df.pivot(index="model", columns="fs", values="cv_auc_mean").reindex(
+        index=[m for m in MODEL_ORDER if m in args.models],
+        columns=[f for f in FS_ORDER if f in args.fs],
+    )
+    cv_matrix.to_csv(out_dir / "grid_cv_auc_matrix.csv")
+    proto = (f"repeated {args.outer_folds}×{args.cv_repeats}" if args.cv_repeats > 1
+             else f"{args.outer_folds}-fold")
+    draw_heatmap(cv_matrix, f"Ensemble {tag} — resection CV AUC ({proto}, seed {args.seed})",
+                 fig_dir / "heatmap_cv_auc", "CV AUC")
+    for c in args.cohorts:
+        tdf = pd.DataFrame(transfer_rows[c])
+        tdf.to_csv(out_dir / f"grid_transfer_{c}.csv", index=False)
+        tmat = tdf.pivot(index="model", columns="fs", values="auroc").reindex(
+            index=[m for m in MODEL_ORDER if m in args.models],
+            columns=[f for f in FS_ORDER if f in args.fs],
+        )
+        draw_heatmap(tmat, f"Ensemble {tag} — {c} transfer AUROC",
+                     fig_dir / f"heatmap_{c}_auroc", "AUROC")
+
+    best = cv_df.loc[cv_df["cv_auc_mean"].idxmax()]
+    key = (best["model"], best["fs"])
+    bp = cell_params[key]
+    k_param = next((p for p in bp if p.startswith("selector__")), None)
+    summary = {
+        "model_id": tag,
+        "best_classifier": best["model"],
+        "best_fs": best["fs"],
+        "cv_auc_mean": float(best["cv_auc_mean"]),
+        "cv_auc_std": float(best["cv_auc_std"]),
+        "n_features_selected": bp.get(k_param) if k_param else "all",
+        "best_params": json.dumps(bp),
+    }
+    for c in args.cohorts:
+        summary[f"{c}_auroc"] = cell_transfer[key][c]
+    print(f"  ==> BEST ENSEMBLE {tag}: {best['model']}/{best['fs']} "
+          f"CV={best['cv_auc_mean']:.3f} k={summary['n_features_selected']} | "
+          + " | ".join(f"{c}={summary[f'{c}_auroc']:.3f}" for c in args.cohorts))
+    return summary
+
+
 def run_grid(args):
     if args.outer_folds is None:
         args.outer_folds = 5
     model_ids = args.model_id if isinstance(args.model_id, list) else [args.model_id]
+
+    if args.ensemble:
+        if args.cv_mode != "flat":
+            raise SystemExit("--ensemble requires --cv-mode flat")
+        n_features = load_ensemble_aligned(model_ids, "resection")[0].X.shape[1] // len(model_ids)
+        if args.select_k_fracs:
+            select_k_values = sorted({max(1, round(f * n_features)) for f in args.select_k_fracs})
+        else:
+            select_k_values = [args.select_k]
+        print(f"Ensemble grid — models {model_ids}, select_k(per-embedding)={select_k_values} "
+              f"(n_features/embedding={n_features})")
+        summary = grid_ensemble(model_ids, select_k_values, args, args.output_dir, args.fig_dir)
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame([summary]).to_csv(args.output_dir / "grid_best_by_cv.csv", index=False)
+        print(f"\nWrote ensemble best-by-CV summary to {args.output_dir / 'grid_best_by_cv.csv'}")
+        return
 
     n_features = load_source_aligned(model_ids[0], "resection").X.shape[1]
     if args.select_k_fracs:

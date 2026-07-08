@@ -125,6 +125,11 @@ def _pseudo(groups):
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--model-id", default="9109a6c2")
+    p.add_argument("--ensemble", action="store_true",
+                   help="score a mean-probability ensemble over --model-ids (forced head via "
+                        "--fs/--model) instead of a single embedding.")
+    p.add_argument("--model-ids", nargs="+",
+                   help="ensemble: embeddings to average (requires --ensemble, --fs, --model).")
     p.add_argument("--select-k", type=int, default=SELECT_K_DEFAULT)
     p.add_argument("--top", type=int, default=5)
     p.add_argument("--primary", default="soramic")
@@ -150,8 +155,62 @@ def parse_args():
     return p.parse_args()
 
 
+def run_ensemble(args):
+    """Restricted-time analysis for a forced-head mean-probability ensemble.
+
+    Mirrors the forced-head single-embedding path, but scores an :class:`EnsembleGrid`
+    over ``--model-ids`` via :func:`route_grid_scores_ensemble`. Requires ``--fs`` and
+    ``--model`` (the head chosen by the ensemble grid CV).
+    """
+    from hcc_multimodal.eval.ensemble import load_ensemble_aligned
+    from hcc_multimodal.survival.grid_scores import route_grid_scores_ensemble
+
+    if not (args.model_ids and args.fs and args.model):
+        raise SystemExit("--ensemble requires --model-ids, --fs and --model")
+    endpoint = {"time_col": args.time_col, "event_col": args.event_col}
+    train, blocks = load_ensemble_aligned(args.model_ids, "resection", **endpoint)
+    primary, _ = load_ensemble_aligned(args.model_ids, args.primary, **endpoint)
+    confirm, _ = load_ensemble_aligned(args.model_ids, args.confirm, **endpoint)
+
+    fs_b, model_b = args.fs, args.model
+    cutoff = args.force_cutoff or "kmeans_frozen"
+    head = f"{model_b}/{fs_b}"
+    tag = "+".join(args.model_ids)
+    print(f"Ensemble [{tag}] forced head: {head} + {cutoff} (select_k={args.select_k})")
+
+    oof, sc_primary, bp = route_grid_scores_ensemble(
+        fs_b, model_b, train, primary.X, blocks, args.select_k)
+    _, sc_confirm, _ = route_grid_scores_ensemble(
+        fs_b, model_b, train, confirm.X, blocks, args.select_k)
+    _, sc_resection, _ = route_grid_scores_ensemble(
+        fs_b, model_b, train, train.X, blocks, args.select_k)
+    print(f"  best_params={bp}")
+    freeze = sc_resection if args.freeze_on == "insample" else oof
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    cohorts = [(args.primary, primary, sc_primary), (args.confirm, confirm, sc_confirm)]
+    if args.include_resection:
+        cohorts.insert(0, ("resection", train, sc_resection))
+    for cohort, cd, sc in cohorts:
+        groups, _ = CUTOFF_METHODS[cutoff](freeze, train.rfs_2year, sc)
+        rows = _restricted_rows(groups, sc, cd, cohort, args.taus)
+        df = pd.DataFrame(rows)
+        df.insert(0, "cutoff", cutoff)
+        df.insert(0, "head", head)
+        suffix = f"_{args.tag}" if args.tag else ""
+        path = args.output_dir / f"restricted_time_{cohort}{suffix}.csv"
+        df.to_csv(path, index=False)
+        print(f"Wrote {path}")
+        if args.km:
+            _draw_km(cd, groups, cohort, head, cutoff, args.taus,
+                     args.fig_dir / f"km_restricted_{cohort}{suffix}.png")
+
+
 def main():
     args = parse_args()
+    if args.ensemble:
+        run_ensemble(args)
+        return
     transfer = pd.read_csv(args.transfer_csv)
     top = transfer.sort_values("auroc", ascending=False).head(args.top)[["fs", "model"]]
     combos = list(top.itertuples(index=False, name=None))
