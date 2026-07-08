@@ -1,0 +1,13 @@
+cutoff,cohort,thr,n_hi,n_lo,hr_full,lr_full,c_idx,lr_24,pt_24
+median_frozen,resection,0.4801,30,30,3.56,0.0,0.672,0.0,0.0
+median_frozen,soramic,0.4801,94,6,1.64,0.408,0.536,0.114,0.081
+median_frozen,lusanne,0.4801,48,20,0.73,0.262,0.496,0.269,0.09
+kmeans_frozen,resection,0.4983,27,33,3.37,0.0,0.672,0.0,0.0
+kmeans_frozen,soramic,0.4983,92,8,2.38,0.135,0.536,0.04,0.036
+kmeans_frozen,lusanne,0.4983,43,25,0.85,0.538,0.496,0.413,0.241
+kmeans_log_frozen,resection,0.488,28,32,3.8,0.0,0.672,0.0,0.0
+kmeans_log_frozen,soramic,0.488,94,6,1.64,0.408,0.536,0.114,0.081
+kmeans_log_frozen,lusanne,0.488,48,20,0.73,0.262,0.496,0.269,0.09
+youden_frozen,resection,0.4849,29,31,4.28,0.0,0.672,0.0,0.0
+youden_frozen,soramic,0.4849,94,6,1.64,0.408,0.536,0.114,0.081
+youden_frozen,lusanne,0.4849,48,20,0.73,0.262,0.496,0.269,0.09

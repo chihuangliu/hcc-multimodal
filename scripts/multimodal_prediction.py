@@ -9,6 +9,9 @@ Tasks (--task):
 Feature selection: SelectKBest(f_classif, k=--k) either inside CV (default) or
 before CV (--selector_before_cv, diagnostic only — data leakage).
 
+--image-only drops the gene-encoder half of the embedding (keeps img_emb_* only),
+so tasks embeddings/concat/ensemble use the pure image encoder with no gene signal.
+
 Reproducibility note: --task radiomics with --k 100 --selector_before_cv matches the
 SelectKBest F-score (k=100) before-CV result in reports/0504/0504_rfs_baselines_v2.md §3.
 """
@@ -375,7 +378,9 @@ def run(args: argparse.Namespace) -> None:
         )
         mri_tag = model_meta.get("mri_type", "preprocessed")
         slice_tag = "nall" if _n_override is None else f"n{_n_override}"
-        dir_name = f"{args.task}_{args.model_id}_{args.outcome}_{selector_tag}_k{args.k}_{mri_tag}_{slice_tag}_{git_hash}"
+        # image-only drops the gene-encoder half of the embedding (pure image encoder)
+        modality_tag = "_imgonly" if args.image_only else ""
+        dir_name = f"{args.task}_{args.model_id}_{args.outcome}_{selector_tag}_k{args.k}_{mri_tag}_{slice_tag}{modality_tag}_{git_hash}"
 
     output_dir = _RESULTS_ROOT / dir_name
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -387,6 +392,7 @@ def run(args: argparse.Namespace) -> None:
         "k": args.k,
         "n_splits": args.n_splits,
         "selector_before_cv": args.selector_before_cv,
+        "image_only": args.image_only,
         "n_per_axis_override": _n_override,
         "batch_size": args.batch_size,
         "num_workers": args.num_workers,
@@ -450,6 +456,12 @@ def run(args: argparse.Namespace) -> None:
             cache_path.parent.mkdir(exist_ok=True)
             emb_df.to_parquet(cache_path)
             print(f"Cached embeddings → {cache_path}")
+
+        if args.image_only:
+            # Keep only the image-encoder half; drop the gene-encoder columns.
+            img_cols = [c for c in emb_df.columns if c.startswith("img_emb_")]
+            emb_df = emb_df[img_cols]
+            print(f"Image-only: keeping {len(img_cols)} img_emb columns (gene_emb dropped)")
         print(f"Embedding matrix: {emb_df.shape}")
         y = outcomes.loc[emb_df.index]
 
@@ -550,6 +562,14 @@ def _parse() -> argparse.Namespace:
         "--selector_before_cv",
         action="store_true",
         help="Apply SelectKBest before CV (label-leaking, diagnostic only)",
+    )
+    p.add_argument(
+        "--image-only",
+        "--image_only",
+        dest="image_only",
+        action="store_true",
+        help="Drop the gene-encoder half of the embedding; use the image encoder only "
+        "(img_emb_* columns). Applies to tasks embeddings/concat/ensemble.",
     )
     p.add_argument(
         "--n_per_axis",

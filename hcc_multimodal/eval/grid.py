@@ -286,6 +286,37 @@ FS_ZOO: dict[str, object] = {
 MODEL_ORDER = list(MODEL_ZOO)
 FS_ORDER = list(FS_ZOO)
 
+# Pipeline parameter that controls how many features each selector keeps. Used to
+# fold the number-of-selected-features into GridSearchCV as a tuned hyperparameter.
+# ``None`` = the selector has no k (the no-selection "All features" passthrough).
+FS_K_PARAM: dict[str, str | None] = {
+    "All features": None,
+    "Pearson": "selector__k",
+    "Spearman": "selector__k",
+    "Kendall": "selector__k",
+    "Mutual Info": "selector__k",
+    "LASSO": "selector__max_features",
+    "Elastic Net": "selector__max_features",
+    "Univ. LR (BH)": "selector__k",
+    "RFE": "selector__n_features_to_select",
+    "Boruta": "selector__k",
+    "Variance": "selector__k",
+    "ANOVA": "selector__k",
+    "RF Import.": "selector__max_features",
+}
+
+
+def select_k_grid(fs_name: str, select_k_values) -> dict:
+    """GridSearchCV param entry that tunes this selector's feature count.
+
+    Returns ``{param: [k, ...]}`` (e.g. ``{"selector__k": [43, 85]}``) or ``{}`` for
+    the passthrough "All features" column, which has no feature-count knob.
+    """
+    param = FS_K_PARAM[fs_name]
+    if param is None or not select_k_values:
+        return {}
+    return {param: list(select_k_values)}
+
 
 # ---------------------------------------------------------------------------
 # Pipeline factory + helpers.

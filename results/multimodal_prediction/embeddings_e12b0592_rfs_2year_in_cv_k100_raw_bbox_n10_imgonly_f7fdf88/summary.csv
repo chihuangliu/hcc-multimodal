@@ -1,0 +1,3 @@
+experiment,model,AUC mean,AUC std,Accuracy mean,Accuracy std
+contrastive_emb_rfs_2year,LR,0.83,0.075,0.704,0.026
+contrastive_emb_rfs_2year,RF,0.688,0.068,0.704,0.026

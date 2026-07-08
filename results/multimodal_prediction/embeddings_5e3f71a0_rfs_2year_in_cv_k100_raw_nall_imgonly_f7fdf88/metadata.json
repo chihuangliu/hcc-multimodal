@@ -1,0 +1,14 @@
+{
+  "task": "embeddings",
+  "outcome": "rfs_2year",
+  "model_id": "5e3f71a0",
+  "k": 100,
+  "n_splits": 3,
+  "selector_before_cv": false,
+  "image_only": true,
+  "n_per_axis_override": null,
+  "batch_size": 32,
+  "num_workers": 0,
+  "git_hash": "f7fdf88",
+  "timestamp": "2026-07-06T15:27:28.919219"
+}

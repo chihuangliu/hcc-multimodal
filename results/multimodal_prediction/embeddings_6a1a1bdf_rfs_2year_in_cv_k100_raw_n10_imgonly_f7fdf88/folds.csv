@@ -1,0 +1,7 @@
+experiment,model,fold,train_auc,test_auc
+contrastive_emb_rfs_2year,LR,1,0.8703703703703703,0.7875
+contrastive_emb_rfs_2year,LR,2,0.9473684210526316,0.6790123456790123
+contrastive_emb_rfs_2year,LR,3,0.9845201238390092,0.5061728395061729
+contrastive_emb_rfs_2year,RF,1,1.0,0.66875
+contrastive_emb_rfs_2year,RF,2,1.0,0.5555555555555556
+contrastive_emb_rfs_2year,RF,3,1.0,0.5432098765432098
