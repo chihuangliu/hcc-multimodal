@@ -17,7 +17,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from scipy.special import logit
-from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.base import BaseEstimator, ClassifierMixin, clone
 
 from hcc_multimodal.eval.grid import build_grid_pipeline, positive_scores
 from hcc_multimodal.survival.data import CohortData, load_source_aligned
@@ -91,6 +91,77 @@ class EnsembleGrid(ClassifierMixin, BaseEstimator):
 
     def predict(self, X):
         return (self._mean_scores(X) >= 0.5).astype(int)
+
+
+class HeteroEnsembleGrid(ClassifierMixin, BaseEstimator):
+    """Mean positive-class score over a list of pre-configured, frozen members.
+
+    Each ``member`` is a fully specified estimator — a
+    :func:`hcc_multimodal.eval.grid.build_grid_pipeline` with its tuned params already
+    set (plain single-embedding member), or an :class:`EnsembleGrid` with frozen
+    ``params`` (embedding-ensemble member). Unlike :class:`EnsembleGrid`, there is **no**
+    per-fold hyperparameter re-tuning: the member configs are chosen up-front from the
+    full-grid flat CV and fitted directly. This makes it a decoupled *model* ensemble that
+    composes with the *embedding* ensemble — a member that is itself an ``EnsembleGrid``
+    yields a net mean over (embedding × model).
+
+    Members are cloned at ``fit`` so the estimator is reusable (e.g. per embedding in a
+    loop) and safe under :func:`sklearn.model_selection.cross_val_score` cloning. No column
+    subsetting is done here: plain members consume the full single-embedding ``X``;
+    ``EnsembleGrid`` members subset internally via their ``blocks``.
+    """
+
+    def __init__(self, members, memory=None):
+        self.members = members
+        self.memory = memory
+
+    # Constructor args only, so ``clone`` round-trips (and recurses into ``members``).
+    def get_params(self, deep=True):
+        return {"members": self.members, "memory": self.memory}
+
+    def set_params(self, **kw):
+        for k, v in kw.items():
+            setattr(self, k, v)
+        return self
+
+    def fit(self, X, y):
+        y = np.asarray(y)
+        self.classes_ = np.unique(y)
+        self.members_ = [clone(m) for m in self.members]
+        for m in self.members_:
+            m.fit(X, y)
+        return self
+
+    def _mean_scores(self, X):
+        return np.mean([positive_scores(m, X) for m in self.members_], axis=0)
+
+    def predict_proba(self, X):
+        s = self._mean_scores(X)
+        return np.column_stack([1.0 - s, s])
+
+    def decision_function(self, X):
+        return logit(np.clip(self._mean_scores(X), 1e-9, 1 - 1e-9))
+
+    def predict(self, X):
+        return (self._mean_scores(X) >= 0.5).astype(int)
+
+
+def build_member(model_name, fs_name, params, select_k, memory=None, blocks=None):
+    """One frozen ensemble member for :class:`HeteroEnsembleGrid`.
+
+    ``blocks is None`` → a plain :func:`build_grid_pipeline` with ``params`` applied via
+    ``set_params`` (single-embedding member). Otherwise → an :class:`EnsembleGrid` over the
+    embedding ``blocks`` with ``params`` broadcast to every block. ``params`` is the cell's
+    ``GridSearchCV.best_params_`` (tuned ``model__*`` plus the selector-k key, or just
+    ``model__*`` when ``fs_name == "All features"``). ``select_k`` seeds the selector
+    factory; ``params`` overrides the selector-k key when present.
+    """
+    if blocks is None:
+        pipe = build_grid_pipeline(fs_name, model_name, select_k, memory=memory)
+        if params:
+            pipe.set_params(**params)
+        return pipe
+    return EnsembleGrid(fs_name, model_name, select_k, blocks, memory=memory, params=params)
 
 
 def load_ensemble_aligned(model_ids, cohort, **endpoint) -> tuple[CohortData, list[list[str]]]:

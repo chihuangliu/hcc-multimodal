@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+dc7e1d10,Ridge/Variance + Elastic Net/RF Import. + L-SVM/RF Import.,3,0.7277263374485597,0.13951028876383337,0.6965811965811965,0.397358943577431
