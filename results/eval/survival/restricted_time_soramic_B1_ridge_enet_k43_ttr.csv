@@ -1,0 +1,6 @@
+head,cutoff,cohort,tau,n_high,n_low,events_high,events_low,logrank_p,hr,hr_lo,hr_hi,c_index,rmst_high,rmst_low,delta_rmst,delta_ci_low,delta_ci_high,rmst_point_p
+Ridge/Elastic Net,kmeans_frozen,soramic,12,100,0,17,0,,,,,0.5302642796248934,,,,,,
+Ridge/Elastic Net,kmeans_frozen,soramic,24,100,0,29,0,,,,,0.5320056899004267,,,,,,
+Ridge/Elastic Net,kmeans_frozen,soramic,36,100,0,31,0,,,,,0.5293286219081272,,,,,,
+Ridge/Elastic Net,kmeans_frozen,soramic,48,100,0,31,0,,,,,0.5293286219081272,,,,,,
+Ridge/Elastic Net,kmeans_frozen,soramic,full,100,0,31,0,,,,,0.5293286219081272,,,,,,
