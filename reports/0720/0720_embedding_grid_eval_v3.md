@@ -25,7 +25,7 @@ Successor to [`0713_embedding_grid_eval_v2.md`](../0713/0713_embedding_grid_eval
 
 | # | Finding |
 |---|---|
-| 1 | Anchor `LASSO`/`All features` (dc7e1d10) CV **0.695** = the *converged* value; §5's **0.699** is a `max_iter=1000` non-convergence artifact of the baseline LR — forced to convergence both estimators give **0.6947**. |
+| 1 | Anchor `LASSO`/`All features` (dc7e1d10) CV **0.695** matches §5's LR-head **0.695**. (§5's earlier 0.699 was a `max_iter=1000` non-convergence artifact; the baseline LR is now bumped to `max_iter=5000` and both agree at 0.695.) |
 | 2 | Flat 3-fold ceilings higher/noisier than 5×10: `dc7e1d10` **0.744 ± 0.14** (was 0.675); ensemble **0.814 ± 0.08** (was 0.740). |
 | 3 | Model-ensemble Soramic A **0.697** / B **0.694** — at or below the single best cell (0.709 / 0.668). |
 | 4 | Model-ensemble CV: A **0.728 < 0.744** single; B **0.830 > 0.814** single. |
@@ -71,11 +71,11 @@ Setting B patients are the SID intersection across the 3 embeddings (no loss).
 | `LR`/`All features` (unregularized, C=∞) | 0.612 | — | — |
 | Best single cell — `Ridge`/`Variance`, k=85 | **0.744** | 0.709 | 0.436 |
 
-Grid CV range 0.428–0.744. The anchor matches §5's dc7e1d10 LR-head number once convergence is
-controlled: §5's **0.699** used the `baselines/config.py` LR at `max_iter=1000`, which does not
-converge on the 128-dim embedding; the grid's `LASSO` (`max_iter=5000`) gives **0.695**, and forcing
-either estimator to `max_iter=20000` yields **0.6947** for both. So 0.695 is the converged value; the
-0.699 in §5 is a mild non-convergence inflation.
+Grid CV range 0.428–0.744. The anchor matches §5's dc7e1d10 LR-head number: §5 originally read
+**0.699** using the `baselines/config.py` LR at `max_iter=1000`, which does not converge on the
+128-dim embedding. The baseline LR is now bumped to `max_iter=5000` (matching the grid's `LASSO`),
+so §5 reads **0.695** and equals this anchor; forcing either estimator to `max_iter=20000` also gives
+**0.6947**. (Updated `0713_ablation_eval_v3.md` §4 / `0713_embedding_grid_eval_v2.md` §5.)
 
 ### 4.2 Top-3 model ensemble
 

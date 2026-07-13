@@ -114,13 +114,15 @@ def nested_cv_auc(fs, model, X, y, select_k_values, outer_folds, inner_folds, me
 def _baseline_zoo() -> dict[str, tuple[object, dict]]:
     """(estimator, param_grid) per classifier, sourced verbatim from ``baselines/config.py``.
 
-    ``LASSO`` = the config ``LR`` (saga solver); its ``PARAM_GRIDS["LR"]`` ``l1_ratio``
-    grid is honored directly (sklearn ≥1.8 controls the L1/L2 mix via ``l1_ratio``, not
-    ``penalty``). ``RF`` is used as-is.
+    Heads are **fixed** (empty param grid → no hyperparameter search), matching the
+    ablation report §4 / embedding-grid §5 method: ``LR`` = the config ``LR`` (saga, L1,
+    C=1.0, ``max_iter=5000``) and ``RF`` as-is, each scored by plain stratified CV on all
+    128 dims. (An earlier version tuned ``PARAM_GRIDS`` in a nested loop, which diverged
+    from the reported fixed-head numbers; the fixed heads are restored here.)
     """
     return {
-        "LASSO": (clone(BASELINE_MODELS["LR"]), BASELINE_PARAM_GRIDS["LR"]),
-        "RF": (clone(BASELINE_MODELS["RF"]), BASELINE_PARAM_GRIDS["RF"]),
+        "LR": (clone(BASELINE_MODELS["LR"]), {}),
+        "RF": (clone(BASELINE_MODELS["RF"]), {}),
     }
 
 
@@ -354,7 +356,7 @@ def parse_args():
                         "hyperparameter (e.g. 0.333 0.667). Overrides --select-k.")
     p.add_argument("--model-ids", nargs="+", default=list(MODEL_INPUT),
                    help="cv-rank task: embeddings to rank (default = the 17 ablation models).")
-    p.add_argument("--classifiers", nargs="+", default=["LASSO", "RF"],
+    p.add_argument("--classifiers", nargs="+", default=["LR", "RF"],
                    help="cv-rank task: classifiers from baselines/config.py to score.")
     p.add_argument("--target", default="rfs_2year")
     p.add_argument("--select-k", type=int, default=SELECT_K_DEFAULT)
