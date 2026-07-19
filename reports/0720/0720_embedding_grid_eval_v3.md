@@ -32,6 +32,7 @@ Successor to [`0713_embedding_grid_eval_v2.md`](../0713/0713_embedding_grid_eval
 
 ## 2. Setup
 
+
 | | Resection (train) | Soramic (test) | Lausanne (test) |
 |---|---:|---:|---:|
 | Embedding + `rfs_2year` | 54 (26 pos, 48%) | 57 (39 pos, 68%) | 66 (49 pos, 74%) |
@@ -67,7 +68,6 @@ Setting B patients are the SID intersection across the 3 embeddings (no loss).
 | | CV AUC | Soramic | Lausanne |
 |---|---:|---:|---:|
 | Anchor `LASSO`/`All features` | 0.695 ± 0.117 | 0.718 | 0.419 |
-| `LR`/`All features` (unregularized, C=∞) | 0.612 | — | — |
 | Best single cell — `Ridge`/`Variance`, k=85 | **0.744** | 0.709 | 0.436 |
 
 Grid CV range 0.428–0.744. The anchor matches §5's dc7e1d10 LR-head number: §5 originally read
@@ -132,6 +132,12 @@ each head all three resection-frozen strategies — **median**, **kmeans**, **yo
 one with the **best Soramic power** is chosen: minimum full-follow-up log-rank among cutoffs that leave a
 populated low arm (≥ 5 patients) in the correct direction (HR > 1). The sweep (Soramic RFS):
 
+
+- A1 - dc7e1d10 x best single model
+- A2 - dc7e1d10 x top 3 model ensemble
+- B1 - top 3 embeddings on Resection - ensemble x best single model
+- B2 - top 3 embeddings on Resection - ensemble x top 3 model ensemble
+
 | Head | cutoff | thr | hi/lo | τ=24 log-rank | τ=24 point-p | full log-rank | full HR | selected |
 |---|---|---:|---:|---:|---:|---:|---:|:--:|
 | **A1** | median | 0.484 | 93 / 7 | 0.044 | 0.077 | 0.147 | 2.33 | |
@@ -162,6 +168,10 @@ youden is the only cutoff that makes B2 evaluable. Selected split per head:
 
 ### 6.1 A1 — dc7e1d10 · Ridge/Variance k=85 (best single), kmeans, 90 hi / 10 lo
 
+Soramic RFS KM (full follow-up, frozen kmeans cutoff; τ = 12/24/36/48 mo marked):
+
+![A1 Soramic RFS KM — kmeans 90/10](km/km_restricted_soramic_A1_ridge_var_k85_rfs.png)
+
 RFS:
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
@@ -189,6 +199,10 @@ degenerate point-in-time variance estimate on the 4-event low arm, not signal (l
 reliable read).
 
 ### 6.2 A2 — dc7e1d10 · top-3 model ensemble, median, 75 hi / 25 lo
+
+Soramic RFS KM (full follow-up, frozen median cutoff; τ = 12/24/36/48 mo marked):
+
+![A2 Soramic RFS KM — median 75/25](km/km_restricted_soramic_A2_modelens_rfs.png)
 
 RFS:
 
@@ -233,6 +247,10 @@ defined readout — weakly positive but not a stratifier:
 kmeans degenerates (100/0) here too, but the **youden** threshold (0.625) sits high enough to hold a
 9-patient low arm, so B2 *is* evaluable under the best-power cutoff:
 
+Soramic RFS KM (full follow-up, frozen youden cutoff; τ = 12/24/36/48 mo marked):
+
+![B2 Soramic RFS KM — youden 91/9](km/km_restricted_soramic_B2_modelens_rfs.png)
+
 RFS:
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
@@ -266,6 +284,7 @@ TTR:
 | §6 runner + scoring | `hcc_multimodal/survival/run_restricted.py` (`--members-csv`, `--select-cutoff-by-power`), `hcc_multimodal/survival/grid_scores.py` (`route_grid_scores_hetero`), `restricted.py`, `cutoffs.py`, `hcc_multimodal/eval/ensemble.py` |
 | §6 cutoff sweeps | `results/eval/survival/cutoff_sweep_{A1_ridge_var_k85,A2_modelens,B1_ridge_enet_k43,B2_modelens}_rfs.csv` (median/kmeans/youden per head) |
 | §6 Soramic tables | `results/eval/survival/restricted_time_soramic_{A1_ridge_var_k85,A2_modelens,B1_ridge_enet_k43,B2_modelens}_{rfs,ttr}.csv` (B1 = degenerate 100/0 table, C-index only) |
+| §6.1/6.2/6.4 RFS KM figures | `reports/0720/km/km_restricted_soramic_{A1_ridge_var_k85,A2_modelens,B2_modelens}_rfs.{png,svg}` — full-follow-up Soramic RFS KM at the frozen best-power cutoff (kmeans/median/youden), τ marked. Drawn by `run_restricted._draw_km` / `plots._draw_subplot`. B1 has no KM (100/0 degenerate). Annotation C-index is the hi/lo-dichotomy concordance and differs from the continuous-score C-index in the §6 tables. |
 | §6 protocol reference | [`0713_restricted_time_survival_v2.md`](../0713/0713_restricted_time_survival_v2.md) |
 | §5 CV-rank baseline | [`0713_embedding_grid_eval_v2.md`](../0713/0713_embedding_grid_eval_v2.md) §5 |
 | Prior 5×10 grid / ensemble | v2 §6, [`0713_ensemble_grid_eval.md`](../0713/0713_ensemble_grid_eval.md) |
@@ -326,3 +345,13 @@ Ridge/Elastic Net k=43). Cutoff picks are made on RFS and forced for TTR so both
 split (endpoint-independent). The picks in the sweep table above are `--force-cutoff` values:
 A1 `kmeans_frozen`, A2 `median_frozen`, B1 `kmeans_frozen` (fallback; degenerate under all), B2
 `youden_frozen`.
+
+The §6.1/6.2/6.4 RFS KM figures re-run the same three RFS heads with the pick forced (`--force-cutoff
+<pick>`) plus `--km --fig-dir reports/0720/km` (RFS is the default endpoint), e.g. A1:
+```
+python -m hcc_multimodal.survival.run_restricted --model-id dc7e1d10 --fs Variance --model Ridge \
+  --select-k 85 --freeze-on insample --force-cutoff kmeans_frozen --taus 12 24 36 48 --no-resection \
+  --km --output-dir results/eval/survival --fig-dir reports/0720/km --tag A1_ridge_var_k85_rfs
+```
+A2 / B2 add their `--members-csv` (and `--ensemble --model-ids …` for B2) and force `median_frozen` /
+`youden_frozen`. B1 is omitted (degenerate 100/0 → no KM).
