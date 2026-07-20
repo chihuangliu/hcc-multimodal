@@ -109,3 +109,41 @@ def route_grid_scores_ensemble(
     est.fit(X_tr, y_tr)
     test_scores = pd.Series(positive_scores(est, test_X), index=test_X.index)
     return oof, test_scores, best_params
+
+
+def route_grid_scores_hetero(
+    members: list[tuple[str, str, dict]],
+    train: CohortData,
+    test_X: pd.DataFrame,
+    blocks: list[list[str]] | None = None,
+    select_k: int = SELECT_K_DEFAULT,
+) -> tuple[pd.Series, pd.Series, dict]:
+    """:func:`route_grid_scores` for a frozen :class:`HeteroEnsembleGrid` (model ensemble).
+
+    ``members`` is a list of ``(model_name, fs_name, params)`` — each the argmax-FS grid cell
+    with its ``GridSearchCV.best_params_`` already chosen (as persisted in the grid runner's
+    ``model_ensemble_members.csv``). Unlike the single/ensemble routes there is **no** per-fold
+    re-tuning: the configs are frozen, so ``best_params`` is empty. ``blocks is None`` → plain
+    single-embedding members; ``blocks`` set → each member is an :class:`EnsembleGrid` over the
+    embedding column blocks (net mean over embedding × model). OOF / test scores are the
+    ensemble's mean positive-class score.
+    """
+    from hcc_multimodal.eval.ensemble import HeteroEnsembleGrid, build_member
+
+    mask = train.rfs_2year.notna()
+    X_tr = train.X[mask]
+    y_tr = train.rfs_2year[mask].astype(int)
+
+    def _est():
+        mem = [build_member(m, fs, params, select_k, blocks=blocks) for m, fs, params in members]
+        return HeteroEnsembleGrid(mem)
+
+    skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)
+    oof = pd.Series(index=X_tr.index, dtype=float)
+    for tr_idx, va_idx in skf.split(X_tr, y_tr):
+        est = _est().fit(X_tr.iloc[tr_idx], y_tr.iloc[tr_idx])
+        oof.iloc[va_idx] = positive_scores(est, X_tr.iloc[va_idx])
+
+    est = _est().fit(X_tr, y_tr)
+    test_scores = pd.Series(positive_scores(est, test_X), index=test_X.index)
+    return oof, test_scores, {}

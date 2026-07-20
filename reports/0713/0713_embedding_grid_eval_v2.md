@@ -34,7 +34,7 @@ pick a transferable head on `dc7e1d10`.
 | 1 | **Resection CV does not predict Soramic transfer.** ρ(CV, Soramic) = **0.00**; ρ(CV, Lausanne) = 0.40. CV-top `a6f970d6` (0.714) is **chance on Soramic (0.494)**. |
 | 2 | **Soramic and Lausanne favour opposite models** (ρ = **−0.46**). Frozen/gene models top Soramic (`9109a6c2` 0.732); patient/slice unfrozen models top Lausanne (`1361bef2` 0.771). No model wins both. |
 | 3 | **Best external heads are modest.** Best Soramic 0.732, best Lausanne 0.771; the rest sit near the radiomic baselines (0.590 / 0.531). |
-| 4 | **Only `dc7e1d10` is both high-CV and Soramic-good** (CV 0.699, Soramic 0.718) — but near-worst on Lausanne (0.453). |
+| 4 | **Only `dc7e1d10` is both high-CV and Soramic-good** (CV 0.695, Soramic 0.718) — but near-worst on Lausanne (0.453). |
 | 5 | **A lower-variance CV *can* select a transferable head (§6).** Under repeated 5×10 CV with tuned feature count, the CV-best config on `dc7e1d10` → **Soramic 0.725** (+0.135), seed-stable; ρ(CV, Soramic) rises 0.04 → 0.55. It transfers where the embedding carries signal, not where it doesn't. |
 
 ## 3. Setup
@@ -64,24 +64,31 @@ Lausanne LR=0.531).
 | Rank | Model ID | Config | Head | CV AUC ± std | Soramic | Lausanne |
 |-----:|----------|--------|------|-------------:|--------:|---------:|
 | 1 | `a6f970d6` | raw, λ=0.0, unfrozen, n=10, patient | LR | **0.714 ± 0.133** | 0.494 (−0.096) | 0.618 (+0.087) |
-| 2 | `dc7e1d10` | raw, λ=0.1, frozen, n=all, slice | LR | 0.699 ± 0.112 | 0.718 (+0.128) | 0.453 (−0.078) |
-| 3 | `982a6fa2` | raw, λ=0.0, unfrozen, n=10, slice | LR | 0.682 ± 0.040 | 0.606 (+0.016) | 0.600 (+0.069) |
+| 2 | `dc7e1d10` | raw, λ=0.1, frozen, n=all, slice | LR | 0.695 ± 0.117 | 0.718 (+0.128) | 0.453 (−0.078) |
+| 3 | `982a6fa2` | raw, λ=0.0, unfrozen, n=10, slice | LR | 0.677 ± 0.038 | 0.606 (+0.016) | 0.600 (+0.069) |
 | 4 | `a64b245f` | raw, λ=0.0, frozen, n=all, slice | LR | 0.665 ± 0.092 | 0.684 (+0.094) | 0.556 (+0.025) |
-| 5 | `92b9afed` | bbox, λ=0.1, frozen, n=all, slice | RF | 0.651 ± 0.042 | 0.577 (−0.013) | 0.614 (+0.083) |
-| 6 | `1361bef2` | raw, λ=0.1, unfrozen, n=10, patient | LR | 0.645 ± 0.024 | 0.522 (−0.068) | **0.771 (+0.240)** |
-| 7 | `5e3f71a0` | raw, λ=0.1, frozen, n=all, patient | LR | 0.620 ± 0.066 | 0.635 (+0.045) | 0.534 (+0.003) |
-| 8 | `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, slice | LR | 0.603 ± 0.085 | 0.516 (−0.074) | 0.655 (+0.124) |
-| 9 | `06c598c0` | raw, λ=0.0, frozen, n=all, patient | LR | 0.603 ± 0.159 | 0.702 (+0.112) | 0.515 (−0.016) |
-| 10 | `12e4ba6a` | raw, λ=0.1, predefined genes, slice | LR | 0.599 ± 0.092 | 0.670 (+0.080) | 0.477 (−0.054) |
+| 5 | `92b9afed` | bbox, λ=0.1, frozen, n=all, slice | LR | 0.662 ± 0.063 | 0.577 (−0.013) | 0.614 (+0.083) |
+| 6 | `1361bef2` | raw, λ=0.1, unfrozen, n=10, patient | LR | 0.645 ± 0.014 | 0.522 (−0.068) | **0.771 (+0.240)** |
+| 7 | `5e3f71a0` | raw, λ=0.1, frozen, n=all, patient | RF | 0.616 ± 0.010 | 0.635 (+0.045) | 0.534 (+0.003) |
+| 8 | `06c598c0` | raw, λ=0.0, frozen, n=all, patient | LR | 0.603 ± 0.160 | 0.702 (+0.112) | 0.515 (−0.016) |
+| 9 | `12e4ba6a` | raw, λ=0.1, predefined genes, slice | LR | 0.595 ± 0.121 | 0.670 (+0.080) | 0.477 (−0.054) |
+| 10 | `5d04e6ba` | raw, λ=0.1, 2y_before_cv genes, slice | LR | 0.591 ± 0.073 | 0.516 (−0.074) | 0.655 (+0.124) |
 | 11 | `050d401d` | bbox, λ=0.1, unfrozen, n=10, slice | LR | 0.579 ± 0.161 | 0.669 (+0.079) | 0.544 (+0.013) |
-| 12 | `8715461c` | bbox, λ=0.0, unfrozen, n=10, patient | LR | 0.579 ± 0.079 | 0.534 (−0.056) | 0.494 (−0.037) |
-| 13 | `e12b0592` | bbox, λ=0.0, unfrozen, n=10, slice | LR | 0.575 ± 0.079 | 0.517 (−0.073) | 0.595 (+0.064) |
+| 12 | `8715461c` | bbox, λ=0.0, unfrozen, n=10, patient | LR | 0.579 ± 0.087 | 0.534 (−0.056) | 0.494 (−0.037) |
+| 13 | `e12b0592` | bbox, λ=0.0, unfrozen, n=10, slice | LR | 0.562 ± 0.074 | 0.517 (−0.073) | 0.595 (+0.064) |
 | 14 | `6a1a1bdf` | raw, λ=0.1, unfrozen, n=10, slice | RF | 0.554 ± 0.031 | 0.615 (+0.025) | 0.497 (−0.034) |
-| 15 | `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, patient | LR | 0.541 ± 0.023 | **0.732 (+0.142)** | 0.563 (+0.032) |
-| 16 | `34e6806f` | raw, λ=0.1, predefined genes, patient | LR | 0.525 ± 0.096 | 0.574 (−0.016) | 0.420 (−0.111) |
-| 17 | `f8aabb75` | bbox, λ=0.1, unfrozen, n=10, patient | LR | 0.504 ± 0.089 | 0.539 (−0.051) | 0.515 (−0.016) |
+| 15 | `9109a6c2` | raw, λ=0.1, 2y_before_cv genes, patient | LR | 0.545 ± 0.028 | **0.732 (+0.142)** | 0.563 (+0.032) |
+| 16 | `34e6806f` | raw, λ=0.1, predefined genes, patient | LR | 0.512 ± 0.097 | 0.574 (−0.016) | 0.420 (−0.111) |
+| 17 | `f8aabb75` | bbox, λ=0.1, unfrozen, n=10, patient | RF | 0.502 ± 0.076 | 0.539 (−0.051) | 0.515 (−0.016) |
 
-Correlations across 17 models: ρ(CV, Soramic) = **0.00**, ρ(CV, Lausanne) = 0.40, ρ(Soramic, Lausanne) = **−0.46**.
+Correlations across 17 models: ρ(CV, Soramic) = **0.06**, ρ(CV, Lausanne) = 0.36, ρ(Soramic, Lausanne) = **−0.46**.
+
+> **Convergence note (2026-07-20).** The `baselines/config.py` LR head was bumped `max_iter` 1000 → 5000
+> so the saga solver converges on the 128-dim embedding. This lowers a few LR CV values slightly
+> (`dc7e1d10` 0.699 → **0.695**, `982a6fa2` 0.682 → 0.677) and flips three best-heads at convergence
+> (`92b9afed` RF→LR, `5e3f71a0` LR→RF, `f8aabb75` LR→RF). Transfer columns (§2–3, a separate
+> SelectKBest pipeline) are unchanged. The converged `dc7e1d10` 0.695 now matches the
+> `LASSO`/`All features` grid anchor in `reports/0720/0720_embedding_grid_eval_v3.md`.
 
 ## 6. Selecting a transferable head from resection CV
 

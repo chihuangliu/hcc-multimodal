@@ -21,6 +21,7 @@ Example
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import matplotlib
@@ -33,7 +34,7 @@ from hcc_multimodal.eval.grid import SELECT_K_DEFAULT
 from hcc_multimodal.survival.analysis import analyze_groups, concordance, is_balanced
 from hcc_multimodal.survival.cutoffs import CUTOFF_METHODS
 from hcc_multimodal.survival.data import load_source_aligned
-from hcc_multimodal.survival.grid_scores import route_grid_scores
+from hcc_multimodal.survival.grid_scores import route_grid_scores, route_grid_scores_hetero
 from hcc_multimodal.survival.plots import _draw_subplot
 from hcc_multimodal.survival.restricted import restricted_stats
 
@@ -122,6 +123,74 @@ def _pseudo(groups):
     return (groups == "high").astype(int)
 
 
+def _load_members(csv_path: Path) -> list[tuple[str, str, dict]]:
+    """(model, fs, best_params) rows from the grid runner's ``model_ensemble_members.csv``."""
+    df = pd.read_csv(csv_path)
+    return [(r["model"], r["fs"], json.loads(r["best_params"])) for _, r in df.iterrows()]
+
+
+def _pick_cutoff(args, freeze, train, primary, sc_primary, default_cutoff):
+    """Resolve the high/low cutoff: ``--force-cutoff`` > power sweep > ``default_cutoff``.
+
+    With ``--select-cutoff-by-power`` the ``--cutoffs`` are swept on the primary cohort and the
+    one with the best power is chosen — min full-follow-up log-rank among splits with a low arm
+    ≥ ``--min-low`` in the correct direction (HR>1). The sweep is written to
+    ``cutoff_sweep{tag}.csv``. If every cutoff degenerates (no populated low arm) the head is not
+    stratifiable; we fall back to ``default_cutoff`` so the (degenerate) table + valid C-index
+    still emit.
+    """
+    if args.force_cutoff:
+        return args.force_cutoff
+    if not args.select_cutoff_by_power:
+        return default_cutoff
+
+    rows = []
+    for cut in args.cutoffs:
+        groups, meta = CUTOFF_METHODS[cut](freeze, train.rfs_2year, sc_primary)
+        st24 = restricted_stats(groups, sc_primary, primary.time, primary.event, 24.0)
+        stf = restricted_stats(groups, sc_primary, primary.time, primary.event, float("inf"))
+        rows.append({"cutoff": cut, "threshold": meta["threshold"],
+                     "n_high": int((groups == "high").sum()), "n_low": int((groups == "low").sum()),
+                     "t24_logrank_p": st24["logrank_p"],
+                     "t24_point_p": (st24.get("rmst") or {}).get("point_p"),
+                     "full_logrank_p": stf["logrank_p"], "full_hr": stf["hr_high_vs_low"]})
+    sweep = pd.DataFrame(rows)
+    ok = sweep[(sweep["n_low"] >= args.min_low) & (sweep["full_hr"] > 1.0)
+               & sweep["full_logrank_p"].notna()]
+    if not len(ok):
+        ok = sweep[(sweep["n_low"] >= args.min_low) & sweep["full_logrank_p"].notna()]
+    chosen = ok.sort_values("full_logrank_p").iloc[0]["cutoff"] if len(ok) else None
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    suffix = f"_{args.tag}" if args.tag else ""
+    sweep.to_csv(args.output_dir / f"cutoff_sweep{suffix}.csv", index=False)
+    print(f"Cutoff power sweep on {args.primary} (full follow-up):")
+    print(sweep.to_string(index=False))
+    if chosen is None:
+        print(f"  ==> no cutoff leaves a low arm >= {args.min_low} on {args.primary}; head is "
+              f"degenerate. Falling back to {default_cutoff} (split undefined, C-index still valid).")
+        return default_cutoff
+    print(f"  ==> selected cutoff by power: {chosen}")
+    return chosen
+
+
+def _emit(args, train, cohorts, freeze, head, cutoff):
+    """Freeze ``cutoff`` on ``freeze`` and write one restricted-time CSV (+ optional KM) per cohort."""
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    for cohort, cd, sc in cohorts:
+        groups, _ = CUTOFF_METHODS[cutoff](freeze, train.rfs_2year, sc)
+        df = pd.DataFrame(_restricted_rows(groups, sc, cd, cohort, args.taus))
+        df.insert(0, "cutoff", cutoff)
+        df.insert(0, "head", head)
+        suffix = f"_{args.tag}" if args.tag else ""
+        path = args.output_dir / f"restricted_time_{cohort}{suffix}.csv"
+        df.to_csv(path, index=False)
+        print(f"Wrote {path}")
+        if args.km:
+            _draw_km(cd, groups, cohort, head, cutoff, args.taus,
+                     args.fig_dir / f"km_restricted_{cohort}{suffix}.png")
+
+
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--model-id", default="9109a6c2")
@@ -150,9 +219,29 @@ def parse_args():
                         "(default) or the in-sample refit predictions")
     p.add_argument("--fs", help="force this feature-selection head instead of auto-selecting")
     p.add_argument("--model", help="force this classifier head instead of auto-selecting")
+    p.add_argument("--members-csv", type=Path,
+                   help="model-ensemble head: CSV of frozen members (model, fs, best_params) — the "
+                        "grid runner's model_ensemble_members.csv. Scored as a HeteroEnsembleGrid; "
+                        "with --ensemble each member is itself an embedding ensemble over --model-ids.")
     p.add_argument("--force-cutoff", help="force this cutoff instead of the auto-selected one")
+    p.add_argument("--select-cutoff-by-power", action="store_true",
+                   help="sweep --cutoffs on the primary cohort and pick the best-power one (min "
+                        "full-follow-up log-rank among splits with low arm >= --min-low and HR>1), "
+                        "instead of --force-cutoff / the auto-selected cutoff.")
+    p.add_argument("--min-low", type=int, default=5,
+                   help="power cutoff selection: minimum low-arm size for a cutoff to be eligible.")
     p.add_argument("--tag", help="suffix for output CSV / KM filenames (avoids clobbering)")
     return p.parse_args()
+
+
+def _load_ensemble_cohorts(args, endpoint):
+    """(train, primary, confirm, blocks) for the embedding ensemble over ``--model-ids``."""
+    from hcc_multimodal.eval.ensemble import load_ensemble_aligned
+
+    train, blocks = load_ensemble_aligned(args.model_ids, "resection", **endpoint)
+    primary, _ = load_ensemble_aligned(args.model_ids, args.primary, **endpoint)
+    confirm, _ = load_ensemble_aligned(args.model_ids, args.confirm, **endpoint)
+    return train, primary, confirm, blocks
 
 
 def run_ensemble(args):
@@ -162,21 +251,17 @@ def run_ensemble(args):
     over ``--model-ids`` via :func:`route_grid_scores_ensemble`. Requires ``--fs`` and
     ``--model`` (the head chosen by the ensemble grid CV).
     """
-    from hcc_multimodal.eval.ensemble import load_ensemble_aligned
     from hcc_multimodal.survival.grid_scores import route_grid_scores_ensemble
 
     if not (args.model_ids and args.fs and args.model):
         raise SystemExit("--ensemble requires --model-ids, --fs and --model")
     endpoint = {"time_col": args.time_col, "event_col": args.event_col}
-    train, blocks = load_ensemble_aligned(args.model_ids, "resection", **endpoint)
-    primary, _ = load_ensemble_aligned(args.model_ids, args.primary, **endpoint)
-    confirm, _ = load_ensemble_aligned(args.model_ids, args.confirm, **endpoint)
+    train, primary, confirm, blocks = _load_ensemble_cohorts(args, endpoint)
 
     fs_b, model_b = args.fs, args.model
-    cutoff = args.force_cutoff or "kmeans_frozen"
     head = f"{model_b}/{fs_b}"
     tag = "+".join(args.model_ids)
-    print(f"Ensemble [{tag}] forced head: {head} + {cutoff} (select_k={args.select_k})")
+    print(f"Ensemble [{tag}] forced head: {head} (select_k={args.select_k})")
 
     oof, sc_primary, bp = route_grid_scores_ensemble(
         fs_b, model_b, train, primary.X, blocks, args.select_k)
@@ -187,27 +272,53 @@ def run_ensemble(args):
     print(f"  best_params={bp}")
     freeze = sc_resection if args.freeze_on == "insample" else oof
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    cutoff = _pick_cutoff(args, freeze, train, primary, sc_primary, "kmeans_frozen")
     cohorts = [(args.primary, primary, sc_primary), (args.confirm, confirm, sc_confirm)]
     if args.include_resection:
         cohorts.insert(0, ("resection", train, sc_resection))
-    for cohort, cd, sc in cohorts:
-        groups, _ = CUTOFF_METHODS[cutoff](freeze, train.rfs_2year, sc)
-        rows = _restricted_rows(groups, sc, cd, cohort, args.taus)
-        df = pd.DataFrame(rows)
-        df.insert(0, "cutoff", cutoff)
-        df.insert(0, "head", head)
-        suffix = f"_{args.tag}" if args.tag else ""
-        path = args.output_dir / f"restricted_time_{cohort}{suffix}.csv"
-        df.to_csv(path, index=False)
-        print(f"Wrote {path}")
-        if args.km:
-            _draw_km(cd, groups, cohort, head, cutoff, args.taus,
-                     args.fig_dir / f"km_restricted_{cohort}{suffix}.png")
+    _emit(args, train, cohorts, freeze, head, cutoff)
+
+
+def run_model_ensemble(args):
+    """Restricted-time analysis for a frozen top-k model ensemble (:class:`HeteroEnsembleGrid`).
+
+    Members are read from ``--members-csv`` (the grid runner's ``model_ensemble_members.csv``)
+    and scored via :func:`route_grid_scores_hetero`. With ``--ensemble`` each member is itself an
+    embedding ensemble over ``--model-ids`` (net mean over embedding × model); otherwise members
+    are plain single-embedding pipelines on ``--model-id``.
+    """
+    members = _load_members(args.members_csv)
+    endpoint = {"time_col": args.time_col, "event_col": args.event_col}
+    if args.ensemble:
+        train, primary, confirm, blocks = _load_ensemble_cohorts(args, endpoint)
+        tag = "+".join(args.model_ids)
+    else:
+        blocks = None
+        train = load_source_aligned(args.model_id, "resection", **endpoint)
+        primary = load_source_aligned(args.model_id, args.primary, **endpoint)
+        confirm = load_source_aligned(args.model_id, args.confirm, **endpoint)
+        tag = args.model_id
+
+    head = "modelens[" + " + ".join(f"{m}/{fs}" for m, fs, _ in members) + "]"
+    print(f"Model ensemble [{tag}] {head} (select_k={args.select_k})")
+
+    oof, sc_primary, _ = route_grid_scores_hetero(members, train, primary.X, blocks, args.select_k)
+    _, sc_confirm, _ = route_grid_scores_hetero(members, train, confirm.X, blocks, args.select_k)
+    _, sc_resection, _ = route_grid_scores_hetero(members, train, train.X, blocks, args.select_k)
+    freeze = sc_resection if args.freeze_on == "insample" else oof
+
+    cutoff = _pick_cutoff(args, freeze, train, primary, sc_primary, "kmeans_frozen")
+    cohorts = [(args.primary, primary, sc_primary), (args.confirm, confirm, sc_confirm)]
+    if args.include_resection:
+        cohorts.insert(0, ("resection", train, sc_resection))
+    _emit(args, train, cohorts, freeze, head, cutoff)
 
 
 def main():
     args = parse_args()
+    if args.members_csv:
+        run_model_ensemble(args)
+        return
     if args.ensemble:
         run_ensemble(args)
         return
@@ -228,17 +339,14 @@ def main():
         if (fs_b, model_b) not in scored:  # forced head outside the top-N pool
             oof, sc, bp = route_grid_scores(fs_b, model_b, train, primary.X, args.select_k)
             scored[(fs_b, model_b)] = {"oof": oof, "scores": sc, "best_params": bp}
-        cutoff = args.force_cutoff or best["cutoff"]
         head = f"{model_b}/{fs_b}"
-        print(f"\nForced head on {args.primary}: {head} + {cutoff}")
+        print(f"\nForced head on {args.primary}: {head}")
     else:
         fs_b, model_b = best["fs"], best["model"]
-        cutoff = args.force_cutoff or best["cutoff"]
         head = f"{model_b}/{fs_b}"
-        print(f"\nBest on {args.primary}: {head} + {cutoff} "
+        print(f"\nBest on {args.primary}: {head} "
               f"(full-follow-up log-rank p={best['logrank_p']:.3f}, HR={best['hr']:.2f})")
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
     oof = scored[(fs_b, model_b)]["oof"]
     sc_primary = scored[(fs_b, model_b)]["scores"]
     _, sc_confirm, _ = route_grid_scores(fs_b, model_b, train, confirm.X, args.select_k)
@@ -250,23 +358,11 @@ def main():
     _, sc_resection, _ = route_grid_scores(fs_b, model_b, train, train.X, args.select_k)
     freeze = sc_resection if args.freeze_on == "insample" else oof
 
+    cutoff = _pick_cutoff(args, freeze, train, primary, sc_primary, best["cutoff"])
     cohorts = [(args.primary, primary, sc_primary), (args.confirm, confirm, sc_confirm)]
     if args.include_resection:
         cohorts.insert(0, ("resection", train, sc_resection))
-
-    for cohort, cd, sc in cohorts:
-        groups, _ = CUTOFF_METHODS[cutoff](freeze, train.rfs_2year, sc)
-        rows = _restricted_rows(groups, sc, cd, cohort, args.taus)
-        df = pd.DataFrame(rows)
-        df.insert(0, "cutoff", cutoff)
-        df.insert(0, "head", head)
-        suffix = f"_{args.tag}" if args.tag else ""
-        path = args.output_dir / f"restricted_time_{cohort}{suffix}.csv"
-        df.to_csv(path, index=False)
-        print(f"Wrote {path}")
-        if args.km:
-            _draw_km(cd, groups, cohort, head, cutoff, args.taus,
-                     args.fig_dir / f"km_restricted_{cohort}{suffix}.png")
+    _emit(args, train, cohorts, freeze, head, cutoff)
 
 
 if __name__ == "__main__":
