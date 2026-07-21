@@ -30,6 +30,10 @@ MODEL_INPUT = {
     "dc7e1d10": "raw", "5e3f71a0": "raw", "a64b245f": "raw", "06c598c0": "raw",
     "050d401d": "bbox", "f8aabb75": "bbox", "e12b0592": "bbox", "8715461c": "bbox",
     "92b9afed": "bbox",
+    # bbox frozen n=all family completed 2026-07-21 (submit_bbox_frozen_train.sh):
+    "16acfdd9": "bbox",  # λ=0.0, slice
+    "3baefc68": "bbox",  # λ=0.0, patient
+    "8fcb5dd3": "bbox",  # λ=0.1, patient
 }
 
 

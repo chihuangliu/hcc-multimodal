@@ -1,7 +1,7 @@
 """Multimodal prediction using contrastive embeddings ± arterial radiomics.
 
 Tasks (--task):
-  embeddings - 3-fold CV on contrastive img+gene embeddings only
+  embeddings - 3-fold CV on contrastive img embeddings only
   concat     - 3-fold CV on embeddings concatenated with arterial radiomics
   radiomics  - 3-fold CV on arterial radiomics only (reproduces reports/0504 baseline)
   ensemble   - train embeddings and radiomics models separately, average probabilities
@@ -63,6 +63,7 @@ from hcc_multimodal.contrastive.encoders import (
     ImageEncoder,
 )
 from hcc_multimodal.utils.data import load_resection_arterial_radiomics
+
 # "N voxels" is a radiomics feature, not metadata — kept intentionally
 _RADIOMICS_META = {"Scan name", "VOI name", "Scan path", "VOI path"}
 
@@ -461,7 +462,9 @@ def run(args: argparse.Namespace) -> None:
             # Keep only the image-encoder half; drop the gene-encoder columns.
             img_cols = [c for c in emb_df.columns if c.startswith("img_emb_")]
             emb_df = emb_df[img_cols]
-            print(f"Image-only: keeping {len(img_cols)} img_emb columns (gene_emb dropped)")
+            print(
+                f"Image-only: keeping {len(img_cols)} img_emb columns (gene_emb dropped)"
+            )
         print(f"Embedding matrix: {emb_df.shape}")
         y = outcomes.loc[emb_df.index]
 
