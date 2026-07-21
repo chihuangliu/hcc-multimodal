@@ -1,7 +1,7 @@
 # Embedding Grid Eval v4 — n=all Encoders Only, Top-3-by-CV Ensemble — 2026-07-27
 
-Successor to [`0720_embedding_grid_eval_v3.md`](0720_embedding_grid_eval_v3.md). One change carried
-from the n=all-only ablation [`0727_ablation_eval_v4.md`](../0727/0727_ablation_eval_v4.md):
+Successor to [`0720_embedding_grid_eval_v3.md`](../0720/0720_embedding_grid_eval_v3.md). One change carried
+from the n=all-only ablation [`0727_ablation_eval_v4.md`](0727_ablation_eval_v4.md):
 
 - **Only image encoders trained with n=all slices are used.** The Setting B embedding ensemble is now
   the **top 3 by resection CV AUC** in the 0727 v4 ablation §4 — `dc7e1d10 + a64b245f + 92b9afed`
@@ -133,8 +133,9 @@ score refit on all labelled resection, freeze the high/low cutoff on the in-samp
 then re-read on Soramic at τ ∈ {12, 24, 36, 48} mo + full follow-up on **RFS and TTR** — readout
 **A** (administrative-censoring KM / log-rank / Cox HR / Harrell C) and **B** (RMST: per-arm, ΔRMST
 95% CI, point-in-time survival-difference p). Splits are endpoint-independent (frozen from the
-`rfs_2year`-based scores), so RFS and TTR share the partition. This section reports **Soramic only**;
-resection (in-sample ceiling) and Lausanne to follow. Setting A heads (`dc7e1d10`) score all
+`rfs_2year`-based scores), so RFS and TTR share the partition. This section reports the **Soramic**
+transfer tables; each head's KM now also shows the **Resection in-sample ceiling** curve (same frozen
+cutoff, drawn on the training cohort). Lausanne to follow. Setting A heads (`dc7e1d10`) score all
 **Soramic n = 100** (RFS 50 events, TTR 31 events); Setting B heads score the 3-embedding
 intersection **Soramic n = 95** (RFS 47 events, TTR 29 events) — the bbox `92b9afed` cache trims 5
 patients. All scored regardless of 2-year label availability (as in v2 §2).
@@ -186,6 +187,10 @@ Soramic RFS KM (full follow-up, frozen kmeans cutoff; τ = 12/24/36/48 mo marked
 
 ![A1 Soramic RFS KM — kmeans 90/10](km/km_restricted_soramic_A1_ridge_var_k85_rfs.png)
 
+Resection (in-sample ceiling) RFS KM — same frozen kmeans cutoff:
+
+![A1 Resection RFS KM — kmeans](km/km_restricted_resection_A1_ridge_var_k85_rfs.png)
+
 RFS:
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
@@ -217,6 +222,10 @@ reliable read). A1 remains the **only** of the four heads with a significant hor
 Soramic RFS KM (full follow-up, frozen median cutoff; τ = 12/24/36/48 mo marked):
 
 ![A2 Soramic RFS KM — median 75/25](km/km_restricted_soramic_A2_modelens_rfs.png)
+
+Resection (in-sample ceiling) RFS KM — same frozen median cutoff:
+
+![A2 Resection RFS KM — median](km/km_restricted_resection_A2_modelens_rfs.png)
 
 RFS:
 
@@ -253,6 +262,10 @@ Soramic RFS KM (full follow-up, frozen median cutoff; τ = 12/24/36/48 mo marked
 
 ![B1 Soramic RFS KM — median 87/8](km/km_restricted_soramic_B1_ridge_rfimport_k43_v4_rfs.png)
 
+Resection (in-sample ceiling) RFS KM — same frozen median cutoff:
+
+![B1 Resection RFS KM — median](km/km_restricted_resection_B1_ridge_rfimport_k43_v4_rfs.png)
+
 RFS:
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
@@ -287,6 +300,10 @@ Soramic RFS KM (full follow-up, frozen youden cutoff; τ = 12/24/36/48 mo marked
 
 ![B2 Soramic RFS KM — youden 80/15](km/km_restricted_soramic_B2_modelens_v4_rfs.png)
 
+Resection (in-sample ceiling) RFS KM — same frozen youden cutoff:
+
+![B2 Resection RFS KM — youden](km/km_restricted_resection_B2_modelens_v4_rfs.png)
+
 RFS:
 
 | τ (mo) | ev hi/lo | HR (95% CI) | log-rank p | C-idx | ‖ | RMST hi/lo | ΔRMST (95% CI) | point-p |
@@ -319,21 +336,21 @@ are degenerate low-arm variance estimates, not signal.
 | Grid runner | `hcc_multimodal/eval/embedding_grid_eval.py` (`--model-ensemble`, `--model-ensemble-top-k`) |
 | Setting A CSVs | `results/eval/grid_flat3/dc7e1d10/{grid_cv_auc,grid_cv_auc_matrix,grid_transfer_*,grid_best_by_cv,model_ensemble_members,model_ensemble_best}.csv` |
 | Setting B CSVs (v4) | `results/eval/grid_flat3_ensemble_v4/{…same…}.csv` |
-| Heatmaps | `reports/0720/flat3/{dc7e1d10,ensemble_v4}/heatmap_{cv_auc,soramic_auroc,lusanne_auroc}.{png,svg}` |
+| Heatmaps | `reports/0727/flat3/{dc7e1d10,ensemble_v4}/heatmap_{cv_auc,soramic_auroc,lusanne_auroc}.{png,svg}` |
 | §6 runner + scoring | `hcc_multimodal/survival/run_restricted.py` (`--members-csv`, `--select-cutoff-by-power`), `hcc_multimodal/survival/grid_scores.py` (`route_grid_scores_hetero`), `restricted.py`, `cutoffs.py`, `hcc_multimodal/eval/ensemble.py` |
 | §6 cutoff sweeps | `results/eval/survival/cutoff_sweep_{A1_ridge_var_k85_rfs,A2_modelens_rfs,B1_ridge_rfimport_k43_v4_rfs,B2_modelens_v4_rfs}.csv` (median/kmeans/youden per head) |
 | §6 Soramic tables | `results/eval/survival/restricted_time_soramic_{A1_ridge_var_k85,A2_modelens,B1_ridge_rfimport_k43_v4,B2_modelens_v4}_{rfs,ttr}.csv` |
-| §6.1–6.4 RFS KM figures | `reports/0720/km/km_restricted_soramic_{A1_ridge_var_k85_rfs,A2_modelens_rfs,B1_ridge_rfimport_k43_v4_rfs,B2_modelens_v4_rfs}.{png,svg}` — full-follow-up Soramic RFS KM at the frozen best-power cutoff, τ marked. Drawn by `run_restricted._draw_km` / `plots._draw_subplot`. Annotation C-index is the hi/lo-dichotomy concordance and differs from the continuous-score C-index in the §6 tables. |
+| §6.1–6.4 RFS KM figures | `reports/0727/km/km_restricted_{soramic,resection}_{A1_ridge_var_k85_rfs,A2_modelens_rfs,B1_ridge_rfimport_k43_v4_rfs,B2_modelens_v4_rfs}.{png,svg}` — full-follow-up RFS KM at the frozen best-power cutoff, τ marked, for both the Soramic transfer cohort and the Resection in-sample ceiling. Drawn by `run_restricted._draw_km` / `plots._draw_subplot`. Annotation C-index is the hi/lo-dichotomy concordance and differs from the continuous-score C-index in the §6 tables. |
 | §6 protocol reference | [`0713_restricted_time_survival_v2.md`](../0713/0713_restricted_time_survival_v2.md) |
-| CV-rank baseline (n=all only) | [`0727_ablation_eval_v4.md`](../0727/0727_ablation_eval_v4.md) §4 |
-| Prior v3 grid / ensemble | [`0720_embedding_grid_eval_v3.md`](0720_embedding_grid_eval_v3.md) |
+| CV-rank baseline (n=all only) | [`0727_ablation_eval_v4.md`](0727_ablation_eval_v4.md) §4 |
+| Prior v3 grid / ensemble | [`0720_embedding_grid_eval_v3.md`](../0720/0720_embedding_grid_eval_v3.md) |
 
 Regenerate — Setting A (single embedding: grid + model ensemble; unchanged from v3):
 ```
 python -m hcc_multimodal.eval.embedding_grid_eval --task grid --model-id dc7e1d10 \
   --cv-mode flat --outer-folds 3 --cv-repeats 1 --select-k-fracs 0.333 0.667 1.0 \
   --model-ensemble --model-ensemble-top-k 3 \
-  --output-dir results/eval/grid_flat3/dc7e1d10 --fig-dir reports/0720/flat3/dc7e1d10
+  --output-dir results/eval/grid_flat3/dc7e1d10 --fig-dir reports/0727/flat3/dc7e1d10
 ```
 Regenerate — Setting B (new top-3-by-CV n=all ensemble + model ensemble = both axes):
 ```
@@ -341,7 +358,7 @@ python -m hcc_multimodal.eval.embedding_grid_eval --task grid \
   --model-id dc7e1d10 a64b245f 92b9afed --ensemble \
   --cv-mode flat --outer-folds 3 --cv-repeats 1 --select-k-fracs 0.333 0.667 1.0 \
   --model-ensemble --model-ensemble-top-k 3 \
-  --output-dir results/eval/grid_flat3_ensemble_v4 --fig-dir reports/0720/flat3/ensemble_v4
+  --output-dir results/eval/grid_flat3_ensemble_v4 --fig-dir reports/0727/flat3/ensemble_v4
 ```
 Decoupling: drop `--model-ensemble` for grid-only; drop `--ensemble` for the single-embedding
 axis; both flags together = embedding × model.
@@ -377,5 +394,12 @@ python -m hcc_multimodal.survival.run_restricted --ensemble --model-ids dc7e1d10
   --output-dir results/eval/survival --tag B2_modelens_v4_rfs
 ```
 The §6.1–6.4 RFS KM figures re-run each head with the pick forced (`--force-cutoff <pick>`) plus
-`--km --fig-dir reports/0720/km`. All four heads are now evaluable, so all four have a KM (v3 omitted
-B1's degenerate 100/0 case).
+`--km --fig-dir reports/0727/km`, and **omit `--no-resection`** so the training cohort is scored too —
+this emits both `km_restricted_soramic_<tag>` and `km_restricted_resection_<tag>` (the in-sample
+ceiling). All four heads are evaluable, so all four have a KM (v3 omitted B1's degenerate 100/0 case).
+Example (A1):
+```
+python -m hcc_multimodal.survival.run_restricted --model-id dc7e1d10 --fs Variance --model Ridge \
+  --select-k 85 --freeze-on insample --force-cutoff kmeans_frozen --taus 12 24 36 48 \
+  --km --output-dir results/eval/survival --fig-dir reports/0727/km --tag A1_ridge_var_k85_rfs
+```
