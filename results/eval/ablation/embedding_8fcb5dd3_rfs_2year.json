@@ -1,0 +1,42 @@
+{
+  "git_commit": "4d644b0e0ed0cfbc090ed3c853d5bd7f016e1e59",
+  "timestamp": "2026-07-21T15:31:09.795332",
+  "args": {
+    "ablation_set": "soramic",
+    "model_id": "8fcb5dd3",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "average",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 6,
+    "output": "results/eval/ablation/embedding_8fcb5dd3_rfs_2year.json",
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.5511695906432748,
+          "auprc": 0.6983163731372843,
+          "sensitivity": 1.0,
+          "specificity": 0.05555555555555555,
+          "ppv": 0.6909090909090909,
+          "npv": 1.0,
+          "f1": 0.8172043010752689
+        },
+        "rf": {
+          "auroc": 0.6293859649122807,
+          "auprc": 0.7924352642136098,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.6785714285714286,
+          "npv": NaN,
+          "f1": 0.8085106382978723
+        }
+      }
+    }
+  }
+}

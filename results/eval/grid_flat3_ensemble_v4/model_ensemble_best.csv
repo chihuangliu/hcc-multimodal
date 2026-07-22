@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+dc7e1d10+a64b245f+92b9afed,Ridge/RF Import. + LASSO/Boruta + Elastic Net/RF Import.,3,0.7397633744855967,0.09213538812415248,0.6234567901234568,0.4276960784313726
