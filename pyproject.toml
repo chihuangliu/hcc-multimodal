@@ -7,9 +7,14 @@ requires-python = ">=3.12"
 dependencies = [
     "matplotlib>=3.10.8",
     "matplotlib-venn>=1.1.2",
+    "nibabel>=5.4.2",
     "pandas>=3.0.2",
+    "pyarrow>=24.0.0",
     "pydeseq2>=0.5.4",
     "scikit-learn>=1.8.0",
+    "torchvision>=0.26.0",
+    "transformers>=4.46.0",
+    "tqdm>=4.67.3",
 ]
 
 [build-system]
@@ -22,4 +27,17 @@ packages = ["hcc_multimodal"]
 [dependency-groups]
 dev = [
     "ipykernel>=7.2.0",
+]
+eval = [
+    "openpyxl>=3.1.5",
+]
+survival = [
+    "lifelines>=0.30.0",
+]
+interpretability = [
+    "scipy>=1.13",
+]
+features = [
+    "xgboost>=2.0",
+    "Boruta>=0.3",
 ]

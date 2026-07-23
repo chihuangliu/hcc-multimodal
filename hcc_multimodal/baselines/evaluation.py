@@ -2,10 +2,14 @@
 
 import warnings
 from itertools import cycle
+from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+matplotlib.rcParams['svg.fonttype'] = 'none'
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.ds import DeseqStats
 from sklearn.base import BaseEstimator, TransformerMixin, clone
@@ -158,7 +162,8 @@ def apply_selector_before_cv(
         If given, saves a CSV of selected feature names to this path.
     """
     y_mask = ~y.isna()
-    X_fit, y_fit = X[y_mask], y[y_mask]
+    y_fit = y[y_mask]
+    X_fit = X.loc[y_fit.index]
     sel_pre = clone(selector)
 
     if selector_first:
@@ -285,7 +290,8 @@ def run_cv_experiment(
     )
 
     mask = ~y.isna()
-    X_clean, y_clean = X[mask], y[mask]
+    y_clean = y[mask]
+    X_clean = X.loc[y_clean.index]
     print(
         f"[{label}]  n={len(y_clean)}"
         f"  positives={int(y_clean.sum())}"
@@ -466,7 +472,7 @@ def plot_pca_variance(
     cumvar = np.cumsum(pca_full.explained_variance_ratio_)
     percentile = int(np.searchsorted(cumvar, threshold)) + 1
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
     ax = axes[0]
     ax.plot(np.arange(1, len(cumvar) + 1), cumvar, color="steelblue", linewidth=1.5)
@@ -478,20 +484,22 @@ def plot_pca_variance(
         linewidth=0.8,
         label=f"{percentile} components → {threshold:.0%} variance",
     )
-    ax.set_xlabel("Number of PCA components")
-    ax.set_ylabel("Cumulative explained variance")
-    ax.set_title("Cumulative variance explained")
-    ax.legend(fontsize=9)
+    ax.set_xlabel("Number of Principal Components", fontsize=16)
+    ax.set_ylabel("Cumulative Explained Variance", fontsize=16)
+    ax.set_title("Cumulative Variance Explained", fontsize=16)
+    ax.tick_params(labelsize=14)
+    ax.legend(fontsize=14)
     ax.grid(alpha=0.3)
 
     ax = axes[1]
     ax.bar(np.arange(1, 31), pca_full.explained_variance_ratio_[:30], color="steelblue")
-    ax.set_xlabel("Principal component")
-    ax.set_ylabel("Explained variance ratio")
-    ax.set_title("Per-component variance (first 30)")
+    ax.set_xlabel("Principal Component", fontsize=16)
+    ax.set_ylabel("Explained Variance Ratio", fontsize=16)
+    ax.set_title("Per-component Variance (first 30)", fontsize=16)
+    ax.tick_params(labelsize=14)
     ax.grid(axis="y", alpha=0.3)
 
-    plt.suptitle(title, fontsize=13)
+    plt.suptitle(title, fontsize=18)
     plt.tight_layout()
     plt.show()
     print(
@@ -509,24 +517,29 @@ def plot_cv_results(
     colors = ["steelblue", "seagreen"]
     y_pos = np.arange(len(model_names))
 
-    fig, axes = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(10, max(3, len(model_names) * 0.6 + 1)), sharey=True)
     for col, split in enumerate(["train", "test"]):
         ax = axes[col]
         for y_idx, (model_name, color) in enumerate(zip(model_names, cycle(colors))):
             df = fold_df[fold_df["model"] == model_name]
             aucs = df[f"{split}_auc"].values
-            ax.scatter(aucs, [y_idx] * len(aucs), color=color, s=60, zorder=3)
-            ax.scatter(aucs.mean(), y_idx, marker="D", color=color, s=90, zorder=4)
+            ax.scatter(aucs, [y_idx] * len(aucs), color=color, s=80, zorder=3)
+            ax.scatter(aucs.mean(), y_idx, marker="D", color=color, s=110, zorder=4)
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(model_names)
-        ax.set_xlabel("AUC")
-        ax.set_title(f"{'Train' if split == 'train' else 'Test'} AUC")
+        ax.set_yticklabels(model_names, fontsize=14)
+        ax.set_xlabel("Area Under the ROC Curve (AUC)", fontsize=16)
+        ax.set_title(f"{'Train' if split == 'train' else 'Test'} AUC", fontsize=16)
+        ax.tick_params(axis="x", labelsize=14)
         ax.grid(axis="x", alpha=0.3)
-    fig.suptitle(title, fontsize=13)
+    fig.suptitle(title, fontsize=18)
     plt.tight_layout()
     if save_path is not None:
+        save_path = Path(save_path)
         fig.savefig(save_path, bbox_inches="tight", dpi=150)
-    plt.show()
+        fig.savefig(save_path.with_suffix(".svg"), bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
 
 
 def plot_experiment_comparison(
@@ -549,24 +562,25 @@ def plot_experiment_comparison(
         y_pos = np.arange(len(model_names))
         for y_idx, (model_name, color) in enumerate(zip(model_names, colors)):
             aucs = df_exp[df_exp["model"] == model_name]["test_auc"].values
-            ax.scatter(aucs, [y_idx] * len(aucs), color=color, s=60, zorder=3)
+            ax.scatter(aucs, [y_idx] * len(aucs), color=color, s=80, zorder=3)
             ax.scatter(
                 aucs.mean(),
                 y_idx,
                 marker="D",
                 color=color,
-                s=90,
+                s=110,
                 zorder=4,
                 label=model_name,
             )
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(model_names)
-        ax.set_xlabel("Test AUC")
-        ax.set_title(exp_name, fontsize=9)
+        ax.set_yticklabels(model_names, fontsize=14)
+        ax.set_xlabel("Test AUROC", fontsize=16)
+        ax.set_title(exp_name, fontsize=14)
+        ax.tick_params(axis="x", labelsize=14)
         ax.grid(axis="x", alpha=0.3)
 
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper right", fontsize=9)
-    fig.suptitle(title, fontsize=13)
+    fig.legend(handles, labels, loc="upper right", fontsize=14)
+    fig.suptitle(title, fontsize=18)
     plt.tight_layout()
     plt.show()

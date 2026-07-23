@@ -89,8 +89,8 @@ Circles = per-fold AUC, diamonds = mean.
 # 4. Predefined HCC gene set
 ## HCC Gene set description 
 - Total number: 2,175 (unique gene symbols across 12 HCC gene sets in `data/RNA_seq/gene_sets_combined/`)
-- Directly match to RNA-seq data set (`/data/RNA_seq/Matrix_output_radiology_only.csv`): 2,160
-- 1-on-1 mapped to RNA-seq data set: 31
+- Directly match to RNA-seq data set (`/data/RNA_seq/Matrix_output_radiology_only.csv`): 2,159
+- 1-on-1 mapped to RNA-seq data set: 30
 
   | Gene set symbol | Matrix symbol | Rationale |
   |----------------|---------------|-----------|
@@ -99,7 +99,7 @@ Circles = per-fold AUC, diamonds = mean.
   | CCN1 | CYR61 | HGNC approved symbol update |
   | CCN2 | CTGF | HGNC approved symbol update |
   | CILK1 | ICK | HGNC approved symbol update |
-  | DYNC2I2 | WDR60 | HGNC approved symbol update |
+  | DYNC2I2 | WDR34 | HGNC approved symbol update |
   | EPRS1 | EPRS | HGNC approved symbol update |
   | G6PC1 | G6PC | HGNC approved symbol update |
   | GBA1 | GBA | HGNC approved symbol update |
@@ -114,7 +114,7 @@ Circles = per-fold AUC, diamonds = mean.
   | HJV | HFE2 | HGNC approved symbol update |
   | IARS1 | IARS | HGNC approved symbol update |
   | ILRUN | C6orf106 | HGNC approved symbol update |
-  | ITPRID2 | PPIP5K2 | HGNC approved symbol update |
+  | ITPRID2 | SSFA2 | HGNC approved symbol update |
   | MACROH2A2 | H2AFY2 | HGNC approved symbol update |
   | MMUT | MUT | HGNC approved symbol update |
   | NARS1 | NARS | HGNC approved symbol update |
@@ -124,9 +124,8 @@ Circles = per-fold AUC, diamonds = mean.
   | NTAQ1 | NTAN1 | HGNC approved symbol update |
   | PHB1 | PHB | HGNC approved symbol update |
   | PLAAT3 | PLA2G16 | HGNC approved symbol update |
-  | RSC1A1 | SLC7A9 | HGNC approved symbol update |
 
-- Cannot match: 15 — symbol absent from RNA-seq matrix and no clear matches:
+- Cannot match: 16 — symbol absent from RNA-seq matrix and no clear matches:
 
   | Gene | Reason no distinct mapping can be defined |
   |------|------------------------------------------|
@@ -145,6 +144,7 @@ Circles = per-fold AUC, diamonds = mean.
   | SEPTIN4 | Updated SEPTIN-prefix symbol (was SEPT4); old symbol SEPT4 also absent from the matrix — gene missing from quantification reference entirely |
   | SEPTIN7 | Updated SEPTIN-prefix symbol (was SEPT7); old symbol SEPT7 also absent from the matrix — gene missing from quantification reference entirely |
   | UTP25 | Prior symbol KIAA1041 also absent from the matrix — gene missing from quantification reference entirely |
+  | RSC1A1 | Distinct gene from SLC7A9 (HGNC:10458 vs HGNC:11067; RSC1A1 encodes "regulator of solute carriers 1", SLC7A9 encodes solute carrier family 7 member 9); no HGNC cross-reference between them — prior symbol mapping cannot be confirmed |
 
 ## Predefined HCC gene set CV results
 
@@ -152,8 +152,8 @@ Best mean test AUC for `before-CV, predefined genes` and  `in-CV, predefined gen
 
 | Config | Selector placement | 1y LR | 1y RF | 2y LR | 2y RF |
 |--------|--------------------|-------|-------|-------|-------|
-| before_cv, predefined | before CV | 0.485 ± 0.032 | 0.596 ± 0.109 | 0.500 ± 0.018 | **0.591 ± 0.058** |
-| in_cv, predefined | inside CV | 0.512 ± 0.054 | 0.596 ± 0.109 | 0.512 ± 0.088 | **0.628 ± 0.045** |
+| before_cv, predefined | before CV | 0.500 ± 0.000 | **0.596 ± 0.133** | 0.500 ± 0.000 | 0.591 ± 0.071 |
+| in_cv, predefined | inside CV | 0.508 ± 0.072 | 0.596 ± 0.133 | 0.512 ± 0.108 | **0.624 ± 0.038** |
 
 # 5. Genes feature selection analysis
 ## Pre CV selected features 
@@ -268,7 +268,7 @@ Age and Sex are concatenated to the selected features **after**. Source: `notebo
 |----------|----------|-------|-------|-------|-------|
 | Arterial radiomics | SelectKBest F-score (k=100), before CV | 0.768 ± 0.089 | **0.846 ± 0.073** | 0.739 ± 0.117 | 0.776 ± 0.136 |
 | RNA-seq | DESeq2 (`padj < 0.05`, min 20 features), before CV | 0.646 ± 0.083 | 0.754 ± 0.036 | **0.876 ± 0.087** | 0.793 ± 0.138 |
-| RNA-seq (predefined HCC genes) | DESeq2 (`padj < 0.05`, min 20 features), in CV | 0.512 ± 0.143 | 0.588 ± 0.058 | 0.504 ± 0.065 | 0.591 ± 0.026 |
+| RNA-seq (predefined HCC genes) | DESeq2 (`padj < 0.05`, min 20 features), in CV | 0.512 ± 0.176 | 0.588 ± 0.071 | 0.504 ± 0.079 | 0.591 ± 0.032 |
 
 The best radiomic RF improves slightly (1y: 0.821 → 0.846; 2y: 0.781 → 0.776).
 RNA-seq 2y LR also improves (0.867 → 0.876). Predefined HCC gene set + Age/Sex performs poorly across all horizons (best 2y RF: 0.591), consistent with the no-confounder result in §4.

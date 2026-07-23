@@ -2,3 +2,8 @@ data/*
 **__pycache__**
 .claude
 .vscode
+*.DS_Store
+*.pt
+training/contrastive/*/cached_embeddings/
+models/*
+results/**/*.parquet

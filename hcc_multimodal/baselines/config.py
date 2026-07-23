@@ -9,7 +9,7 @@ RANDOM_STATE = 42
 
 MODELS: dict[str, object] = {
     "LR": LogisticRegression(
-        solver="saga", l1_ratio=1.0, max_iter=1000, random_state=RANDOM_STATE
+        solver="saga", l1_ratio=1.0, max_iter=5000, random_state=RANDOM_STATE
     ),
     "RF": RandomForestClassifier(n_estimators=100, random_state=RANDOM_STATE),
 }
