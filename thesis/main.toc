@@ -10,7 +10,9 @@
 \contentsline {section}{\numberline {3.1}Baselines for RFS Prediction}{5}{section.13}%
 \contentsline {section}{\numberline {3.2}Multimodal Contrastive Learning}{9}{section.27}%
 \contentsline {section}{\numberline {3.3}External Ablation Set Evaluation}{10}{section.40}%
-\contentsline {chapter}{References}{15}{figure.caption.54}%
-\contentsline {chapter}{Appendix \numberline {A}RNA-seq Feature Selection Details}{18}{appendix.56}%
-\contentsline {chapter}{Appendix \numberline {B}Complete External Evaluation Metrics}{20}{appendix.59}%
-\contentsline {chapter}{Appendix \numberline {C}RNA-seq Baseline Full Results}{22}{appendix.62}%
+\contentsline {section}{\numberline {3.4}Model Interpretability}{15}{section.55}%
+\contentsline {chapter}{\numberline {4}Conclusion}{16}{chapter.56}%
+\contentsline {chapter}{References}{16}{chapter.56}%
+\contentsline {chapter}{Appendix \numberline {A}RNA-seq Feature Selection Details}{19}{appendix.58}%
+\contentsline {chapter}{Appendix \numberline {B}Complete External Evaluation Metrics}{21}{appendix.61}%
+\contentsline {chapter}{Appendix \numberline {C}RNA-seq Baseline Full Results}{23}{appendix.64}%
