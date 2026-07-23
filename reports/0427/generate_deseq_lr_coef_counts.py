@@ -16,10 +16,13 @@ Columns in deseq_lr_nonzero_genes_all.csv:
 import warnings
 from pathlib import Path
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib_venn import venn3
+
+matplotlib.rcParams['svg.fonttype'] = 'none'
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
@@ -151,13 +154,13 @@ print(df_counts.to_string(index=False))
 # ---------------------------------------------------------------------------
 # Venn diagrams — C=1 only (only C with consistent nonzero features)
 # ---------------------------------------------------------------------------
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
 for ax, year in zip(axes, [1, 2]):
     sets = [fold_gene_sets[year][1].get(f, set()) for f in [1, 2, 3]]
     sizes = [len(s) for s in sets]
     v = venn3(sets, set_labels=(f"Fold 1\n(n={sizes[0]})", f"Fold 2\n(n={sizes[1]})", f"Fold 3\n(n={sizes[2]})"), ax=ax)
-    ax.set_title(f"RFS {year}-year LR C=1 — DESeq2-selected, non-zero coef genes", fontsize=11)
+    ax.set_title(f"RFS {year}-year LR C=1 — DESeq2-selected, non-zero coef genes", fontsize=16)
 
     f12 = sets[0] & sets[1]
     f13 = sets[0] & sets[2]
@@ -169,9 +172,10 @@ for ax, year in zip(axes, [1, 2]):
     print(f"  F2∩F3: {sorted(f23) or 'empty'}")
     print(f"  F1∩F2∩F3: {sorted(f123) or 'empty'}")
 
-plt.suptitle("DESeq2 + L1 LR (C=1) — non-zero coefficient genes per fold", fontsize=13)
+plt.suptitle("DESeq2 + L1 LR (C=1) — non-zero coefficient genes per fold", fontsize=18)
 plt.tight_layout()
 venn_path = VENN_DIR / "venn_deseq_lr_c1.png"
 plt.savefig(venn_path, bbox_inches="tight", dpi=150)
+plt.savefig(venn_path.with_suffix(".svg"), bbox_inches="tight")
 plt.close()
 print(f"\nSaved {venn_path}")

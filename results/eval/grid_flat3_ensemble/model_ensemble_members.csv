@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+Ridge,Elastic Net,0.8140946502057614,0.07599378568286073,43,"{""model__alpha"": 10.0, ""selector__max_features"": 43}"
+NNET,Pearson,0.8135802469135803,0.08417423618477961,43,"{""model__alpha"": 0.001, ""model__hidden_layer_sizes"": [32, 16], ""selector__k"": 43}"
+Elastic Net,Elastic Net,0.8058641975308642,0.06690391787859636,43,"{""model__C"": 1.0, ""model__l1_ratio"": 0.2, ""selector__max_features"": 43}"

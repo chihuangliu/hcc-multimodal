@@ -1,0 +1,42 @@
+{
+  "git_commit": "4d644b0e0ed0cfbc090ed3c853d5bd7f016e1e59",
+  "timestamp": "2026-07-21T15:32:49.729841",
+  "args": {
+    "ablation_set": "lusanne",
+    "model_id": "8fcb5dd3",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "average",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 6,
+    "output": "results/eval/lusanne/embedding_8fcb5dd3_rfs_2year.json",
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.4338235294117647,
+          "auprc": 0.7217711003814672,
+          "sensitivity": 0.9791666666666666,
+          "specificity": 0.0,
+          "ppv": 0.734375,
+          "npv": 0.0,
+          "f1": 0.8392857142857143
+        },
+        "rf": {
+          "auroc": 0.5882352941176471,
+          "auprc": 0.7907755355727976,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.7384615384615385,
+          "npv": NaN,
+          "f1": 0.8495575221238938
+        }
+      }
+    }
+  }
+}

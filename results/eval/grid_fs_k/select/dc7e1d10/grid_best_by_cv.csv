@@ -1,0 +1,2 @@
+model_id,best_classifier,best_fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params,soramic_auroc,lusanne_auroc
+dc7e1d10,Ridge,RF Import.,0.6745333333333334,0.150812260038028,43,"{""model__alpha"": 1.0, ""selector__max_features"": 43}",0.7250712250712251,0.4021608643457383

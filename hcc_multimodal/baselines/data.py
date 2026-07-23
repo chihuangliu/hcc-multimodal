@@ -1,14 +1,10 @@
 """Clinical data helpers for HCC multimodal baselines."""
 
 import warnings
-from importlib.resources import files
-from pathlib import Path
 
 import pandas as pd
 
-import hcc_multimodal
-
-_RNA_SEQ_DIR = Path(files(hcc_multimodal).joinpath("")).parent / "data" / "RNA_seq"
+from hcc_multimodal.utils.data import GENE_SETS_DIR, RNA_SEQ_CSV
 
 
 _GENE_NAME_MAP: dict[str, str] = {
@@ -17,7 +13,7 @@ _GENE_NAME_MAP: dict[str, str] = {
     "CCN1": "CYR61",
     "CCN2": "CTGF",
     "CILK1": "ICK",
-    "DYNC2I2": "WDR60",
+    "DYNC2I2": "WDR34",
     "EPRS1": "EPRS",
     "G6PC1": "G6PC",
     "GBA1": "GBA",
@@ -32,7 +28,7 @@ _GENE_NAME_MAP: dict[str, str] = {
     "HJV": "HFE2",
     "IARS1": "IARS",
     "ILRUN": "C6orf106",
-    "ITPRID2": "PPIP5K2",
+    "ITPRID2": "SSFA2",
     "MACROH2A2": "H2AFY2",
     "MMUT": "MUT",
     "NARS1": "NARS",
@@ -42,7 +38,6 @@ _GENE_NAME_MAP: dict[str, str] = {
     "NTAQ1": "NTAN1",
     "PHB1": "PHB",
     "PLAAT3": "PLA2G16",
-    "RSC1A1": "SLC7A9",
 }
 
 
@@ -52,18 +47,15 @@ def get_hcc_genes() -> list[str]:
     Genes present in gene_sets_combined but absent from Matrix_output_radiology_only.csv
     are reported via a warning and excluded from the returned list.
     """
-    gene_sets_dir = _RNA_SEQ_DIR / "gene_sets_combined"
     all_genes: set[str] = set()
-    for path in gene_sets_dir.glob("*.txt"):
+    for path in GENE_SETS_DIR.glob("*.txt"):
         df = pd.read_csv(path, sep="\t")
         all_genes.update(df["GeneName"].tolist())
 
     all_genes = {_GENE_NAME_MAP.get(g, g) for g in all_genes}
 
     matrix_genes: set[str] = set(
-        pd.read_csv(
-            _RNA_SEQ_DIR / "Matrix_output_radiology_only.csv", usecols=["Gene Symbol"]
-        )["Gene Symbol"]
+        pd.read_csv(RNA_SEQ_CSV, usecols=["Gene Symbol"])["Gene Symbol"]
     )
 
     unmatched = all_genes - matrix_genes
@@ -77,26 +69,37 @@ def get_hcc_genes() -> list[str]:
     return sorted(all_genes & matrix_genes)
 
 
-def rfs(rfs_central: float, rfs_central_event: float, months: int) -> int | None:
+def rfs(
+    rfs_central: float,
+    rfs_central_event: float,
+    months: int,
+    tolerance_months: int = 0,
+) -> int | None:
     if rfs_central_event == 1:
         if rfs_central <= months:
             return 1
         else:
             return 0
     else:
-        if rfs_central < months:
+        # Censored: drop only if follow-up is shorter than (threshold - tolerance).
+        # e.g. threshold=24, tolerance=3: a patient last seen at 21 months with no
+        # event is retained as negative because 21 >= 24 - 3.
+        if rfs_central < (months - tolerance_months):
             return None
         else:
             return 0
 
 
-def add_rfs_columns(clinical_data: pd.DataFrame) -> pd.DataFrame:
+def add_rfs_columns(
+    clinical_data: pd.DataFrame,
+    tolerance_months: int = 0,
+) -> pd.DataFrame:
     """Return a copy of *clinical_data* with ``rfs_1year`` and ``rfs_2year`` columns."""
     clinical_data = clinical_data.copy()
     clinical_data["rfs_1year"] = clinical_data.apply(
-        lambda row: rfs(row["RFS_central"], row["RFS_central_event"], 1 * 12), axis=1
+        lambda row: rfs(row["RFS_central"], row["RFS_central_event"], 1 * 12, tolerance_months), axis=1
     )
     clinical_data["rfs_2year"] = clinical_data.apply(
-        lambda row: rfs(row["RFS_central"], row["RFS_central_event"], 2 * 12), axis=1
+        lambda row: rfs(row["RFS_central"], row["RFS_central_event"], 2 * 12, tolerance_months), axis=1
     )
     return clinical_data
