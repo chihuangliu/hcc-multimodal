@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+8f41f04f,Ridge/Elastic Net + Elastic Net/RF Import. + L-SVM/Elastic Net,3,0.7274176954732511,0.07956743165893317,0.5783475783475783,0.489795918367347

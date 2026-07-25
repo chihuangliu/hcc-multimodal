@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+507d94dc,Ridge/Variance + Elastic Net/Pearson + L-SVM/Mutual Info,3,0.7729938271604938,0.11064165514063085,0.6737891737891738,0.44897959183673475
