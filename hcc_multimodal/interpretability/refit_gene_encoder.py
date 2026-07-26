@@ -74,6 +74,16 @@ def run(args) -> None:
     device = _pick_device()
     torch.manual_seed(args.seed)
 
+    # Loss config: default to the source run's values, but allow overrides. Under
+    # a frozen image encoder the per_modality outcome reg on z_img is a no-op and
+    # the z_gene term is unopposed (it can overfit the gene space to the training
+    # labels), so `--lam 0` gives a clean image-alignment-only refit for
+    # interpretability.
+    lam_eff = args.lam if args.lam is not None else meta["lam"]
+    reg_mode_eff = args.reg_mode if args.reg_mode is not None else meta["reg_mode"]
+    print(f"Loss config: lam={lam_eff} (source {meta['lam']}), "
+          f"reg_mode={reg_mode_eff} (source {meta['reg_mode']})")
+
     # --- dataset, identical setup to the source training run -----------------
     # In --precompute-embeddings mode the frozen image encoder is run once, so we
     # use the deterministic inference transform (no random flips) — this is also
@@ -188,8 +198,8 @@ def run(args) -> None:
             z_img, gvecs, outcomes = _batch_zimg(batch)
             loss = contrastive_loss(
                 z_img, gene_enc(gvecs), outcomes=outcomes,
-                temperature=meta["temperature"], lam=meta["lam"], step=step,
-                reg_mode=meta["reg_mode"],
+                temperature=meta["temperature"], lam=lam_eff, step=step,
+                reg_mode=reg_mode_eff,
             )
             optimizer.zero_grad()
             loss.backward()
@@ -205,8 +215,8 @@ def run(args) -> None:
                 z_img, gvecs, outcomes = _batch_zimg(batch)
                 total_val += contrastive_loss(
                     z_img, gene_enc(gvecs), outcomes=outcomes,
-                    temperature=meta["temperature"], lam=meta["lam"], step=step,
-                    reg_mode=meta["reg_mode"],
+                    temperature=meta["temperature"], lam=lam_eff, step=step,
+                    reg_mode=reg_mode_eff,
                 ).item()
 
         avg_train = total_train / len(train_loader)
@@ -232,6 +242,11 @@ def run(args) -> None:
         "gene_order": gene_order,
         "refit_seed": args.seed,
         "refit_precompute_embeddings": bool(args.precompute_embeddings),
+        "refit_epochs": args.epochs,
+        "lam": lam_eff,
+        "reg_mode": reg_mode_eff,
+        "source_lam": meta["lam"],
+        "source_reg_mode": meta["reg_mode"],
     }
     (run_dir / "metadata.json").write_text(json.dumps(new_meta, indent=2))
 
@@ -251,6 +266,12 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--src-model", default="9109a6c2", help="Source run id (frozen image encoder)")
+    p.add_argument("--lam", type=float, default=None,
+                   help="Outcome-reg weight; overrides the source run's lam. Use 0 for a "
+                        "pure image-alignment refit (recommended for interpretability, since "
+                        "under a frozen image the per_modality reg overfits the gene space).")
+    p.add_argument("--reg-mode", choices=["per_modality", "average"], default=None,
+                   help="Outcome-reg mode; overrides the source run's reg_mode.")
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--weight-decay", type=float, default=1e-4)
