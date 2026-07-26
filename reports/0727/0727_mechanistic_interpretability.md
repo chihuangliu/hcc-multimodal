@@ -19,48 +19,50 @@ Attributes the **Ridge/Variance k=85** downstream RFS classifier's decision back
 2. Calc s(g) = β·gene_encoder(g) for each patients as a proxy of the 2-year RFS logits.
 3. IG: for each patient, scale all the genes from 0 to the real values in 200 steps. Use the gradients of the 200 steps to approximate the integral. Meaning: when we gradually increase the genes on a scale from 0 to their real values, the contribution of each genes on the (proxy)logit.
 
-| Gene | mean\|IG\| | signed mean IG | rank |
-|---|---:|---:|---:|
-| SLC25A13 | 2.2679 | -2.2679 | 1 |
-| LACC1 | 1.8017 | +1.8017 | 2 |
-| ALS2 | 1.5598 | -1.3852 | 3 |
-| ACSM3 | 1.5556 | -1.5556 | 4 |
-| PON1 | 1.4742 | +1.2648 | 5 |
-| CFH | 1.4020 | +1.1685 | 6 |
-| MYCBP2 | 1.2906 | +1.1463 | 7 |
-| H19 | 1.1578 | +0.8657 | 8 |
-| SGSM1 | 1.1023 | +0.7519 | 9 |
-| M6PR | 0.9972 | -0.3269 | 10 |
-| USH1C | 0.9907 | +0.9712 | 11 |
-| RALA | 0.9678 | +0.9457 | 12 |
-| AC025580.2 | 0.9524 | -0.9524 | 13 |
-| SLC7A2 | 0.8935 | +0.7039 | 14 |
-| AP2B1 | 0.8748 | -0.0166 | 15 |
-| ABCB4 | 0.8316 | -0.1834 | 16 |
-| HNRNPA1P9 | 0.7127 | +0.7004 | 17 |
-| PDK4 | 0.7063 | -0.0032 | 18 |
-| REX1BD | 0.6614 | +0.2793 | 19 |
-| ARF5 | 0.6397 | +0.5756 | 20 |
-| AL445235.1 | 0.6350 | +0.4057 | 21 |
-| AC004241.5 | 0.5744 | -0.5171 | 22 |
-| AC025198.1 | 0.5600 | +0.5600 | 23 |
-| CAMK2N2 | 0.5484 | +0.4963 | 24 |
-| AC093826.2 | 0.5395 | -0.5098 | 25 |
-| AL449283.1 | 0.5005 | +0.5005 | 26 |
-| AOC1 | 0.4902 | -0.2591 | 27 |
-| AC093525.8 | 0.4735 | +0.1301 | 28 |
-| AC063947.2 | 0.3985 | +0.3955 | 29 |
-| AC138647.1 | 0.3882 | -0.3882 | 30 |
-| CSF2 | 0.3856 | -0.3856 | 31 |
-| CYP51A1 | 0.3567 | -0.2950 | 32 |
-| CALCR | 0.3559 | -0.0439 | 33 |
-| AC130366.1 | 0.3506 | +0.3384 | 34 |
-| MCUB | 0.3023 | -0.1469 | 35 |
-| RAD52 | 0.2869 | +0.0148 | 36 |
-| OR52N5 | 0.2466 | +0.2412 | 37 |
-| ZMYND12 | 0.2138 | +0.2138 | 38 |
-| HIGD2B | 0.1916 | +0.1916 | 39 |
-| RBMXL3 | 0.1376 | -0.0943 | 40 |
+The **pre-defined genes** column marks whether the gene is in the curated HCC gene panel (`get_hcc_genes()`: union of the `gene_sets/*.txt` sets, mapped to current symbols, intersected with the RNA-seq matrix → 2159 genes; see `hcc_multimodal/baselines/data.py`). ✓ = from the pre-defined panel, — = not. 22 of the 40 `all` genes come from the pre-defined panel; the remaining 18 (mostly `AC*`/`AL*` novel-transcript loci) do not.
+
+| Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
+|---|---:|---:|:---:|---:|
+| SLC25A13 | 2.2679 | -2.2679 | ✓ | 1 |
+| LACC1 | 1.8017 | +1.8017 | — | 2 |
+| ALS2 | 1.5598 | -1.3852 | ✓ | 3 |
+| ACSM3 | 1.5556 | -1.5556 | ✓ | 4 |
+| PON1 | 1.4742 | +1.2648 | ✓ | 5 |
+| CFH | 1.4020 | +1.1685 | ✓ | 6 |
+| MYCBP2 | 1.2906 | +1.1463 | ✓ | 7 |
+| H19 | 1.1578 | +0.8657 | ✓ | 8 |
+| SGSM1 | 1.1023 | +0.7519 | — | 9 |
+| M6PR | 0.9972 | -0.3269 | ✓ | 10 |
+| USH1C | 0.9907 | +0.9712 | ✓ | 11 |
+| RALA | 0.9678 | +0.9457 | ✓ | 12 |
+| AC025580.2 | 0.9524 | -0.9524 | — | 13 |
+| SLC7A2 | 0.8935 | +0.7039 | ✓ | 14 |
+| AP2B1 | 0.8748 | -0.0166 | ✓ | 15 |
+| ABCB4 | 0.8316 | -0.1834 | ✓ | 16 |
+| HNRNPA1P9 | 0.7127 | +0.7004 | — | 17 |
+| PDK4 | 0.7063 | -0.0032 | ✓ | 18 |
+| REX1BD | 0.6614 | +0.2793 | ✓ | 19 |
+| ARF5 | 0.6397 | +0.5756 | ✓ | 20 |
+| AL445235.1 | 0.6350 | +0.4057 | — | 21 |
+| AC004241.5 | 0.5744 | -0.5171 | — | 22 |
+| AC025198.1 | 0.5600 | +0.5600 | — | 23 |
+| CAMK2N2 | 0.5484 | +0.4963 | — | 24 |
+| AC093826.2 | 0.5395 | -0.5098 | — | 25 |
+| AL449283.1 | 0.5005 | +0.5005 | — | 26 |
+| AOC1 | 0.4902 | -0.2591 | ✓ | 27 |
+| AC093525.8 | 0.4735 | +0.1301 | — | 28 |
+| AC063947.2 | 0.3985 | +0.3955 | — | 29 |
+| AC138647.1 | 0.3882 | -0.3882 | — | 30 |
+| CSF2 | 0.3856 | -0.3856 | — | 31 |
+| CYP51A1 | 0.3567 | -0.2950 | ✓ | 32 |
+| CALCR | 0.3559 | -0.0439 | ✓ | 33 |
+| AC130366.1 | 0.3506 | +0.3384 | — | 34 |
+| MCUB | 0.3023 | -0.1469 | ✓ | 35 |
+| RAD52 | 0.2869 | +0.0148 | ✓ | 36 |
+| OR52N5 | 0.2466 | +0.2412 | — | 37 |
+| ZMYND12 | 0.2138 | +0.2138 | — | 38 |
+| HIGD2B | 0.1916 | +0.1916 | — | 39 |
+| RBMXL3 | 0.1376 | -0.0943 | — | 40 |
 
 ## Each gene's contribution on each dimension
 C[d, j] = β_d · J[d, j], where J[d, j] is the Jacobian on the mean of gene vectors.
