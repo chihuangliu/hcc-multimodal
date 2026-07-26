@@ -37,8 +37,9 @@ from pathlib import Path
 
 import torch
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, TensorDataset
 from torchvision.transforms import v2
+from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -74,11 +75,18 @@ def run(args) -> None:
     torch.manual_seed(args.seed)
 
     # --- dataset, identical setup to the source training run -----------------
-    augment = v2.Compose([
-        v2.RandomHorizontalFlip(),
-        v2.RandomVerticalFlip(),
-        BACKBONE_TRANSFORMS[meta["model"]](),
-    ])
+    # In --precompute-embeddings mode the frozen image encoder is run once, so we
+    # use the deterministic inference transform (no random flips) — this is also
+    # the transform the downstream embedding cache uses, so the gene encoder is
+    # aligned to the exact z_img the classifier consumes.
+    if args.precompute_embeddings:
+        transform = BACKBONE_TRANSFORMS[meta["model"]]()
+    else:
+        transform = v2.Compose([
+            v2.RandomHorizontalFlip(),
+            v2.RandomVerticalFlip(),
+            BACKBONE_TRANSFORMS[meta["model"]](),
+        ])
     genes = set(_GENE_SETS[meta["gene_set"]])
     axes = meta["axes"] if isinstance(meta["axes"], list) else [meta["axes"]]
     dataset = build_dataset(
@@ -86,16 +94,16 @@ def run(args) -> None:
         axes=axes,
         outcome_col=meta["outcome_col"],
         img_size=meta["img_size"],
-        transform=augment,
+        transform=transform,
         mri_type=meta["mri_type"],
         genes=genes,
-        bbox_pad=meta["bbox_pad"],
+        bbox_pad=meta.get("bbox_pad", 10),
     )
     gene_order = list(dataset.gene_matrix.columns)
     print(f"Gene order ({len(gene_order)}): {gene_order}")
 
     # --- train/val split, matching train.py ----------------------------------
-    if meta["split_unit"] == "patient":
+    if meta.get("split_unit", "patient") == "patient":
         patients = sorted({pid for pid, _, _ in dataset._index})
         labels = [int(dataset.outcomes[pid]) for pid in patients]
         tr_pids, va_pids = train_test_split(
@@ -110,12 +118,7 @@ def run(args) -> None:
             list(range(len(dataset))), test_size=meta["val_split"],
             stratify=labels, random_state=args.seed
         )
-    train_ds, val_ds = Subset(dataset, train_idx), Subset(dataset, val_idx)
     pin = device.type == "cuda"
-    train_loader = DataLoader(train_ds, batch_size=meta["batch_size"], shuffle=True,
-                              num_workers=args.num_workers, pin_memory=pin, drop_last=True)
-    val_loader = DataLoader(val_ds, batch_size=meta["batch_size"], shuffle=False,
-                            num_workers=args.num_workers, pin_memory=pin)
 
     # --- frozen source image encoder + fresh gene encoder --------------------
     img_enc = ImageEncoder(meta["model"], meta["embed_dim"], meta["freeze_backbone"]).to(device)
@@ -131,6 +134,42 @@ def run(args) -> None:
     optimizer = torch.optim.AdamW(gene_enc.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
 
+    # --- data loaders. Live mode runs the (frozen) image encoder every batch;
+    # precompute mode caches z_img for every slice once (image encoder is frozen,
+    # so z_img is fixed under the deterministic transform) and trains the gene
+    # encoder against the cache — orders of magnitude faster for n=all runs.
+    if args.precompute_embeddings:
+        full_loader = DataLoader(dataset, batch_size=meta["batch_size"], shuffle=False,
+                                 num_workers=args.num_workers, pin_memory=pin)
+        z_list, g_list, y_list = [], [], []
+        with torch.no_grad():
+            for imgs, gvecs, outcomes, _ in tqdm(full_loader, desc="precompute z_img"):
+                z_list.append(img_enc(imgs.to(device)).cpu())
+                g_list.append(gvecs)
+                y_list.append(outcomes)
+        Z, G, Y = torch.cat(z_list), torch.cat(g_list), torch.cat(y_list)
+        ti, vi = torch.tensor(train_idx), torch.tensor(val_idx)
+        train_loader = DataLoader(TensorDataset(Z[ti], G[ti], Y[ti]),
+                                  batch_size=meta["batch_size"], shuffle=True, drop_last=True)
+        val_loader = DataLoader(TensorDataset(Z[vi], G[vi], Y[vi]),
+                                batch_size=meta["batch_size"], shuffle=False)
+    else:
+        train_ds, val_ds = Subset(dataset, train_idx), Subset(dataset, val_idx)
+        train_loader = DataLoader(train_ds, batch_size=meta["batch_size"], shuffle=True,
+                                  num_workers=args.num_workers, pin_memory=pin, drop_last=True)
+        val_loader = DataLoader(val_ds, batch_size=meta["batch_size"], shuffle=False,
+                                num_workers=args.num_workers, pin_memory=pin)
+
+    def _batch_zimg(batch):
+        """Return (z_img, gene_vec, outcomes) on device for either loader kind."""
+        if args.precompute_embeddings:
+            z_img, gvecs, outcomes = batch
+            return z_img.to(device), gvecs.to(device), outcomes.to(device)
+        imgs, gvecs, outcomes = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+        with torch.no_grad():
+            z_img = img_enc(imgs)
+        return z_img, gvecs, outcomes
+
     # --- new run dir ----------------------------------------------------------
     run_id = uuid.uuid4().hex[:8]
     run_dir = OUT_ROOT / run_id
@@ -145,10 +184,8 @@ def run(args) -> None:
     for epoch in range(1, args.epochs + 1):
         gene_enc.train()
         total_train = 0.0
-        for imgs, gvecs, outcomes, _ in train_loader:
-            imgs, gvecs, outcomes = imgs.to(device), gvecs.to(device), outcomes.to(device)
-            with torch.no_grad():
-                z_img = img_enc(imgs)
+        for batch in train_loader:
+            z_img, gvecs, outcomes = _batch_zimg(batch)
             loss = contrastive_loss(
                 z_img, gene_enc(gvecs), outcomes=outcomes,
                 temperature=meta["temperature"], lam=meta["lam"], step=step,
@@ -164,9 +201,8 @@ def run(args) -> None:
         gene_enc.eval()
         total_val = 0.0
         with torch.no_grad():
-            for imgs, gvecs, outcomes, _ in val_loader:
-                imgs, gvecs, outcomes = imgs.to(device), gvecs.to(device), outcomes.to(device)
-                z_img = img_enc(imgs)
+            for batch in val_loader:
+                z_img, gvecs, outcomes = _batch_zimg(batch)
                 total_val += contrastive_loss(
                     z_img, gene_enc(gvecs), outcomes=outcomes,
                     temperature=meta["temperature"], lam=meta["lam"], step=step,
@@ -195,6 +231,7 @@ def run(args) -> None:
         "deterministic_gene_order": True,
         "gene_order": gene_order,
         "refit_seed": args.seed,
+        "refit_precompute_embeddings": bool(args.precompute_embeddings),
     }
     (run_dir / "metadata.json").write_text(json.dumps(new_meta, indent=2))
 
@@ -219,6 +256,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--weight-decay", type=float, default=1e-4)
     p.add_argument("--num-workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument(
+        "--precompute-embeddings", action="store_true",
+        help="Run the frozen image encoder once and cache z_img (deterministic "
+        "inference transform, no random flips), then train the gene encoder against "
+        "the cache. Much faster for n=all source runs; the gene branch is aligned to "
+        "the same z_img the downstream classifier consumes.",
+    )
     return p.parse_args()
 
 
