@@ -14,12 +14,16 @@ Attributes the **Ridge/Variance k=85** downstream RFS classifier's decision back
 - Soramic transfer AUROC: **0.709** (dc7e1d10 best cell = 0.709); Lausanne: **0.436**
 
 ## Per-gene mechanistic importance (sorted by `mean|IG|`)
+
+Two attribution targets, each decomposed to the genes by Integrated Gradients: the **downstream classification** decision axis (which genes move the RFS logit), and the **contrastive-learning alignment** score (which genes the gene encoder was actually trained to move). Each is reported under both a `zero` and a `cohort-mean` IG baseline.
+
+### Downstream classification
 **Method** 
 1. Calc `logit(z) = β·z + b` from the downstream Ridge, where β is the rescaled coefficient.
 2. Calc s(g) = β·gene_encoder(g) for each patients as a proxy of the 2-year RFS logits.
 3. IG: for each patient, scale all the genes from the baseline to the real values in 200 steps. Use the gradients of the 200 steps to approximate the integral. Meaning: when we gradually increase the genes on a scale from 0 to their real values, the contribution of each genes on the (proxy)logit.
 
-### Baseline = 0
+#### Baseline = 0
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
 | SLC25A13 | 2.2679 | -2.2679 | ✓ | 1 |
@@ -63,7 +67,7 @@ Attributes the **Ridge/Variance k=85** downstream RFS classifier's decision back
 | HIGD2B | 0.1916 | +0.1916 | — | 39 |
 | RBMXL3 | 0.1376 | -0.0943 | — | 40 |
 
-### baseline = cohort-mean 
+#### baseline = cohort-mean 
 
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
@@ -107,6 +111,100 @@ Attributes the **Ridge/Variance k=85** downstream RFS classifier's decision back
 | CYP51A1 | 0.3418 | -0.1049 | ✓ | 38 |
 | ZMYND12 | 0.2863 | +0.1064 | — | 39 |
 | MYCBP2 | 0.2632 | -0.0199 | ✓ | 40 |
+
+### Contrastive learning alignment
+**Method**
+1. Target is the cross-modal alignment score `F_i(g) = cos(z_img_i, gene_enc(g))` — patient *i*'s **frozen** image embedding vs the gene encoder output. 
+2. IG of `F_i(g)` w.r.t. the gene input (200 midpoint steps), integrated only through the GeneEncoder, aggregated over the 60 patients as `mean|IG|` (importance) and `mean IG` (signed).
+3. Sign convention: **signed IG > 0 ⇒ higher expression pulls the gene embedding *toward* the patient's own image**
+
+#### Baseline = 0
+| Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
+|---|---:|---:|:---:|---:|
+| ALS2 | 0.0981 | -0.0678 | ✓ | 1 |
+| SLC25A13 | 0.0878 | +0.0680 | ✓ | 2 |
+| PON1 | 0.0874 | +0.0638 | ✓ | 3 |
+| MYCBP2 | 0.0767 | +0.0575 | ✓ | 4 |
+| CFH | 0.0738 | +0.0572 | ✓ | 5 |
+| ABCB4 | 0.0626 | +0.0561 | ✓ | 6 |
+| H19 | 0.0603 | +0.0086 | ✓ | 7 |
+| SGSM1 | 0.0548 | +0.0284 | — | 8 |
+| M6PR | 0.0541 | -0.0465 | ✓ | 9 |
+| CALCR | 0.0520 | +0.0520 | ✓ | 10 |
+| REX1BD | 0.0513 | -0.0423 | ✓ | 11 |
+| AL445235.1 | 0.0462 | +0.0150 | — | 12 |
+| RALA | 0.0455 | +0.0372 | ✓ | 13 |
+| PDK4 | 0.0412 | -0.0170 | ✓ | 14 |
+| AC025580.2 | 0.0400 | -0.0386 | — | 15 |
+| SLC7A2 | 0.0399 | +0.0127 | ✓ | 16 |
+| ACSM3 | 0.0350 | +0.0184 | ✓ | 17 |
+| AP2B1 | 0.0338 | +0.0001 | ✓ | 18 |
+| USH1C | 0.0338 | -0.0288 | ✓ | 19 |
+| LACC1 | 0.0325 | +0.0190 | — | 20 |
+| ARF5 | 0.0317 | -0.0205 | ✓ | 21 |
+| AOC1 | 0.0284 | -0.0138 | ✓ | 22 |
+| CYP51A1 | 0.0252 | -0.0031 | ✓ | 23 |
+| CSF2 | 0.0251 | -0.0238 | — | 24 |
+| AC093525.8 | 0.0239 | -0.0030 | — | 25 |
+| ZMYND12 | 0.0208 | -0.0062 | — | 26 |
+| RAD52 | 0.0207 | -0.0048 | ✓ | 27 |
+| AC004241.5 | 0.0200 | +0.0108 | — | 28 |
+| AC025198.1 | 0.0187 | -0.0120 | — | 29 |
+| HNRNPA1P9 | 0.0186 | +0.0131 | — | 30 |
+| AC063947.2 | 0.0182 | -0.0084 | — | 31 |
+| MCUB | 0.0177 | -0.0022 | ✓ | 32 |
+| AL449283.1 | 0.0175 | +0.0032 | — | 33 |
+| AC093826.2 | 0.0163 | -0.0007 | — | 34 |
+| AC138647.1 | 0.0136 | -0.0037 | — | 35 |
+| CAMK2N2 | 0.0126 | -0.0021 | — | 36 |
+| AC130366.1 | 0.0114 | +0.0079 | — | 37 |
+| OR52N5 | 0.0079 | -0.0054 | — | 38 |
+| RBMXL3 | 0.0062 | -0.0012 | — | 39 |
+| HIGD2B | 0.0060 | -0.0035 | — | 40 |
+
+#### baseline = cohort-mean
+| Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
+|---|---:|---:|:---:|---:|
+| CALCR | 0.0412 | -0.0015 | ✓ | 1 |
+| ALS2 | 0.0407 | -0.0011 | ✓ | 2 |
+| AC025580.2 | 0.0351 | -0.0062 | — | 3 |
+| ABCB4 | 0.0324 | -0.0011 | ✓ | 4 |
+| PON1 | 0.0306 | -0.0019 | ✓ | 5 |
+| M6PR | 0.0304 | +0.0025 | ✓ | 6 |
+| REX1BD | 0.0266 | -0.0019 | ✓ | 7 |
+| USH1C | 0.0260 | +0.0052 | ✓ | 8 |
+| LACC1 | 0.0244 | -0.0084 | — | 9 |
+| SLC7A2 | 0.0228 | -0.0009 | ✓ | 10 |
+| AC093525.8 | 0.0201 | +0.0040 | — | 11 |
+| AOC1 | 0.0167 | -0.0004 | ✓ | 12 |
+| CSF2 | 0.0166 | -0.0048 | — | 13 |
+| SLC25A13 | 0.0166 | +0.0047 | ✓ | 14 |
+| ACSM3 | 0.0165 | +0.0019 | ✓ | 15 |
+| AL449283.1 | 0.0163 | -0.0070 | — | 16 |
+| PDK4 | 0.0155 | +0.0003 | ✓ | 17 |
+| ARF5 | 0.0154 | -0.0027 | ✓ | 18 |
+| AL445235.1 | 0.0150 | +0.0019 | — | 19 |
+| AC093826.2 | 0.0148 | -0.0033 | — | 20 |
+| AC004241.5 | 0.0147 | -0.0005 | — | 21 |
+| HNRNPA1P9 | 0.0144 | -0.0029 | — | 22 |
+| CAMK2N2 | 0.0140 | -0.0048 | — | 23 |
+| RALA | 0.0132 | -0.0005 | ✓ | 24 |
+| H19 | 0.0129 | -0.0066 | ✓ | 25 |
+| ZMYND12 | 0.0129 | -0.0038 | — | 26 |
+| MCUB | 0.0125 | -0.0008 | ✓ | 27 |
+| AC130366.1 | 0.0123 | -0.0016 | — | 28 |
+| CYP51A1 | 0.0123 | -0.0003 | ✓ | 29 |
+| AC025198.1 | 0.0114 | -0.0013 | — | 30 |
+| CFH | 0.0113 | +0.0008 | ✓ | 31 |
+| AC063947.2 | 0.0113 | +0.0008 | — | 32 |
+| RAD52 | 0.0110 | +0.0025 | ✓ | 33 |
+| HIGD2B | 0.0107 | -0.0030 | — | 34 |
+| AP2B1 | 0.0099 | +0.0012 | ✓ | 35 |
+| AC138647.1 | 0.0090 | +0.0020 | — | 36 |
+| SGSM1 | 0.0087 | -0.0027 | — | 37 |
+| OR52N5 | 0.0064 | -0.0047 | — | 38 |
+| RBMXL3 | 0.0062 | -0.0022 | — | 39 |
+| MYCBP2 | 0.0057 | -0.0001 | ✓ | 40 |
 
 ## Each gene's contribution on each dimension
 C[d, j] = β_d · J[d, j], where J[d, j] is the Jacobian on the mean of gene vectors.
