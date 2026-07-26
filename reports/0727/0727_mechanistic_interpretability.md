@@ -17,10 +17,9 @@ Attributes the **Ridge/Variance k=85** downstream RFS classifier's decision back
 **Method** 
 1. Calc `logit(z) = β·z + b` from the downstream Ridge, where β is the rescaled coefficient.
 2. Calc s(g) = β·gene_encoder(g) for each patients as a proxy of the 2-year RFS logits.
-3. IG: for each patient, scale all the genes from 0 to the real values in 200 steps. Use the gradients of the 200 steps to approximate the integral. Meaning: when we gradually increase the genes on a scale from 0 to their real values, the contribution of each genes on the (proxy)logit.
+3. IG: for each patient, scale all the genes from the baseline to the real values in 200 steps. Use the gradients of the 200 steps to approximate the integral. Meaning: when we gradually increase the genes on a scale from 0 to their real values, the contribution of each genes on the (proxy)logit.
 
-The **pre-defined genes** column marks whether the gene is in the curated HCC gene panel (`get_hcc_genes()`: union of the `gene_sets/*.txt` sets, mapped to current symbols, intersected with the RNA-seq matrix → 2159 genes; see `hcc_multimodal/baselines/data.py`). ✓ = from the pre-defined panel, — = not. 22 of the 40 `all` genes come from the pre-defined panel; the remaining 18 (mostly `AC*`/`AL*` novel-transcript loci) do not.
-
+### Baseline = 0
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
 | SLC25A13 | 2.2679 | -2.2679 | ✓ | 1 |
@@ -63,6 +62,51 @@ The **pre-defined genes** column marks whether the gene is in the curated HCC ge
 | ZMYND12 | 0.2138 | +0.2138 | — | 38 |
 | HIGD2B | 0.1916 | +0.1916 | — | 39 |
 | RBMXL3 | 0.1376 | -0.0943 | — | 40 |
+
+### baseline = cohort-mean 
+
+| Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
+|---|---:|---:|:---:|---:|
+| LACC1 | 2.3079 | +0.1082 | — | 1 |
+| ACSM3 | 2.0023 | -0.0953 | ✓ | 2 |
+| AC025580.2 | 1.5118 | +0.1636 | — | 3 |
+| USH1C | 1.2695 | -0.0962 | ✓ | 4 |
+| ALS2 | 1.2414 | -0.2651 | ✓ | 5 |
+| PON1 | 1.2304 | +0.2515 | ✓ | 6 |
+| CSF2 | 1.1551 | +0.0601 | — | 7 |
+| SLC25A13 | 1.1267 | +0.0419 | ✓ | 8 |
+| HNRNPA1P9 | 0.9931 | +0.1368 | — | 9 |
+| CAMK2N2 | 0.9890 | +0.0107 | — | 10 |
+| AC093826.2 | 0.8778 | -0.0261 | — | 11 |
+| AC025198.1 | 0.8106 | +0.1668 | — | 12 |
+| PDK4 | 0.7911 | +0.1160 | ✓ | 13 |
+| AL449283.1 | 0.7870 | +0.0892 | — | 14 |
+| AC138647.1 | 0.7716 | +0.0042 | — | 15 |
+| AC130366.1 | 0.7626 | -0.0579 | — | 16 |
+| ARF5 | 0.7588 | +0.0968 | ✓ | 17 |
+| CALCR | 0.7435 | +0.1840 | ✓ | 18 |
+| CFH | 0.7433 | -0.1944 | ✓ | 19 |
+| RALA | 0.7248 | +0.1655 | ✓ | 20 |
+| AOC1 | 0.6301 | +0.3211 | ✓ | 21 |
+| M6PR | 0.5919 | +0.0494 | ✓ | 22 |
+| AC004241.5 | 0.5370 | -0.0973 | — | 23 |
+| H19 | 0.5328 | +0.2707 | ✓ | 24 |
+| AP2B1 | 0.5325 | +0.3315 | ✓ | 25 |
+| OR52N5 | 0.5248 | +0.0672 | — | 26 |
+| SLC7A2 | 0.5140 | +0.1690 | ✓ | 27 |
+| HIGD2B | 0.5000 | +0.0707 | — | 28 |
+| SGSM1 | 0.4465 | +0.0741 | — | 29 |
+| MCUB | 0.4102 | +0.1117 | ✓ | 30 |
+| AC063947.2 | 0.4022 | +0.1368 | — | 31 |
+| REX1BD | 0.3927 | +0.2281 | ✓ | 32 |
+| RAD52 | 0.3880 | -0.0961 | ✓ | 33 |
+| AC093525.8 | 0.3856 | -0.0914 | — | 34 |
+| AL445235.1 | 0.3841 | +0.0272 | — | 35 |
+| ABCB4 | 0.3563 | +0.0109 | ✓ | 36 |
+| RBMXL3 | 0.3504 | +0.1559 | — | 37 |
+| CYP51A1 | 0.3418 | -0.1049 | ✓ | 38 |
+| ZMYND12 | 0.2863 | +0.1064 | — | 39 |
+| MYCBP2 | 0.2632 | -0.0199 | ✓ | 40 |
 
 ## Each gene's contribution on each dimension
 C[d, j] = β_d · J[d, j], where J[d, j] is the Jacobian on the mean of gene vectors.
