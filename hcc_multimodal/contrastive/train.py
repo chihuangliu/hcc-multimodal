@@ -52,6 +52,21 @@ def _setup_run(args: argparse.Namespace) -> Path:
     return run_dir
 
 
+def _record_gene_order(run_dir: Path, gene_order: list[str]) -> None:
+    """Merge the resolved gene column order into an existing metadata.json.
+
+    Written as a second pass once the dataset is built: `_setup_run` writes
+    metadata.json up front so a run that dies during dataset construction still
+    leaves a readable file for the eval tooling that scans run directories.
+    A gene's GeneEncoder input-slot index is its position in `gene_order`.
+    """
+    meta_path = run_dir / "metadata.json"
+    meta = json.loads(meta_path.read_text())
+    meta["gene_order"] = gene_order
+    meta["deterministic_gene_order"] = True
+    meta_path.write_text(json.dumps(meta, indent=2))
+
+
 def train(args: argparse.Namespace) -> None:
     torch.manual_seed(args.seed)
     run_dir = _setup_run(args)
@@ -89,8 +104,13 @@ def train(args: argparse.Namespace) -> None:
         transform=augment,
         mri_type=args.mri_type,
         genes=genes,
+        sort_genes=args.sort_genes,
         bbox_pad=args.bbox_pad,
     )
+
+    gene_order = list(dataset.gene_matrix.columns)
+    _record_gene_order(run_dir, gene_order)
+    print(f"Gene order ({len(gene_order)}, sort_genes={args.sort_genes}): {gene_order}")
 
     if args.split_unit == "patient":
         patients = sorted({pid for pid, _, _ in dataset._index})
@@ -252,6 +272,14 @@ def _parse_args() -> argparse.Namespace:
         metavar="GENE",
         help="Gene symbol(s) to drop from the selected gene set (ablation). "
         "Each must be present in the gene set.",
+    )
+    p.add_argument(
+        "--sort_genes",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Order gene columns alphabetically. Default (--no-sort_genes) keeps the "
+        "RNA-seq CSV's row order. Either way the resolved order is recorded as "
+        "'gene_order' in the run's metadata.json.",
     )
     p.add_argument(
         "--n_per_axis",

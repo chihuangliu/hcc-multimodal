@@ -73,7 +73,10 @@ def load_inputs(model_id: str, device: torch.device):
         )
 
     genes = set(_GENE_SETS[meta["gene_set"]])
-    gene_df = _load_gene_matrix(genes)  # (patients x genes), int pid index, sorted col order
+    # Reproduce the run's own column order. Runs predating the --sort_genes flag
+    # always sorted, so True is the right fallback despite the flag now
+    # defaulting to False. The equality check below is the backstop.
+    gene_df = _load_gene_matrix(genes, sort_genes=meta.get("sort_genes", True))
     gene_names = gene_df.columns.tolist()
     if "gene_order" in meta and list(meta["gene_order"]) != gene_names:
         raise ValueError(

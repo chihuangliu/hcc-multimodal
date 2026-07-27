@@ -32,13 +32,23 @@ class MRIType(StrEnum):
     RAW_BBOX = "raw_bbox"
 
 
-def _load_gene_matrix(genes: set[str]) -> pd.DataFrame:
+def _load_gene_matrix(genes: set[str], sort_genes: bool = False) -> pd.DataFrame:
+    """Return the (patients x genes) CPM matrix restricted to *genes*.
+
+    The column order is the GeneEncoder's input-slot order, so it must be
+    deterministic: `genes` is a set, and iterating it directly gives a
+    process-dependent order (string hash randomisation), which makes a trained
+    encoder's input-slot -> gene mapping unrecoverable. Both branches below
+    avoid that — by default the order is taken from the RNA-seq CSV's own row
+    order, which is fixed by the file; `sort_genes=True` sorts alphabetically.
+    """
     df = pd.read_csv(_RNA_SEQ_PATH, index_col="Gene Symbol").drop(columns=["ENSEMBL Gene ID"])
-    # Sort gene names for a deterministic column order. `genes` is a set, so
-    # iterating it directly gives a process-dependent order (string hash
-    # randomisation), which makes a trained GeneEncoder's input-slot -> gene
-    # mapping unrecoverable. Sorting pins the order across processes.
-    available = sorted(g for g in genes if g in df.index)
+    if sort_genes:
+        available = sorted(g for g in genes if g in df.index)
+    else:
+        # dict.fromkeys keeps first-seen order; the CSV has duplicated gene
+        # symbols, so plain iteration could list one twice.
+        available = list(dict.fromkeys(g for g in df.index if g in genes))
     df = df.loc[available].T                    # (patients, genes)
     df.index = df.index.astype(int)
     values = CPMTransformer().fit_transform(df.values)
@@ -97,7 +107,11 @@ class MRIGeneDataset(Dataset):
 
     Args:
         patient_ids: Patient IDs to include
-        gene_matrix: Pre-loaded (patients × genes) DataFrame, CPM-normalised
+        gene_matrix: Pre-loaded (patients × genes) DataFrame, CPM-normalised.
+            Its column order is the gene vector's slot order and is fixed for
+            the dataset's lifetime — `__getitem__` only does `.loc[pid].values`,
+            and DataLoader workers share this same object rather than reloading
+            the CSV, so every worker and epoch sees the same slot assignment.
         outcomes: Pre-loaded Series indexed by patient ID
         n_per_axis: Slices sampled per axis per patient
         axes: Which axes to sample from — 0=sagittal, 1=coronal, 2=axial.
@@ -204,6 +218,7 @@ def build_dataset(
     img_size: int = 224,
     transform: Callable | None = None,
     genes: set[str] | None = None,
+    sort_genes: bool = False,
     mri_type: MRIType = MRIType.PREPROCESSED,
     bbox_pad: int = 10,
 ) -> MRIGeneDataset:
@@ -221,6 +236,9 @@ def build_dataset(
         transform: Normalisation/augmentation to apply after resize + 3-channel
             conversion. None means no normalisation.
         genes: Gene set to use; defaults to GENE_SET from config
+        sort_genes: If False (default), gene columns follow the RNA-seq CSV's
+            row order. If True, they are ordered alphabetically. Either way the
+            order is deterministic across processes; see `_load_gene_matrix`.
         mri_type: "preprocessed" (Radiomics/arterial), "raw"
             (Resections_with_rna, resampled to 1×1×3 mm on load), or
             "raw_bbox" (raw, then cropped to the tumour bounding box)
@@ -231,7 +249,7 @@ def build_dataset(
         MRIGeneDataset over the valid patient intersection
     """
     genes = genes or GENE_SET
-    gene_matrix = _load_gene_matrix(genes)
+    gene_matrix = _load_gene_matrix(genes, sort_genes=sort_genes)
     outcomes = _load_outcomes(outcome_col)
 
     mri_root = _MRI_ROOT_PREPROCESSED if mri_type == MRIType.PREPROCESSED else _MRI_ROOT_RAW

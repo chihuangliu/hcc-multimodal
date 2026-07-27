@@ -426,7 +426,12 @@ def run(args: argparse.Namespace) -> None:
         model_path = _TRAINING_ROOT / args.model_id / "best_model.pt"
         meta = json.loads((model_path.parent / "metadata.json").read_text())
 
-        gene_matrix = _load_gene_matrix(_GENE_SETS[meta.get("gene_set", "all")])
+        # Match the column order the model was trained with. Runs predating the
+        # --sort_genes flag always sorted, hence the True fallback.
+        gene_matrix = _load_gene_matrix(
+            _GENE_SETS[meta.get("gene_set", "all")],
+            sort_genes=meta.get("sort_genes", True),
+        )
         outcomes = _load_outcomes(args.outcome)
 
         cache_path = (
