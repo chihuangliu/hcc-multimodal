@@ -59,6 +59,9 @@ def _record_gene_order(run_dir: Path, gene_order: list[str]) -> None:
     metadata.json up front so a run that dies during dataset construction still
     leaves a readable file for the eval tooling that scans run directories.
     A gene's GeneEncoder input-slot index is its position in `gene_order`.
+
+    This is not just bookkeeping — the default order is randomised per run, so
+    this record is the only way to recover the mapping when reloading the model.
     """
     meta_path = run_dir / "metadata.json"
     meta = json.loads(meta_path.read_text())
@@ -277,9 +280,10 @@ def _parse_args() -> argparse.Namespace:
         "--sort_genes",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help="Order gene columns alphabetically. Default (--no-sort_genes) keeps the "
-        "RNA-seq CSV's row order. Either way the resolved order is recorded as "
-        "'gene_order' in the run's metadata.json.",
+        help="Order gene columns alphabetically. Default (--no-sort_genes) uses set "
+        "iteration order, giving each run a different gene->input-slot assignment. "
+        "Either way the resolved order is recorded as 'gene_order' in the run's "
+        "metadata.json, which is the only way to recover a randomised order.",
     )
     p.add_argument(
         "--n_per_axis",

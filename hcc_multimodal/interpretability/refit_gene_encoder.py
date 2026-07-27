@@ -89,9 +89,11 @@ def run(args) -> None:
         transform=augment,
         mri_type=meta["mri_type"],
         genes=genes,
-        # Runs predating the --sort_genes flag always sorted, so True is the
-        # right fallback here even though the flag now defaults to False.
+        # Reproduce the source run's slot assignment: its order is randomised
+        # unless --sort_genes was passed, so take it from metadata. Runs
+        # predating the flag recorded none but always sorted.
         sort_genes=meta.get("sort_genes", True),
+        gene_order=meta.get("gene_order"),
         bbox_pad=meta["bbox_pad"],
     )
     gene_order = list(dataset.gene_matrix.columns)

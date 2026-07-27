@@ -73,10 +73,14 @@ def load_inputs(model_id: str, device: torch.device):
         )
 
     genes = set(_GENE_SETS[meta["gene_set"]])
-    # Reproduce the run's own column order. Runs predating the --sort_genes flag
-    # always sorted, so True is the right fallback despite the flag now
-    # defaulting to False. The equality check below is the backstop.
-    gene_df = _load_gene_matrix(genes, sort_genes=meta.get("sort_genes", True))
+    # The column order is randomised per run unless --sort_genes was passed, so
+    # it must be read back from metadata rather than re-derived. Runs predating
+    # the flag recorded no order but always sorted, hence the fallback.
+    gene_df = _load_gene_matrix(
+        genes,
+        sort_genes=meta.get("sort_genes", True),
+        gene_order=meta.get("gene_order"),
+    )
     gene_names = gene_df.columns.tolist()
     if "gene_order" in meta and list(meta["gene_order"]) != gene_names:
         raise ValueError(

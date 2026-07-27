@@ -32,23 +32,39 @@ class MRIType(StrEnum):
     RAW_BBOX = "raw_bbox"
 
 
-def _load_gene_matrix(genes: set[str], sort_genes: bool = False) -> pd.DataFrame:
+def _load_gene_matrix(
+    genes: set[str],
+    sort_genes: bool = False,
+    gene_order: list[str] | None = None,
+) -> pd.DataFrame:
     """Return the (patients x genes) CPM matrix restricted to *genes*.
 
-    The column order is the GeneEncoder's input-slot order, so it must be
-    deterministic: `genes` is a set, and iterating it directly gives a
-    process-dependent order (string hash randomisation), which makes a trained
-    encoder's input-slot -> gene mapping unrecoverable. Both branches below
-    avoid that — by default the order is taken from the RNA-seq CSV's own row
-    order, which is fixed by the file; `sort_genes=True` sorts alphabetically.
+    The column order is the GeneEncoder's input-slot order:
+
+    - `gene_order` given: use exactly that order. This is how a trained model is
+      reloaded — read the order back from the run's metadata.json.
+    - `sort_genes=True`: alphabetical, reproducible from the gene set alone.
+    - default: plain `set` iteration order, which Python randomises per process
+      (PEP 456 string hash seeding), so each training run gets a different
+      gene -> input-slot assignment.
+
+    The randomised default is deliberate, but it means the order CANNOT be
+    re-derived later. Callers that train a model must persist the resulting
+    `gene_matrix.columns` (train.py writes it to metadata.json as `gene_order`),
+    and callers that reload one must pass it back in via `gene_order`.
     """
     df = pd.read_csv(_RNA_SEQ_PATH, index_col="Gene Symbol").drop(columns=["ENSEMBL Gene ID"])
-    if sort_genes:
+    if gene_order is not None:
+        missing = [g for g in gene_order if g not in df.index]
+        if missing:
+            raise ValueError(
+                f"gene_order contains genes absent from the RNA-seq matrix: {missing}"
+            )
+        available = list(gene_order)
+    elif sort_genes:
         available = sorted(g for g in genes if g in df.index)
     else:
-        # dict.fromkeys keeps first-seen order; the CSV has duplicated gene
-        # symbols, so plain iteration could list one twice.
-        available = list(dict.fromkeys(g for g in df.index if g in genes))
+        available = [g for g in genes if g in df.index]
     df = df.loc[available].T                    # (patients, genes)
     df.index = df.index.astype(int)
     values = CPMTransformer().fit_transform(df.values)
@@ -219,6 +235,7 @@ def build_dataset(
     transform: Callable | None = None,
     genes: set[str] | None = None,
     sort_genes: bool = False,
+    gene_order: list[str] | None = None,
     mri_type: MRIType = MRIType.PREPROCESSED,
     bbox_pad: int = 10,
 ) -> MRIGeneDataset:
@@ -236,9 +253,12 @@ def build_dataset(
         transform: Normalisation/augmentation to apply after resize + 3-channel
             conversion. None means no normalisation.
         genes: Gene set to use; defaults to GENE_SET from config
-        sort_genes: If False (default), gene columns follow the RNA-seq CSV's
-            row order. If True, they are ordered alphabetically. Either way the
-            order is deterministic across processes; see `_load_gene_matrix`.
+        sort_genes: If True, gene columns are ordered alphabetically. If False
+            (default), they follow `set` iteration order — a different order
+            every run, so the caller must persist `dataset.gene_matrix.columns`
+            to be able to reload the model later.
+        gene_order: Explicit column order, overriding `sort_genes`. Pass a run's
+            recorded `gene_order` here to reproduce its exact slot assignment.
         mri_type: "preprocessed" (Radiomics/arterial), "raw"
             (Resections_with_rna, resampled to 1×1×3 mm on load), or
             "raw_bbox" (raw, then cropped to the tumour bounding box)
@@ -249,7 +269,7 @@ def build_dataset(
         MRIGeneDataset over the valid patient intersection
     """
     genes = genes or GENE_SET
-    gene_matrix = _load_gene_matrix(genes, sort_genes=sort_genes)
+    gene_matrix = _load_gene_matrix(genes, sort_genes=sort_genes, gene_order=gene_order)
     outcomes = _load_outcomes(outcome_col)
 
     mri_root = _MRI_ROOT_PREPROCESSED if mri_type == MRIType.PREPROCESSED else _MRI_ROOT_RAW
