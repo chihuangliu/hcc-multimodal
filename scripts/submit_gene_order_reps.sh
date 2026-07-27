@@ -1,16 +1,18 @@
 #!/bin/bash
 # Gene-order replicate sweep: re-train run dc7e1d10's configuration 15 times.
-# Every hyperparameter matches dc7e1d10 (vit_b_32, base_model=3e598f36, frozen
-# backbone, gene_set=all, n_per_axis=all, mri_type=raw, lam=0.1,
-# reg_mode=per_modality, temperature=0.07, val_split=0.1, bs=32, lr=1e-4,
-# wd=1e-4, seed=42) except:
+# Every hyperparameter matches dc7e1d10 (vit_b_32, frozen backbone, gene_set=all,
+# n_per_axis=all, mri_type=raw, lam=0.1, reg_mode=per_modality, temperature=0.07,
+# val_split=0.1, bs=32, lr=1e-4, wd=1e-4, seed=42) except:
 #
 #   --epochs 50               (dc7e1d10 trained 5)
+#   no --base_model           (dc7e1d10 warm-started from 3e598f36; these runs train
+#                             the projection head and gene encoder from scratch. That
+#                             base model predates gene_order recording, so its
+#                             gene_enc slot mapping is unknown and would line up with
+#                             no replicate's order anyway.)
 #   --checkpoint_interval 10  (saves epoch_010.pt … epoch_050.pt)
-#   --patience 0              (disables the new early-stopping default of 3, which
-#                             would otherwise stop these runs long before epoch 50
-#                             and defeat the periodic checkpoints; dc7e1d10 had no
-#                             early stopping)
+#   --patience 2              (early stopping did not exist for dc7e1d10; note a run
+#                             that stops before epoch 10 leaves no epoch_*.pt files)
 #   --split-unit slice        (not a change: dc7e1d10 predates --split-unit, and
 #                             the behaviour back then was the slice-level split)
 #
@@ -22,31 +24,23 @@
 #
 # The 15 runs differ only in gene -> GeneEncoder input-slot assignment. That
 # order comes from `set` iteration in _load_gene_matrix, which Python randomises
-# per process; PYTHONHASHSEED is pinned to the replicate index here so each job
-# gets a *distinct* order that is also reproducible, and so the sweep cannot
-# silently collapse to 15 identical orders if the site sets PYTHONHASHSEED.
-# Each run mints its own run_id, writes to training/contrastive/<run_id>/, and
-# records its resolved order as `gene_order` in metadata.json.
-#
-# Note: base_model 3e598f36 predates gene_order recording, so its pretrained
-# gene_enc slot mapping is unknown and does not line up with any replicate's
-# order. That is inherited from dc7e1d10's configuration, not introduced here.
-# Set BASE_MODEL="" to train the gene encoder from scratch instead.
+# per process (PEP 456), so each job draws its own order without anything here
+# having to seed it. Each run mints its own run_id, writes to
+# training/contrastive/<run_id>/, and records its resolved order as `gene_order`
+# in metadata.json — the only way to recover the mapping afterwards.
 #
 # Usage:  bash scripts/submit_gene_order_reps.sh
-#         REPS=5 bash scripts/submit_gene_order_reps.sh          # fewer replicates
-#         BASE_MODEL="" bash scripts/submit_gene_order_reps.sh   # no warm start
+#         REPS=5 bash scripts/submit_gene_order_reps.sh   # fewer replicates
 set -euo pipefail
 
 PROJECT_DIR=${PROJECT_DIR:-/rds/general/user/cl3225/home/hcc-multimodal}
 REPS=${REPS:-15}
-BASE_MODEL=${BASE_MODEL-3e598f36}
 
 for REP in $(seq 1 "${REPS}"); do
   TAG=$(printf "gorder%02d" "${REP}")
-  echo "Submitting gene-order replicate ${REP}/${REPS}: ${TAG} (PYTHONHASHSEED=${REP})"
+  echo "Submitting gene-order replicate ${REP}/${REPS}: ${TAG}"
   qsub -N "${TAG}" \
-    -v REP="${REP}",TAG="${TAG}",BASE_MODEL="${BASE_MODEL}",PROJECT_DIR="${PROJECT_DIR}" <<'PBS'
+    -v REP="${REP}",TAG="${TAG}",PROJECT_DIR="${PROJECT_DIR}" <<'PBS'
 #!/bin/bash
 #PBS -l select=1:ncpus=8:mem=32gb:ngpus=1:gpu_type=L40S
 # 48h rather than the usual 24h: this config samples every slice of all three
@@ -68,18 +62,8 @@ echo "=== job ${PBS_JOBID} started at $(date) on $(hostname) — ${TAG} (replica
 
 source .venv/bin/activate
 
-# Pins this replicate's gene -> input-slot order; must be set before Python starts.
-export PYTHONHASHSEED="${REP}"
-
-# --base_model is omitted entirely when BASE_MODEL is empty.
-BASE_ARGS=()
-if [ -n "${BASE_MODEL}" ]; then
-  BASE_ARGS=(--base_model "${BASE_MODEL}")
-fi
-
 python -m hcc_multimodal.contrastive.train \
   --model vit_b_32 \
-  "${BASE_ARGS[@]}" \
   --embed_dim 128 \
   --gene_hidden_dim 256 \
   --freeze_backbone \
