@@ -237,6 +237,12 @@ def train(args: argparse.Namespace) -> None:
                 run_dir / "best_model.pt",
             )
 
+        if args.checkpoint_interval and epoch % args.checkpoint_interval == 0:
+            torch.save(
+                {"img_enc": img_enc.state_dict(), "gene_enc": gene_enc.state_dict()},
+                run_dir / f"epoch_{epoch:03d}.pt",
+            )
+
     torch.save(
         {"img_enc": img_enc.state_dict(), "gene_enc": gene_enc.state_dict()},
         run_dir / "last_model.pt",
@@ -324,6 +330,14 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--val_split", type=float, default=0.1)
 
     p.add_argument("--epochs", type=int, default=50)
+    p.add_argument(
+        "--checkpoint_interval",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Also save a checkpoint every N epochs as epoch_<epoch>.pt (e.g. 10 saves "
+        "epochs 10, 20, ...). Default: only best_model.pt and last_model.pt.",
+    )
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)
