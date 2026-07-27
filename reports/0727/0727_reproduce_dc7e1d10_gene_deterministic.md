@@ -196,6 +196,63 @@ The resection ceiling is **stronger** than `dc7e1d10`'s at every horizon:
 | τ=24 — C-index | 0.737 | **0.779** |
 | full — HR / log-rank | 3.08 / 6.2e-04 | **3.72** / 6.8e-05 |
 
+## Appendix B — grid heatmaps
+
+The full 10 classifiers × 13 feature-selection grid behind §1, for both reproduction runs. Rows are
+classifiers, columns feature-selection methods; each cell is the best `k∈{43,85,128}` for that pair.
+Note the colour scales differ per panel — read the printed numbers, not the hue, when comparing runs.
+
+### B.1 `979107d5` (original base reused)
+
+Resection CV AUC — the selection surface:
+
+![979107d5 resection CV AUC heatmap](flat3/979107d5/heatmap_cv_auc.png)
+
+Soramic transfer AUROC — what actually generalises:
+
+![979107d5 Soramic transfer AUROC heatmap](flat3/979107d5/heatmap_soramic_auroc.png)
+
+The linear block (Ridge / Elastic Net / L-SVM) is the CV plateau at 0.74–0.79, but on Soramic that
+same block sits at 0.61–0.68 while the tree models — untouched by CV selection — reach 0.74–0.78
+(XGB/Elastic Net and XGB/RFE both 0.78). Boruta collapses the whole column on transfer (0.36–0.51).
+
+### B.2 `5be7fa45` (fresh base)
+
+![5be7fa45 resection CV AUC heatmap](flat3/5be7fa45/heatmap_cv_auc.png)
+
+![5be7fa45 Soramic transfer AUROC heatmap](flat3/5be7fa45/heatmap_soramic_auroc.png)
+
+`5be7fa45`'s CV surface is uniformly higher — nearly the entire linear block is 0.73–0.81 — which is
+why it takes criterion 1. Its Soramic surface peaks somewhere else entirely (Elastic Net/Mutual Info
+and L-SVM/Mutual Info at 0.75, XGB/RFE 0.74), while its CV argmax, LR/RF Import. at 0.81, transfers
+at **0.53**. Boruta degenerates in CV here instead (a flat 0.59 column across every linear model).
+
+### B.3 CV does not predict transfer
+
+Spearman rank correlation across all 130 cells, per run:
+
+| Run | CV range | Soramic range | ρ(CV, Soramic) | p | ρ(CV, Lausanne) |
+|---|---|---|--:|--:|--:|
+| `dc7e1d10` | 0.428–0.744 | 0.268–0.774 | 0.163 | 0.064 | −0.153 |
+| `979107d5` | 0.566–0.790 | 0.363–0.778 | 0.016 | 0.854 | 0.020 |
+| `5be7fa45` | 0.463–0.806 | 0.409–0.754 | 0.343 | <0.001 | 0.593 |
+
+And the argmax cells never coincide:
+
+| Run | best-CV cell | its Soramic | best-Soramic cell | its CV |
+|---|---|--:|---|--:|
+| `dc7e1d10` | Ridge/Variance | 0.709 | NNET/LASSO (0.774) | 0.665 |
+| `979107d5` | L-SVM/Pearson | 0.671 | XGB/RFE (0.778) | 0.674 |
+| `5be7fa45` | LR/RF Import. | 0.530 | L-SVM/Mutual Info (0.754) | 0.752 |
+
+In `dc7e1d10` and `979107d5` the correlation is statistically indistinguishable from zero — selecting
+the CV argmax is, with respect to transfer, close to selecting at random from the grid. `dc7e1d10`'s
+best cell landing at 0.709 on Soramic was luck, and it is that luck the reproduction runs fail to
+repeat, not a property of the encoder. (`5be7fa45` is the one run where CV and transfer *are*
+correlated — yet its argmax is still the worst-transferring cell of the three, because a rank
+correlation of 0.34 says nothing about the single extreme point.) This is the quantitative form of
+the §Findings claim that the anchor and fixed-head reads, not the grid peak, are what reproduce.
+
 ## File references
 
 | Artifact | Path |
@@ -205,6 +262,7 @@ The resection ceiling is **stronger** than `dc7e1d10`'s at every horizon:
 | Survival CSVs | `results/eval/survival/restricted_time_{soramic,resection,lusanne}_A1_{979107d5,5be7fa45}_ridge_var_k85_{rfs,ttr}.csv` |
 | Cutoff sweeps | `results/eval/survival/cutoff_sweep_A1_{979107d5,5be7fa45}_ridge_var_k85_rfs.csv` |
 | Appendix A KM figures | `reports/0727/km/km_restricted_{soramic,resection}_A1_979107d5_ridge_var_k85_rfs.{png,svg}` |
+| Appendix B heatmaps | `reports/0727/flat3/{979107d5,5be7fa45}/heatmap_{cv_auc,soramic_auroc,lusanne_auroc}.{png,svg}` — the Lausanne panel is not embedded above |
 | Baseline (dc7e1d10) | [`0727_embedding_grid_eval_v4.md`](0727_embedding_grid_eval_v4.md) §4, §6.1; `results/eval/survival/restricted_time_soramic_A1_ridge_var_k85_{rfs,ttr}.csv` |
 | Survival protocol | [`0713_restricted_time_survival_v2.md`](../0713/0713_restricted_time_survival_v2.md) |
 
