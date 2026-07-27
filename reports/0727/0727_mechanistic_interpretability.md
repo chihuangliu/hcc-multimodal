@@ -1,14 +1,14 @@
-# Mechanistic Gene Attribution — 2026-07-25
+# Mechanistic Gene Attribution — 2026-07-27
 
-Attributes the **Ridge/Variance k=85** downstream RFS classifier's decision back to the 40 genes of `all` for run `92ae6a23`, by decomposing it through the 128-dim shared embedding space. Mechanistic (fixed-model) importance only — no leave-one-out retraining.
+Attributes the **Ridge/Variance k=85** downstream RFS classifier's decision back to the 40 genes of `all` for run `77d0103f`, by decomposing it through the 128-dim shared embedding space. Mechanistic (fixed-model) importance only — no leave-one-out retraining.
 
-**Model provenance.** `92ae6a23` is a refit (`scripts`/`hcc_multimodal.interpretability.refit_gene_encoder`, `--precompute-embeddings`) of `dc7e1d10`: the image encoder and its cached embeddings are reused **verbatim** (resection embedding cache is byte-identical), so the downstream head is identical to `dc7e1d10`'s by construction — its Setting-A grid and survival results (incl. head A1) carry over unchanged. Only the GeneEncoder is re-aligned to that frozen image space under a pinned, sorted gene order, giving an interpretable gene branch.
+**Model provenance.** `77d0103f` is a refit (`scripts`/`hcc_multimodal.interpretability.refit_gene_encoder`, `--precompute-embeddings`) of `dc7e1d10`: the image encoder and its cached embeddings are reused **verbatim** (resection embedding cache is byte-identical), so the downstream head is identical to `dc7e1d10`'s by construction — its Setting-A grid and survival results (incl. head A1) carry over unchanged. Only the GeneEncoder is re-aligned to that frozen image space under a pinned, sorted gene order, giving an interpretable gene branch. The refit uses `--lam 0` (source `dc7e1d10` = 0.1) for 30 epochs: under a frozen image encoder the `per_modality` outcome reg on `z_img` is a no-op and the `z_gene` term is unopposed, so `lam=0` gives a pure image-alignment refit.
 
 **Method.** (1) The grid head (`SimpleImputer(median) → StandardScaler → Variance(k=85) → Ridge`, α=100.0) is fit on the 54 resection patients' image embeddings vs `rfs_2year`, then collapsed into a single decision direction `β ∈ R¹²⁸` with `logit(z) = β·z + b`. (2) The GeneEncoder Jacobian `J[d,j] = ∂geneenc(g)_d/∂g_j` (at the cohort-mean gene vector) gives each gene's effect on each shared dim; `C[d,j] = β_d·J[d,j]` is its contribution to the decision axis. (3) Integrated Gradients of `s(g) = β·geneenc(g)` w.r.t. the gene input (200 midpoint steps, baseline = `zero`) aggregated over 60 patients as `mean|IG|` (importance) and `mean IG` (signed; **+ = pushes toward recurrence ≤ 2yr**).
 
 > **Caveat.** Genes never enter the predictor at inference — they shape the image encoder only through the contrastive alignment at training time. This is an *alignment-mediated proxy*: the per-dimension decomposition of the decision axis on a re-aligned gene branch.
 
-- Completeness check (max |Σ_j IG − (s(x)−s(baseline))|): **4.66e-02** = **2.42e-03** of the per-patient target range
+- Completeness check (max |Σ_j IG − (s(x)−s(baseline))|): **3.67e-02** = **2.41e-03** of the per-patient target range
 - β reconstruction check (max |β·z+b − decision_function|): **4.44e-16**
 - Resection 3-fold CV AUROC of the head: **0.744** (dc7e1d10 grid best cell = 0.744)
 - Soramic transfer AUROC: **0.709** (dc7e1d10 best cell = 0.709); Lausanne: **0.436**
@@ -26,91 +26,91 @@ Two attribution targets, each decomposed to the genes by Integrated Gradients: t
 #### Baseline = 0
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
-| SLC25A13 | 2.2679 | -2.2679 | ✓ | 1 |
-| LACC1 | 1.8017 | +1.8017 | — | 2 |
-| ALS2 | 1.5598 | -1.3852 | ✓ | 3 |
-| ACSM3 | 1.5556 | -1.5556 | ✓ | 4 |
-| PON1 | 1.4742 | +1.2648 | ✓ | 5 |
-| CFH | 1.4020 | +1.1685 | ✓ | 6 |
-| MYCBP2 | 1.2906 | +1.1463 | ✓ | 7 |
-| H19 | 1.1578 | +0.8657 | ✓ | 8 |
-| SGSM1 | 1.1023 | +0.7519 | — | 9 |
-| M6PR | 0.9972 | -0.3269 | ✓ | 10 |
-| USH1C | 0.9907 | +0.9712 | ✓ | 11 |
-| RALA | 0.9678 | +0.9457 | ✓ | 12 |
-| AC025580.2 | 0.9524 | -0.9524 | — | 13 |
-| SLC7A2 | 0.8935 | +0.7039 | ✓ | 14 |
-| AP2B1 | 0.8748 | -0.0166 | ✓ | 15 |
-| ABCB4 | 0.8316 | -0.1834 | ✓ | 16 |
-| HNRNPA1P9 | 0.7127 | +0.7004 | — | 17 |
-| PDK4 | 0.7063 | -0.0032 | ✓ | 18 |
-| REX1BD | 0.6614 | +0.2793 | ✓ | 19 |
-| ARF5 | 0.6397 | +0.5756 | ✓ | 20 |
-| AL445235.1 | 0.6350 | +0.4057 | — | 21 |
-| AC004241.5 | 0.5744 | -0.5171 | — | 22 |
-| AC025198.1 | 0.5600 | +0.5600 | — | 23 |
-| CAMK2N2 | 0.5484 | +0.4963 | — | 24 |
-| AC093826.2 | 0.5395 | -0.5098 | — | 25 |
-| AL449283.1 | 0.5005 | +0.5005 | — | 26 |
-| AOC1 | 0.4902 | -0.2591 | ✓ | 27 |
-| AC093525.8 | 0.4735 | +0.1301 | — | 28 |
-| AC063947.2 | 0.3985 | +0.3955 | — | 29 |
-| AC138647.1 | 0.3882 | -0.3882 | — | 30 |
-| CSF2 | 0.3856 | -0.3856 | — | 31 |
-| CYP51A1 | 0.3567 | -0.2950 | ✓ | 32 |
-| CALCR | 0.3559 | -0.0439 | ✓ | 33 |
-| AC130366.1 | 0.3506 | +0.3384 | — | 34 |
-| MCUB | 0.3023 | -0.1469 | ✓ | 35 |
-| RAD52 | 0.2869 | +0.0148 | ✓ | 36 |
-| OR52N5 | 0.2466 | +0.2412 | — | 37 |
-| ZMYND12 | 0.2138 | +0.2138 | — | 38 |
-| HIGD2B | 0.1916 | +0.1916 | — | 39 |
-| RBMXL3 | 0.1376 | -0.0943 | — | 40 |
+| SLC25A13 | 1.6568 | -1.5661 | ✓ | 1 |
+| ACSM3 | 1.4851 | -1.4851 | ✓ | 2 |
+| LACC1 | 1.4050 | +1.4050 | — | 3 |
+| PON1 | 1.3818 | +1.1671 | ✓ | 4 |
+| MYCBP2 | 1.0956 | +0.9146 | ✓ | 5 |
+| ALS2 | 1.0873 | -0.8558 | ✓ | 6 |
+| CFH | 1.0442 | +0.4452 | ✓ | 7 |
+| SGSM1 | 1.0031 | +0.6155 | — | 8 |
+| H19 | 0.9908 | +0.8004 | ✓ | 9 |
+| USH1C | 0.9466 | +0.9306 | ✓ | 10 |
+| M6PR | 0.9311 | -0.4539 | ✓ | 11 |
+| SLC7A2 | 0.8655 | +0.6881 | ✓ | 12 |
+| AP2B1 | 0.8348 | -0.1806 | ✓ | 13 |
+| AC025580.2 | 0.8092 | -0.8092 | — | 14 |
+| ABCB4 | 0.7938 | -0.0791 | ✓ | 15 |
+| RALA | 0.7555 | +0.7110 | ✓ | 16 |
+| AL445235.1 | 0.7181 | +0.5030 | — | 17 |
+| HNRNPA1P9 | 0.6302 | +0.6042 | — | 18 |
+| PDK4 | 0.6242 | +0.0162 | ✓ | 19 |
+| REX1BD | 0.5970 | +0.2329 | ✓ | 20 |
+| AC004241.5 | 0.5528 | -0.5330 | — | 21 |
+| CAMK2N2 | 0.5516 | +0.4255 | — | 22 |
+| ARF5 | 0.5169 | +0.4339 | ✓ | 23 |
+| AC025198.1 | 0.4713 | +0.4713 | — | 24 |
+| AOC1 | 0.4621 | -0.2575 | ✓ | 25 |
+| AC093826.2 | 0.4118 | -0.3976 | — | 26 |
+| AC093525.8 | 0.4062 | +0.0863 | — | 27 |
+| CALCR | 0.3604 | -0.0992 | ✓ | 28 |
+| AC138647.1 | 0.2944 | -0.2944 | — | 29 |
+| RAD52 | 0.2816 | -0.0808 | ✓ | 30 |
+| AL449283.1 | 0.2744 | +0.2610 | — | 31 |
+| CYP51A1 | 0.2587 | -0.1633 | ✓ | 32 |
+| MCUB | 0.2475 | -0.1672 | ✓ | 33 |
+| OR52N5 | 0.2127 | +0.2101 | — | 34 |
+| AC130366.1 | 0.1968 | +0.1394 | — | 35 |
+| AC063947.2 | 0.1885 | +0.1766 | — | 36 |
+| CSF2 | 0.1634 | -0.1634 | — | 37 |
+| RBMXL3 | 0.1359 | -0.1359 | — | 38 |
+| HIGD2B | 0.0911 | +0.0837 | — | 39 |
+| ZMYND12 | 0.0897 | +0.0897 | — | 40 |
 
 #### baseline = cohort-mean 
 
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
-| LACC1 | 2.3079 | +0.1082 | — | 1 |
-| ACSM3 | 2.0023 | -0.0953 | ✓ | 2 |
-| AC025580.2 | 1.5118 | +0.1636 | — | 3 |
-| USH1C | 1.2695 | -0.0962 | ✓ | 4 |
-| ALS2 | 1.2414 | -0.2651 | ✓ | 5 |
-| PON1 | 1.2304 | +0.2515 | ✓ | 6 |
-| CSF2 | 1.1551 | +0.0601 | — | 7 |
-| SLC25A13 | 1.1267 | +0.0419 | ✓ | 8 |
-| HNRNPA1P9 | 0.9931 | +0.1368 | — | 9 |
-| CAMK2N2 | 0.9890 | +0.0107 | — | 10 |
-| AC093826.2 | 0.8778 | -0.0261 | — | 11 |
-| AC025198.1 | 0.8106 | +0.1668 | — | 12 |
-| PDK4 | 0.7911 | +0.1160 | ✓ | 13 |
-| AL449283.1 | 0.7870 | +0.0892 | — | 14 |
-| AC138647.1 | 0.7716 | +0.0042 | — | 15 |
-| AC130366.1 | 0.7626 | -0.0579 | — | 16 |
-| ARF5 | 0.7588 | +0.0968 | ✓ | 17 |
-| CALCR | 0.7435 | +0.1840 | ✓ | 18 |
-| CFH | 0.7433 | -0.1944 | ✓ | 19 |
-| RALA | 0.7248 | +0.1655 | ✓ | 20 |
-| AOC1 | 0.6301 | +0.3211 | ✓ | 21 |
-| M6PR | 0.5919 | +0.0494 | ✓ | 22 |
-| AC004241.5 | 0.5370 | -0.0973 | — | 23 |
-| H19 | 0.5328 | +0.2707 | ✓ | 24 |
-| AP2B1 | 0.5325 | +0.3315 | ✓ | 25 |
-| OR52N5 | 0.5248 | +0.0672 | — | 26 |
-| SLC7A2 | 0.5140 | +0.1690 | ✓ | 27 |
-| HIGD2B | 0.5000 | +0.0707 | — | 28 |
-| SGSM1 | 0.4465 | +0.0741 | — | 29 |
-| MCUB | 0.4102 | +0.1117 | ✓ | 30 |
-| AC063947.2 | 0.4022 | +0.1368 | — | 31 |
-| REX1BD | 0.3927 | +0.2281 | ✓ | 32 |
-| RAD52 | 0.3880 | -0.0961 | ✓ | 33 |
-| AC093525.8 | 0.3856 | -0.0914 | — | 34 |
-| AL445235.1 | 0.3841 | +0.0272 | — | 35 |
-| ABCB4 | 0.3563 | +0.0109 | ✓ | 36 |
-| RBMXL3 | 0.3504 | +0.1559 | — | 37 |
-| CYP51A1 | 0.3418 | -0.1049 | ✓ | 38 |
-| ZMYND12 | 0.2863 | +0.1064 | — | 39 |
-| MYCBP2 | 0.2632 | -0.0199 | ✓ | 40 |
+| LACC1 | 1.7951 | +0.1349 | — | 1 |
+| ACSM3 | 1.6767 | -0.0820 | ✓ | 2 |
+| AC025580.2 | 1.3457 | +0.1662 | — | 3 |
+| PON1 | 1.1379 | +0.3638 | ✓ | 4 |
+| USH1C | 1.1337 | -0.1230 | ✓ | 5 |
+| HNRNPA1P9 | 0.9355 | +0.1522 | — | 6 |
+| CAMK2N2 | 0.9114 | +0.0134 | — | 7 |
+| PDK4 | 0.8770 | +0.1632 | ✓ | 8 |
+| CSF2 | 0.7961 | +0.1455 | — | 9 |
+| ALS2 | 0.7597 | -0.2242 | ✓ | 10 |
+| AC025198.1 | 0.7471 | +0.1606 | — | 11 |
+| SLC25A13 | 0.6823 | +0.0640 | ✓ | 12 |
+| AOC1 | 0.6709 | +0.2787 | ✓ | 13 |
+| SLC7A2 | 0.6647 | +0.1563 | ✓ | 14 |
+| AC093826.2 | 0.6385 | -0.0168 | — | 15 |
+| CALCR | 0.6328 | +0.1214 | ✓ | 16 |
+| AC138647.1 | 0.5836 | -0.0050 | — | 17 |
+| RALA | 0.5832 | +0.1750 | ✓ | 18 |
+| M6PR | 0.5812 | -0.0379 | ✓ | 19 |
+| AC004241.5 | 0.5757 | -0.1055 | — | 20 |
+| AP2B1 | 0.5449 | +0.2621 | ✓ | 21 |
+| ARF5 | 0.5164 | +0.0728 | ✓ | 22 |
+| AC130366.1 | 0.4767 | -0.1156 | — | 23 |
+| H19 | 0.4577 | +0.1950 | ✓ | 24 |
+| OR52N5 | 0.4550 | +0.0595 | — | 25 |
+| SGSM1 | 0.4461 | +0.0324 | — | 26 |
+| CFH | 0.4349 | -0.2282 | ✓ | 27 |
+| RAD52 | 0.4297 | -0.1390 | ✓ | 28 |
+| REX1BD | 0.3986 | +0.1977 | ✓ | 29 |
+| AL449283.1 | 0.3954 | +0.0777 | — | 30 |
+| ABCB4 | 0.3531 | +0.0685 | ✓ | 31 |
+| AL445235.1 | 0.3374 | -0.0198 | — | 32 |
+| AC093525.8 | 0.3348 | -0.0668 | — | 33 |
+| RBMXL3 | 0.3340 | +0.1467 | — | 34 |
+| CYP51A1 | 0.3232 | -0.1526 | ✓ | 35 |
+| MCUB | 0.3049 | +0.0659 | ✓ | 36 |
+| AC063947.2 | 0.2978 | +0.1417 | — | 37 |
+| HIGD2B | 0.2717 | +0.0116 | — | 38 |
+| MYCBP2 | 0.2211 | -0.0147 | ✓ | 39 |
+| ZMYND12 | 0.2176 | +0.1611 | — | 40 |
 
 ### Contrastive learning alignment
 **Method**
@@ -121,118 +121,93 @@ Two attribution targets, each decomposed to the genes by Integrated Gradients: t
 #### Baseline = 0
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
-| ALS2 | 0.0981 | -0.0678 | ✓ | 1 |
-| SLC25A13 | 0.0878 | +0.0680 | ✓ | 2 |
-| PON1 | 0.0874 | +0.0638 | ✓ | 3 |
-| MYCBP2 | 0.0767 | +0.0575 | ✓ | 4 |
-| CFH | 0.0738 | +0.0572 | ✓ | 5 |
-| ABCB4 | 0.0626 | +0.0561 | ✓ | 6 |
-| H19 | 0.0603 | +0.0086 | ✓ | 7 |
-| SGSM1 | 0.0548 | +0.0284 | — | 8 |
-| M6PR | 0.0541 | -0.0465 | ✓ | 9 |
-| CALCR | 0.0520 | +0.0520 | ✓ | 10 |
-| REX1BD | 0.0513 | -0.0423 | ✓ | 11 |
-| AL445235.1 | 0.0462 | +0.0150 | — | 12 |
-| RALA | 0.0455 | +0.0372 | ✓ | 13 |
-| PDK4 | 0.0412 | -0.0170 | ✓ | 14 |
-| AC025580.2 | 0.0400 | -0.0386 | — | 15 |
-| SLC7A2 | 0.0399 | +0.0127 | ✓ | 16 |
-| ACSM3 | 0.0350 | +0.0184 | ✓ | 17 |
-| AP2B1 | 0.0338 | +0.0001 | ✓ | 18 |
-| USH1C | 0.0338 | -0.0288 | ✓ | 19 |
-| LACC1 | 0.0325 | +0.0190 | — | 20 |
-| ARF5 | 0.0317 | -0.0205 | ✓ | 21 |
-| AOC1 | 0.0284 | -0.0138 | ✓ | 22 |
-| CYP51A1 | 0.0252 | -0.0031 | ✓ | 23 |
-| CSF2 | 0.0251 | -0.0238 | — | 24 |
-| AC093525.8 | 0.0239 | -0.0030 | — | 25 |
-| ZMYND12 | 0.0208 | -0.0062 | — | 26 |
-| RAD52 | 0.0207 | -0.0048 | ✓ | 27 |
-| AC004241.5 | 0.0200 | +0.0108 | — | 28 |
-| AC025198.1 | 0.0187 | -0.0120 | — | 29 |
-| HNRNPA1P9 | 0.0186 | +0.0131 | — | 30 |
-| AC063947.2 | 0.0182 | -0.0084 | — | 31 |
-| MCUB | 0.0177 | -0.0022 | ✓ | 32 |
-| AL449283.1 | 0.0175 | +0.0032 | — | 33 |
-| AC093826.2 | 0.0163 | -0.0007 | — | 34 |
-| AC138647.1 | 0.0136 | -0.0037 | — | 35 |
-| CAMK2N2 | 0.0126 | -0.0021 | — | 36 |
-| AC130366.1 | 0.0114 | +0.0079 | — | 37 |
-| OR52N5 | 0.0079 | -0.0054 | — | 38 |
-| RBMXL3 | 0.0062 | -0.0012 | — | 39 |
-| HIGD2B | 0.0060 | -0.0035 | — | 40 |
+| SLC25A13 | 0.1214 | +0.1094 | ✓ | 1 |
+| ALS2 | 0.1030 | -0.0716 | ✓ | 2 |
+| ABCB4 | 0.0928 | +0.0898 | ✓ | 3 |
+| PON1 | 0.0890 | +0.0578 | ✓ | 4 |
+| MYCBP2 | 0.0858 | +0.0630 | ✓ | 5 |
+| CFH | 0.0850 | +0.0448 | ✓ | 6 |
+| H19 | 0.0679 | +0.0148 | ✓ | 7 |
+| M6PR | 0.0665 | -0.0614 | ✓ | 8 |
+| AL445235.1 | 0.0603 | +0.0334 | — | 9 |
+| CALCR | 0.0546 | +0.0537 | ✓ | 10 |
+| SGSM1 | 0.0535 | +0.0309 | — | 11 |
+| RALA | 0.0498 | +0.0361 | ✓ | 12 |
+| REX1BD | 0.0498 | -0.0304 | ✓ | 13 |
+| AP2B1 | 0.0486 | -0.0141 | ✓ | 14 |
+| ACSM3 | 0.0477 | +0.0218 | ✓ | 15 |
+| SLC7A2 | 0.0475 | +0.0211 | ✓ | 16 |
+| PDK4 | 0.0439 | -0.0149 | ✓ | 17 |
+| USH1C | 0.0436 | -0.0389 | ✓ | 18 |
+| AC025580.2 | 0.0429 | -0.0412 | — | 19 |
+| ARF5 | 0.0413 | -0.0277 | ✓ | 20 |
+| AOC1 | 0.0343 | -0.0101 | ✓ | 21 |
+| LACC1 | 0.0304 | +0.0153 | — | 22 |
+| CSF2 | 0.0303 | -0.0303 | — | 23 |
+| AC093525.8 | 0.0303 | -0.0098 | — | 24 |
+| AC004241.5 | 0.0255 | +0.0104 | — | 25 |
+| HNRNPA1P9 | 0.0249 | +0.0211 | — | 26 |
+| RAD52 | 0.0241 | +0.0032 | ✓ | 27 |
+| CYP51A1 | 0.0237 | -0.0062 | ✓ | 28 |
+| AC063947.2 | 0.0234 | -0.0066 | — | 29 |
+| AC025198.1 | 0.0225 | -0.0102 | — | 30 |
+| ZMYND12 | 0.0214 | -0.0046 | — | 31 |
+| AC093826.2 | 0.0199 | -0.0001 | — | 32 |
+| MCUB | 0.0178 | +0.0007 | ✓ | 33 |
+| AC130366.1 | 0.0152 | +0.0118 | — | 34 |
+| AL449283.1 | 0.0140 | -0.0005 | — | 35 |
+| CAMK2N2 | 0.0139 | -0.0017 | — | 36 |
+| AC138647.1 | 0.0117 | +0.0001 | — | 37 |
+| OR52N5 | 0.0107 | -0.0098 | — | 38 |
+| HIGD2B | 0.0078 | -0.0078 | — | 39 |
+| RBMXL3 | 0.0074 | +0.0004 | — | 40 |
 
 #### baseline = cohort-mean
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
-| CALCR | 0.0412 | -0.0015 | ✓ | 1 |
-| ALS2 | 0.0407 | -0.0011 | ✓ | 2 |
-| AC025580.2 | 0.0351 | -0.0062 | — | 3 |
-| ABCB4 | 0.0324 | -0.0011 | ✓ | 4 |
-| PON1 | 0.0306 | -0.0019 | ✓ | 5 |
-| M6PR | 0.0304 | +0.0025 | ✓ | 6 |
-| REX1BD | 0.0266 | -0.0019 | ✓ | 7 |
-| USH1C | 0.0260 | +0.0052 | ✓ | 8 |
-| LACC1 | 0.0244 | -0.0084 | — | 9 |
-| SLC7A2 | 0.0228 | -0.0009 | ✓ | 10 |
-| AC093525.8 | 0.0201 | +0.0040 | — | 11 |
-| AOC1 | 0.0167 | -0.0004 | ✓ | 12 |
-| CSF2 | 0.0166 | -0.0048 | — | 13 |
-| SLC25A13 | 0.0166 | +0.0047 | ✓ | 14 |
-| ACSM3 | 0.0165 | +0.0019 | ✓ | 15 |
-| AL449283.1 | 0.0163 | -0.0070 | — | 16 |
-| PDK4 | 0.0155 | +0.0003 | ✓ | 17 |
-| ARF5 | 0.0154 | -0.0027 | ✓ | 18 |
-| AL445235.1 | 0.0150 | +0.0019 | — | 19 |
-| AC093826.2 | 0.0148 | -0.0033 | — | 20 |
-| AC004241.5 | 0.0147 | -0.0005 | — | 21 |
-| HNRNPA1P9 | 0.0144 | -0.0029 | — | 22 |
-| CAMK2N2 | 0.0140 | -0.0048 | — | 23 |
-| RALA | 0.0132 | -0.0005 | ✓ | 24 |
-| H19 | 0.0129 | -0.0066 | ✓ | 25 |
-| ZMYND12 | 0.0129 | -0.0038 | — | 26 |
-| MCUB | 0.0125 | -0.0008 | ✓ | 27 |
-| AC130366.1 | 0.0123 | -0.0016 | — | 28 |
-| CYP51A1 | 0.0123 | -0.0003 | ✓ | 29 |
-| AC025198.1 | 0.0114 | -0.0013 | — | 30 |
-| CFH | 0.0113 | +0.0008 | ✓ | 31 |
-| AC063947.2 | 0.0113 | +0.0008 | — | 32 |
-| RAD52 | 0.0110 | +0.0025 | ✓ | 33 |
-| HIGD2B | 0.0107 | -0.0030 | — | 34 |
-| AP2B1 | 0.0099 | +0.0012 | ✓ | 35 |
-| AC138647.1 | 0.0090 | +0.0020 | — | 36 |
-| SGSM1 | 0.0087 | -0.0027 | — | 37 |
-| OR52N5 | 0.0064 | -0.0047 | — | 38 |
-| RBMXL3 | 0.0062 | -0.0022 | — | 39 |
-| MYCBP2 | 0.0057 | -0.0001 | ✓ | 40 |
+| CALCR | 0.0501 | -0.0005 | ✓ | 1 |
+| ALS2 | 0.0439 | -0.0021 | ✓ | 2 |
+| ABCB4 | 0.0429 | -0.0006 | ✓ | 3 |
+| AC025580.2 | 0.0393 | -0.0050 | — | 4 |
+| M6PR | 0.0376 | +0.0034 | ✓ | 5 |
+| SLC7A2 | 0.0319 | -0.0005 | ✓ | 6 |
+| PON1 | 0.0317 | -0.0008 | ✓ | 7 |
+| REX1BD | 0.0313 | -0.0013 | ✓ | 8 |
+| USH1C | 0.0310 | +0.0083 | ✓ | 9 |
+| AC093525.8 | 0.0300 | +0.0048 | — | 10 |
+| ACSM3 | 0.0231 | +0.0035 | ✓ | 11 |
+| SLC25A13 | 0.0230 | +0.0079 | ✓ | 12 |
+| PDK4 | 0.0223 | -0.0000 | ✓ | 13 |
+| LACC1 | 0.0212 | -0.0074 | — | 14 |
+| HNRNPA1P9 | 0.0211 | -0.0010 | — | 15 |
+| CSF2 | 0.0199 | -0.0065 | — | 16 |
+| AOC1 | 0.0179 | +0.0023 | ✓ | 17 |
+| HIGD2B | 0.0175 | -0.0039 | — | 18 |
+| AP2B1 | 0.0167 | +0.0011 | ✓ | 19 |
+| AL449283.1 | 0.0167 | -0.0056 | — | 20 |
+| AC093826.2 | 0.0166 | -0.0037 | — | 21 |
+| AC063947.2 | 0.0164 | +0.0027 | — | 22 |
+| AC004241.5 | 0.0163 | +0.0011 | — | 23 |
+| ARF5 | 0.0162 | -0.0047 | ✓ | 24 |
+| RALA | 0.0154 | -0.0020 | ✓ | 25 |
+| ZMYND12 | 0.0148 | -0.0014 | — | 26 |
+| RAD52 | 0.0143 | +0.0033 | ✓ | 27 |
+| H19 | 0.0138 | -0.0068 | ✓ | 28 |
+| CAMK2N2 | 0.0133 | -0.0040 | — | 29 |
+| CYP51A1 | 0.0131 | -0.0013 | ✓ | 30 |
+| AL445235.1 | 0.0130 | +0.0025 | — | 31 |
+| AC130366.1 | 0.0127 | +0.0032 | — | 32 |
+| MCUB | 0.0123 | -0.0034 | ✓ | 33 |
+| RBMXL3 | 0.0122 | -0.0026 | — | 34 |
+| AC025198.1 | 0.0122 | +0.0008 | — | 35 |
+| CFH | 0.0121 | +0.0018 | ✓ | 36 |
+| SGSM1 | 0.0114 | -0.0023 | — | 37 |
+| OR52N5 | 0.0105 | -0.0074 | — | 38 |
+| AC138647.1 | 0.0097 | +0.0041 | — | 39 |
+| MYCBP2 | 0.0073 | -0.0005 | ✓ | 40 |
 
 ## Each gene's contribution on each dimension
 C[d, j] = β_d · J[d, j], where J[d, j] is the Jacobian on the mean of gene vectors.
 ![Gene → decision-axis contribution heatmap](0727_mechanistic_interpretability_heatmap.png)
 
-## Appendix. Top downstream dimensions by |β| (with bootstrap stability)
 
-Bootstrap = 500 stratified patient resamples. `sel. freq` = fraction of resamples where the selector keeps the dim. `top driver genes` = largest |C[d,j]|.
-
-| dim | β | bootstrap mean±sd | sel. freq | top driver genes (signed C) |
-|---|---:|---:|---:|---|
-| 37 | +2.591 | +1.612±1.283 | 0.65 | CSF2 (-0.110), H19 (+0.094), HNRNPA1P9 (+0.089) |
-| 74 | -2.216 | -1.453±1.674 | 0.70 | AC025198.1 (-0.087), AC138647.1 (+0.085), AL445235.1 (-0.085) |
-| 11 | -1.707 | -0.936±0.876 | 0.61 | RBMXL3 (-0.064), RALA (+0.053), LACC1 (+0.047) |
-| 98 | +1.593 | +1.023±0.827 | 0.74 | ACSM3 (-0.049), USH1C (+0.047), MCUB (+0.046) |
-| 117 | -1.522 | -1.134±0.937 | 0.73 | AC138647.1 (-0.081), AL449283.1 (+0.068), ZMYND12 (+0.059) |
-| 126 | +1.507 | +1.149±0.942 | 0.77 | AL445235.1 (-0.055), OR52N5 (+0.055), CSF2 (-0.054) |
-| 35 | +1.437 | +0.929±0.852 | 0.62 | ABCB4 (+0.055), AC025198.1 (+0.050), AC063947.2 (-0.048) |
-| 43 | -1.400 | -0.870±0.960 | 0.64 | LACC1 (+0.059), REX1BD (+0.046), AC093525.8 (+0.043) |
-| 118 | +1.321 | +0.647±0.564 | 0.70 | CAMK2N2 (-0.042), AC138647.1 (+0.039), ZMYND12 (-0.038) |
-| 80 | +1.250 | +0.963±0.942 | 0.70 | CSF2 (-0.037), AC025198.1 (+0.035), AC025580.2 (-0.034) |
-| 40 | +1.087 | +0.726±0.871 | 0.65 | HIGD2B (+0.048), AC093525.8 (+0.038), AC063947.2 (+0.025) |
-| 119 | -0.971 | -0.677±0.958 | 0.74 | AL449283.1 (+0.032), ZMYND12 (+0.029), RALA (+0.025) |
-| 102 | +0.959 | +0.342±1.226 | 0.70 | AL445235.1 (-0.045), ALS2 (-0.043), REX1BD (-0.040) |
-| 81 | -0.927 | -0.593±0.794 | 0.68 | RBMXL3 (+0.024), AOC1 (+0.024), ACSM3 (-0.021) |
-| 9 | +0.899 | +0.578±0.576 | 0.58 | AL449283.1 (+0.056), AC138647.1 (-0.045), AC093826.2 (-0.040) |
-
-**Notes**
-
-- Stage-1 β says *which embedding dims the classifier uses*; stage-2 C and stage-3 IG say *which genes move the patient along those dims*. A gene ranks high only if it drives dims the classifier weights.
-- Signed IG > 0 ⇒ higher expression pushes the patient toward 2-year recurrence along the classifier's decision axis.
