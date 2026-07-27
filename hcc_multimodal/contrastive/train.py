@@ -172,6 +172,7 @@ def train(args: argparse.Namespace) -> None:
         csv.writer(f).writerow(["epoch", "train_loss", "val_loss"])
 
     best_val = float("inf")
+    epochs_since_best = 0
     step = 0
     for epoch in range(1, args.epochs + 1):
         img_enc.train()
@@ -232,16 +233,26 @@ def train(args: argparse.Namespace) -> None:
 
         if avg_val < best_val:
             best_val = avg_val
+            epochs_since_best = 0
             torch.save(
                 {"img_enc": img_enc.state_dict(), "gene_enc": gene_enc.state_dict()},
                 run_dir / "best_model.pt",
             )
+        else:
+            epochs_since_best += 1
 
         if args.checkpoint_interval and epoch % args.checkpoint_interval == 0:
             torch.save(
                 {"img_enc": img_enc.state_dict(), "gene_enc": gene_enc.state_dict()},
                 run_dir / f"epoch_{epoch:03d}.pt",
             )
+
+        if args.patience and epochs_since_best >= args.patience:
+            print(
+                f"Early stopping at epoch {epoch}: val loss has not improved on "
+                f"{epochs_since_best} consecutive epochs (patience={args.patience})."
+            )
+            break
 
     torch.save(
         {"img_enc": img_enc.state_dict(), "gene_enc": gene_enc.state_dict()},
@@ -330,6 +341,14 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--val_split", type=float, default=0.1)
 
     p.add_argument("--epochs", type=int, default=50)
+    p.add_argument(
+        "--patience",
+        type=int,
+        default=3,
+        metavar="N",
+        help="Stop early once val loss has not improved for N consecutive epochs. "
+        "0 disables early stopping. Default: 3.",
+    )
     p.add_argument(
         "--checkpoint_interval",
         type=int,
