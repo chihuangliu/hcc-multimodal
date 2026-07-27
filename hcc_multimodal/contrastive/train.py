@@ -52,6 +52,20 @@ def _setup_run(args: argparse.Namespace) -> Path:
     return run_dir
 
 
+def _stamp_gene_order(run_dir: Path, gene_order: list[str]) -> None:
+    """Record the resolved gene column order in metadata.json.
+
+    `_load_gene_matrix` pins a sorted order, so the GeneEncoder's input-slot ->
+    gene mapping is recoverable; persisting it here is what lets downstream
+    attribution (gene_integrated_gradients) trust this run.
+    """
+    meta_path = run_dir / "metadata.json"
+    meta = json.loads(meta_path.read_text())
+    meta["deterministic_gene_order"] = True
+    meta["gene_order"] = gene_order
+    meta_path.write_text(json.dumps(meta, indent=2))
+
+
 def train(args: argparse.Namespace) -> None:
     torch.manual_seed(args.seed)
     run_dir = _setup_run(args)
@@ -91,6 +105,7 @@ def train(args: argparse.Namespace) -> None:
         genes=genes,
         bbox_pad=args.bbox_pad,
     )
+    _stamp_gene_order(run_dir, dataset.gene_matrix.columns.tolist())
 
     if args.split_unit == "patient":
         patients = sorted({pid for pid, _, _ in dataset._index})

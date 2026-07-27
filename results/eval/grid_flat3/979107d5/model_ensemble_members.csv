@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+L-SVM,Pearson,0.7897119341563785,0.16566635749028313,43,"{""model__C"": 0.1, ""selector__k"": 43}"
+Elastic Net,Variance,0.7771090534979423,0.06998036615320957,43,"{""model__C"": 0.1, ""model__l1_ratio"": 0.2, ""selector__k"": 43}"
+Ridge,Mutual Info,0.7730452674897119,0.11901082309244664,43,"{""model__alpha"": 100.0, ""selector__k"": 43}"
