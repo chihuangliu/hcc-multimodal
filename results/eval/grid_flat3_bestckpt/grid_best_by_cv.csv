@@ -1,0 +1,7 @@
+model_id,best_classifier,best_fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params,soramic_auroc,lusanne_auroc
+d7085bf5,LASSO,Pearson,0.7232510288065844,0.019574380237078637,85,"{""model__C"": 1.0, ""selector__k"": 85}",0.6937321937321936,0.4285714285714285
+18e77da5,Ridge,Pearson,0.7192386831275721,0.04969061250708122,43,"{""model__alpha"": 10.0, ""selector__k"": 43}",0.678062678062678,0.39015606242497
+39d54fe5,NB,Boruta,0.7007201646090534,0.054014011340179906,43,"{""model__var_smoothing"": 1e-09, ""selector__k"": 43}",0.6068376068376069,0.5006002400960383
+09cd4b36,Elastic Net,LASSO,0.6859053497942386,0.031208301279028083,85,"{""model__C"": 1.0, ""model__l1_ratio"": 0.5, ""selector__max_features"": 85}",0.650997150997151,0.4525810324129652
+e924f983,XGB,Mutual Info,0.6423611111111112,0.06100641960476732,43,"{""model__learning_rate"": 0.1, ""model__max_depth"": 3, ""model__n_estimators"": 50, ""selector__k"": 43}",0.6047008547008548,0.4027611044417767
+6a964bac,Ridge,Pearson,0.5996399176954733,0.09438729925237202,43,"{""model__alpha"": 1.0, ""selector__k"": 43}",0.6153846153846154,0.4333733493397359

@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+e924f983,XGB/Mutual Info + Ridge/RF Import. + L-SVM/All features,3,0.6195473251028807,0.0531493868439252,0.6096866096866097,0.4333733493397359

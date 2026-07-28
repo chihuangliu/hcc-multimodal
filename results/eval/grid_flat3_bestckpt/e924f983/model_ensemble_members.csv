@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+XGB,Mutual Info,0.6423611111111112,0.06100641960476732,43,"{""model__learning_rate"": 0.1, ""model__max_depth"": 3, ""model__n_estimators"": 50, ""selector__k"": 43}"
+Ridge,RF Import.,0.6320473251028806,0.0511664002693191,43,"{""model__alpha"": 0.1, ""selector__max_features"": 43}"
+L-SVM,All features,0.6199074074074074,0.013422082132706408,all,"{""model__C"": 0.01}"

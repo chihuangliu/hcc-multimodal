@@ -99,12 +99,14 @@ def kmeans_frozen(train_scores, train_labels, test_scores):
     ablation cohort is assigned to the nearer centroid. Contrast kmeans_within, which
     fits on the test scores themselves.
     """
+    # Cast both sides: some classifiers (XGB) score in float32 while the resection OOF
+    # series is float64, and KMeans.predict rejects a dtype that differs from the fit.
     km = KMeans(n_clusters=2, n_init=10, random_state=RANDOM_STATE).fit(
-        train_scores.values.reshape(-1, 1)
+        train_scores.to_numpy(dtype=float).reshape(-1, 1)
     )
     centers = km.cluster_centers_.ravel()
     high_cluster = int(np.argmax(centers))
-    labels = km.predict(test_scores.values.reshape(-1, 1))
+    labels = km.predict(test_scores.to_numpy(dtype=float).reshape(-1, 1))
     groups = pd.Series(
         np.where(labels == high_cluster, "high", "low"),
         index=test_scores.index, name="group",

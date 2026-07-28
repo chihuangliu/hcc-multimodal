@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+09cd4b36,Elastic Net/LASSO + LASSO/Mutual Info + L-SVM/Pearson,3,0.6734567901234568,0.0578690672006906,0.6111111111111112,0.44897959183673475

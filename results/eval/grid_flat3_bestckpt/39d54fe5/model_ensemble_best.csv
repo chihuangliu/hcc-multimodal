@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+39d54fe5,NB/Boruta + XGB/Boruta + Elastic Net/All features,3,0.6491769547325102,0.07147059437431444,0.6666666666666666,0.4933973589435774
