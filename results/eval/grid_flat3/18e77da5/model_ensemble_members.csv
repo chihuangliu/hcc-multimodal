@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+Elastic Net,Variance,0.7527263374485598,0.12584724891621926,43,"{""model__C"": 1.0, ""model__l1_ratio"": 0.5, ""selector__k"": 43}"
+Ridge,Variance,0.7444444444444445,0.14258056707348266,43,"{""model__alpha"": 10.0, ""selector__k"": 43}"
+L-SVM,Elastic Net,0.74429012345679,0.11970024236038539,85,"{""model__C"": 10.0, ""selector__max_features"": 85}"

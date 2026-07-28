@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+18e77da5,Elastic Net/Variance + Ridge/Variance + L-SVM/Elastic Net,3,0.7234567901234569,0.12793523230561518,0.6168091168091168,0.49699879951980797

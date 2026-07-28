@@ -1,0 +1,2 @@
+model_id,best_classifier,best_fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params,soramic_auroc,lusanne_auroc
+e924f983,L-SVM,LASSO,0.6861111111111112,0.06643908342329176,85,"{""model__C"": 0.1, ""selector__max_features"": 85}",0.6894586894586894,0.4237695078031212

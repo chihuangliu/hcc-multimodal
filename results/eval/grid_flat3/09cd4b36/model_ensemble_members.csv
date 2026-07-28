@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+LASSO,RF Import.,0.6366769547325103,0.08466174966450303,43,"{""model__C"": 1.0, ""selector__max_features"": 43}"
+Elastic Net,Spearman,0.6241255144032921,0.10439038872168323,43,"{""model__C"": 1.0, ""model__l1_ratio"": 0.8, ""selector__k"": 43}"
+Ridge,Boruta,0.6159465020576133,0.09531536274163924,43,"{""model__alpha"": 100.0, ""selector__k"": 43}"

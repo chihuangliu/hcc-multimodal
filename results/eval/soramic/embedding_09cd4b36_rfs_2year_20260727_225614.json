@@ -1,0 +1,64 @@
+{
+  "git_commit": "7ecbec90300fd8eb188905c2cb80587f45032867",
+  "timestamp": "2026-07-27T22:56:14.893644",
+  "args": {
+    "ablation_set": "soramic",
+    "model_id": "09cd4b36",
+    "radiomic_model": null,
+    "target": "rfs_2year",
+    "mode": "embedding",
+    "multi_lesion": "both",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 0,
+    "output": null,
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.6495726495726496,
+          "auprc": 0.804378244782825,
+          "sensitivity": 0.9487179487179487,
+          "specificity": 0.1111111111111111,
+          "ppv": 0.6981132075471698,
+          "npv": 0.5,
+          "f1": 0.8043478260869565
+        },
+        "rf": {
+          "auroc": 0.5890313390313391,
+          "auprc": 0.7681543631485795,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.6842105263157895,
+          "npv": NaN,
+          "f1": 0.8125
+        }
+      }
+    },
+    "per_lesion": {
+      "embedding": {
+        "lr": {
+          "auroc": 0.6495726495726496,
+          "auprc": 0.804378244782825,
+          "sensitivity": 0.9487179487179487,
+          "specificity": 0.1111111111111111,
+          "ppv": 0.6981132075471698,
+          "npv": 0.5,
+          "f1": 0.8043478260869565
+        },
+        "rf": {
+          "auroc": 0.5890313390313391,
+          "auprc": 0.7681543631485795,
+          "sensitivity": 1.0,
+          "specificity": 0.0,
+          "ppv": 0.6842105263157895,
+          "npv": NaN,
+          "f1": 0.8125
+        }
+      }
+    }
+  }
+}
