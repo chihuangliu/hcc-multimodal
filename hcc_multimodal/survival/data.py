@@ -14,7 +14,6 @@ import pandas as pd
 from hcc_multimodal.baselines.data import add_rfs_columns
 from hcc_multimodal.eval.data import (
     RESECTION_CLINICAL_CSV,
-    TRAINING_ROOT,
     get_ablation_config,
     load_ablation_radiomics,
     load_resection_radiomics,
@@ -37,10 +36,10 @@ MODEL_INPUT = {
 }
 
 
-def _emb_filename(cohort: str, input_type: str) -> str:
+def _emb_stem(cohort: str, input_type: str) -> str:
     if cohort == "resection":
-        return "resection_img_emb.parquet"
-    return f"ablation_{cohort}_img_emb_{input_type}.parquet"
+        return "resection_img_emb"
+    return f"ablation_{cohort}_img_emb_{input_type}"
 
 
 def _read_clinical(cohort: str) -> pd.DataFrame:
@@ -80,9 +79,23 @@ def load_survival_outcomes(
 
 
 def load_embeddings(model_id: str, cohort: str) -> pd.DataFrame:
-    """Load patient-level (mean-pooled) embeddings indexed by integer SID."""
-    input_type = MODEL_INPUT.get(model_id, "raw")
-    path = TRAINING_ROOT / model_id / "cached_embeddings" / _emb_filename(cohort, input_type)
+    """Load patient-level (mean-pooled) embeddings indexed by integer SID.
+
+    ``model_id`` is a model reference: a bare run id, or ``<run_id>@<epoch>`` to
+    read the cache extracted from that run's ``epoch_XXX.pt``.
+    """
+    from hcc_multimodal.utils.model_ref import parse_model_ref
+
+    ref = parse_model_ref(model_id)
+    # keyed on the run id, never the qualified spec, so bbox runs still resolve
+    input_type = MODEL_INPUT.get(ref.run_id, "raw")
+    path = ref.cache_path(_emb_stem(cohort, input_type))
+    if not path.exists():
+        raise FileNotFoundError(
+            f"No cached {cohort} embeddings for {model_id!r} at {path}. "
+            f"Run: python -m hcc_multimodal.eval.eval --mode embedding "
+            f"--model-id {model_id} --ablation-set <soramic|lusanne> --target rfs_2year"
+        )
     emb = pd.read_parquet(path)
     emb.index = emb.index.astype(int)
     emb.index.name = "SID"

@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+6a964bac_ep10,Elastic Net/Boruta + Ridge/LASSO + XGB/Pearson,3,0.6284465020576132,0.1213880383046536,0.6937321937321937,0.4153661464585835

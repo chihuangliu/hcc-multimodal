@@ -24,8 +24,7 @@ import torch
 
 from hcc_multimodal.eval.data import (
     RESECTION_MRI_ROOT,
-    RESECTION_EMB_CACHE,
-    TRAINING_ROOT,
+    RESECTION_EMB_STEM,
     extract_image_embeddings,
     get_ablation_config,
     load_ablation_outcomes,
@@ -38,6 +37,7 @@ from hcc_multimodal.eval.eval_utils import DOWNSTREAM_MODELS, PROJECT_ROOT, buil
 from hcc_multimodal.eval.metrics import compute_metrics
 from hcc_multimodal.train.config import SELECT_K
 from hcc_multimodal.utils.git import git_commit
+from hcc_multimodal.utils.model_ref import parse_model_ref
 
 
 # ---------------------------------------------------------------------------
@@ -215,9 +215,9 @@ def run(args: argparse.Namespace) -> None:
         img_enc, meta = load_contrastive_model(args.model_id, device)
         print(f"Loaded contrastive model: {args.model_id}")
 
-        cache_dir = TRAINING_ROOT / args.model_id / "cached_embeddings"
+        ref = parse_model_ref(args.model_id)
         bbox_mode = meta.get("mri_type") == "raw_bbox"
-        abl_cache_name = f"ablation_{args.ablation_set}_img_emb_{'bbox' if bbox_mode else 'raw'}.parquet"
+        abl_cache_stem = f"ablation_{args.ablation_set}_img_emb_{'bbox' if bbox_mode else 'raw'}"
 
         res_pids = [int(p.name) for p in RESECTION_MRI_ROOT.iterdir() if p.is_dir()]
         resection_emb_df = extract_image_embeddings(
@@ -229,7 +229,7 @@ def run(args: argparse.Namespace) -> None:
             device=device,
             batch_size=args.batch_size,
             num_workers=args.num_workers,
-            cache_path=cache_dir / RESECTION_EMB_CACHE,
+            cache_path=ref.cache_path(RESECTION_EMB_STEM),
             resample=False,
             overwrite_cache=args.overwrite_cache,
         )
@@ -245,7 +245,7 @@ def run(args: argparse.Namespace) -> None:
             device=device,
             batch_size=args.batch_size,
             num_workers=args.num_workers,
-            cache_path=cache_dir / abl_cache_name,
+            cache_path=ref.cache_path(abl_cache_stem),
             resample=True,
             masks_root=cfg.masks_root if bbox_mode else None,
             pid_to_mask_prefix=cfg.pid_to_mask_prefix if bbox_mode else None,
@@ -326,7 +326,7 @@ def run(args: argparse.Namespace) -> None:
     else:
         parts = [args.mode]
         if args.model_id:
-            parts.append(args.model_id)
+            parts.append(parse_model_ref(args.model_id).tag)
         parts.append(args.target)
         parts.append(datetime.now().strftime("%Y%m%d_%H%M%S"))
         out_path = (

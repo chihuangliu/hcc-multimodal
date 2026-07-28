@@ -40,7 +40,8 @@ RESECTION_MRI_ROOT = MRI_ARTERIAL_ROOT
 CONTRASTIVE_METADATA_FILENAME = "metadata.json"
 CONTRASTIVE_CHECKPOINT_FILENAME = "best_model.pt"
 
-RESECTION_EMB_CACHE = "resection_img_emb.parquet"
+RESECTION_EMB_STEM = "resection_img_emb"
+RESECTION_EMB_CACHE = f"{RESECTION_EMB_STEM}.parquet"
 
 
 # ---------------------------------------------------------------------------
@@ -343,13 +344,16 @@ def extract_image_embeddings(
 def load_contrastive_model(
     model_id: str, device: torch.device
 ) -> tuple[ImageEncoder, dict]:
-    run_dir = TRAINING_ROOT / model_id
-    meta = json.loads((run_dir / CONTRASTIVE_METADATA_FILENAME).read_text())
+    """Load an encoder from ``<run_id>`` (best_model.pt) or ``<run_id>@<epoch>``."""
+    from hcc_multimodal.utils.model_ref import parse_model_ref
+
+    ref = parse_model_ref(model_id)
+    meta = json.loads(ref.metadata_path.read_text())
     img_enc = ImageEncoder(
         meta["model"], meta["embed_dim"], meta["freeze_backbone"]
     ).to(device)
     ckpt = torch.load(
-        run_dir / CONTRASTIVE_CHECKPOINT_FILENAME, map_location=device, weights_only=False
+        ref.require_checkpoint(), map_location=device, weights_only=False
     )
     img_enc.load_state_dict(ckpt["img_enc"])
     img_enc.eval()
