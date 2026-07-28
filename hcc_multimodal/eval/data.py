@@ -21,6 +21,7 @@ from hcc_multimodal.utils.data import (
     MRI_ARTERIAL_ROOT,
     RADIOMICS_FEATURES,
     RADIOMIC_CLUSTER_CSV,
+    load_resection_arterial_radiomics,
 )
 
 # ---------------------------------------------------------------------------
@@ -147,6 +148,14 @@ def load_ablation_radiomics(
 
 
 def load_resection_radiomics(outcomes: pd.Series) -> tuple[pd.DataFrame, pd.Series]:
+    """Arterial features from ``radiomic_cluster.csv`` — **already z-scored** per feature.
+
+    The CSV was standardised within the 60 resection patients (column means ~1e-16,
+    sample std ~1.0084 = sqrt(60/59)), so these features are *not* on the same scale as
+    :func:`load_ablation_radiomics`, which returns raw extractor output. Training here
+    and transferring to an ablation cohort therefore crosses a many-order-of-magnitude
+    scale break; use :func:`load_resection_radiomics_raw` for cross-cohort work.
+    """
     df = pd.read_csv(RESECTION_RADIOMIC_CSV).dropna(how="all")
     art_cols = [f"{f}_art" for f in RADIOMICS_FEATURES]
     df = df[["SID"] + art_cols].copy()
@@ -155,6 +164,22 @@ def load_resection_radiomics(outcomes: pd.Series) -> tuple[pd.DataFrame, pd.Seri
     df = df.set_index("SID")
     common = df.index.intersection(outcomes.index)
     return df.loc[common], outcomes.loc[common]
+
+
+def load_resection_radiomics_raw(outcomes: pd.Series) -> tuple[pd.DataFrame, pd.Series]:
+    """Raw arterial features from the per-lesion TSVs, matching the ablation cohorts.
+
+    Same extraction and same units as :func:`load_ablation_radiomics` (one lesion per
+    resection patient, directory name = ``SID``), so a head fitted here transfers to
+    Soramic/Lausanne without a scale break — unlike the pre-z-scored
+    :func:`load_resection_radiomics`.
+    """
+    df = load_resection_arterial_radiomics()
+    sid = df["Scan name"].astype(str).str.split(".", n=1).str[0].astype(int)
+    X = df[RADIOMICS_FEATURES].copy()
+    X.index = pd.Index(sid, name="SID")
+    common = X.index.intersection(outcomes.index)
+    return X.loc[common], outcomes.loc[common]
 
 
 # ---------------------------------------------------------------------------

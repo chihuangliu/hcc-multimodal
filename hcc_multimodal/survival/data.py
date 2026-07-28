@@ -18,6 +18,7 @@ from hcc_multimodal.eval.data import (
     get_ablation_config,
     load_ablation_radiomics,
     load_resection_radiomics,
+    load_resection_radiomics_raw,
 )
 
 TIME_COL = "RFS_central"
@@ -34,6 +35,9 @@ MODEL_INPUT = {
     "16acfdd9": "bbox",  # λ=0.0, slice
     "3baefc68": "bbox",  # λ=0.0, patient
     "8fcb5dd3": "bbox",  # λ=0.1, patient
+    # 92b9afed continued for 5 more epochs (2026-07-28), bringing the bbox λ=0.1
+    # slice config to the 10 epochs the rest of the frozen n=all family was trained for.
+    "a5fcd80b": "bbox",  # λ=0.1, slice — continuation of 92b9afed
 }
 
 
@@ -89,11 +93,19 @@ def load_embeddings(model_id: str, cohort: str) -> pd.DataFrame:
     return emb
 
 
-def load_radiomic_features(cohort: str, index: pd.Index) -> pd.DataFrame:
-    """Load arterial-phase radiomic features (multi-lesion averaged) by SID."""
+def load_radiomic_features(cohort: str, index: pd.Index, raw: bool = False) -> pd.DataFrame:
+    """Load arterial-phase radiomic features (multi-lesion averaged) by SID.
+
+    ``raw=True`` reads the resection cohort from the per-lesion TSVs instead of the
+    pre-z-scored ``radiomic_cluster.csv``, putting it on the same scale as the ablation
+    cohorts (which are always raw). Use it for anything that fits on one cohort and
+    transfers to another; ``raw=False`` reproduces the historical (scale-mismatched)
+    behaviour of the existing radiomic baselines.
+    """
     probe = pd.Series(0, index=index)  # loaders only use the index to filter
     if cohort == "resection":
-        X, _ = load_resection_radiomics(probe)
+        loader = load_resection_radiomics_raw if raw else load_resection_radiomics
+        X, _ = loader(probe)
     else:
         X, _ = load_ablation_radiomics(cohort, probe, "average")
         X.index = X.index.astype(int)
@@ -148,12 +160,14 @@ def load_source_aligned(
 ) -> CohortData:
     """Aligned features for any risk-score source.
 
-    ``source`` is ``"radiomic"`` or a contrastive model_id.
+    ``source`` is ``"radiomic"`` (resection features pre-z-scored, as used by the
+    historical baselines), ``"radiomic_raw"`` (resection features re-read raw from the
+    per-lesion TSVs, so train and test share one scale) or a contrastive model_id.
     """
-    if source == "radiomic":
+    if source in ("radiomic", "radiomic_raw"):
         surv = load_survival_outcomes(
             cohort, tolerance_months=tolerance_months, time_col=time_col, event_col=event_col
         )
-        X = load_radiomic_features(cohort, surv.index)
+        X = load_radiomic_features(cohort, surv.index, raw=(source == "radiomic_raw"))
         return _align(X, cohort, tolerance_months, time_col, event_col)
     return load_aligned(source, cohort, tolerance_months, time_col, event_col)
