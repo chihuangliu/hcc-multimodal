@@ -89,6 +89,11 @@ def run(args) -> None:
         transform=augment,
         mri_type=meta["mri_type"],
         genes=genes,
+        # Reproduce the source run's slot assignment: its order is randomised
+        # unless --sort_genes was passed, so take it from metadata. Runs
+        # predating the flag recorded none but always sorted.
+        sort_genes=meta.get("sort_genes", True),
+        gene_order=meta.get("gene_order"),
         bbox_pad=meta["bbox_pad"],
     )
     gene_order = list(dataset.gene_matrix.columns)
@@ -193,7 +198,8 @@ def run(args) -> None:
         "git_commit": _git_hash(),
         "refit_gene_enc_from": args.src_model,
         "deterministic_gene_order": True,
-        "gene_order": gene_order,
+        "sort_genes": meta.get("sort_genes", True),
+        "gene_order": gene_order,   # from this refit's dataset, never inherited
         "refit_seed": args.seed,
     }
     (run_dir / "metadata.json").write_text(json.dumps(new_meta, indent=2))

@@ -52,6 +52,24 @@ def _setup_run(args: argparse.Namespace) -> Path:
     return run_dir
 
 
+def _record_gene_order(run_dir: Path, gene_order: list[str]) -> None:
+    """Merge the resolved gene column order into an existing metadata.json.
+
+    Written as a second pass once the dataset is built: `_setup_run` writes
+    metadata.json up front so a run that dies during dataset construction still
+    leaves a readable file for the eval tooling that scans run directories.
+    A gene's GeneEncoder input-slot index is its position in `gene_order`.
+
+    This is not just bookkeeping — the default order is randomised per run, so
+    this record is the only way to recover the mapping when reloading the model.
+    """
+    meta_path = run_dir / "metadata.json"
+    meta = json.loads(meta_path.read_text())
+    meta["gene_order"] = gene_order
+    meta["deterministic_gene_order"] = True
+    meta_path.write_text(json.dumps(meta, indent=2))
+
+
 def train(args: argparse.Namespace) -> None:
     torch.manual_seed(args.seed)
     run_dir = _setup_run(args)
@@ -89,8 +107,13 @@ def train(args: argparse.Namespace) -> None:
         transform=augment,
         mri_type=args.mri_type,
         genes=genes,
+        sort_genes=args.sort_genes,
         bbox_pad=args.bbox_pad,
     )
+
+    gene_order = list(dataset.gene_matrix.columns)
+    _record_gene_order(run_dir, gene_order)
+    print(f"Gene order ({len(gene_order)}, sort_genes={args.sort_genes}): {gene_order}")
 
     if args.split_unit == "patient":
         patients = sorted({pid for pid, _, _ in dataset._index})
@@ -149,6 +172,7 @@ def train(args: argparse.Namespace) -> None:
         csv.writer(f).writerow(["epoch", "train_loss", "val_loss"])
 
     best_val = float("inf")
+    epochs_since_best = 0
     step = 0
     for epoch in range(1, args.epochs + 1):
         img_enc.train()
@@ -209,10 +233,26 @@ def train(args: argparse.Namespace) -> None:
 
         if avg_val < best_val:
             best_val = avg_val
+            epochs_since_best = 0
             torch.save(
                 {"img_enc": img_enc.state_dict(), "gene_enc": gene_enc.state_dict()},
                 run_dir / "best_model.pt",
             )
+        else:
+            epochs_since_best += 1
+
+        if args.checkpoint_interval and epoch % args.checkpoint_interval == 0:
+            torch.save(
+                {"img_enc": img_enc.state_dict(), "gene_enc": gene_enc.state_dict()},
+                run_dir / f"epoch_{epoch:03d}.pt",
+            )
+
+        if args.patience and epochs_since_best >= args.patience:
+            print(
+                f"Early stopping at epoch {epoch}: val loss has not improved on "
+                f"{epochs_since_best} consecutive epochs (patience={args.patience})."
+            )
+            break
 
     torch.save(
         {"img_enc": img_enc.state_dict(), "gene_enc": gene_enc.state_dict()},
@@ -254,6 +294,15 @@ def _parse_args() -> argparse.Namespace:
         "Each must be present in the gene set.",
     )
     p.add_argument(
+        "--sort_genes",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Order gene columns alphabetically. Default (--no-sort_genes) uses set "
+        "iteration order, giving each run a different gene->input-slot assignment. "
+        "Either way the resolved order is recorded as 'gene_order' in the run's "
+        "metadata.json, which is the only way to recover a randomised order.",
+    )
+    p.add_argument(
         "--n_per_axis",
         type=lambda v: None if v == "all" else int(v),
         default=None,
@@ -292,6 +341,22 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--val_split", type=float, default=0.1)
 
     p.add_argument("--epochs", type=int, default=50)
+    p.add_argument(
+        "--patience",
+        type=int,
+        default=3,
+        metavar="N",
+        help="Stop early once val loss has not improved for N consecutive epochs. "
+        "0 disables early stopping. Default: 3.",
+    )
+    p.add_argument(
+        "--checkpoint_interval",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Also save a checkpoint every N epochs as epoch_<epoch>.pt (e.g. 10 saves "
+        "epochs 10, 20, ...). Default: only best_model.pt and last_model.pt.",
+    )
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)

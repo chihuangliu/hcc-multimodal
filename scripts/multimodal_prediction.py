@@ -426,7 +426,14 @@ def run(args: argparse.Namespace) -> None:
         model_path = _TRAINING_ROOT / args.model_id / "best_model.pt"
         meta = json.loads((model_path.parent / "metadata.json").read_text())
 
-        gene_matrix = _load_gene_matrix(_GENE_SETS[meta.get("gene_set", "all")])
+        # Match the column order the model was trained with. That order is
+        # randomised per run unless --sort_genes was passed, so it has to come
+        # from metadata; runs predating the flag recorded none but always sorted.
+        gene_matrix = _load_gene_matrix(
+            _GENE_SETS[meta.get("gene_set", "all")],
+            sort_genes=meta.get("sort_genes", True),
+            gene_order=meta.get("gene_order"),
+        )
         outcomes = _load_outcomes(args.outcome)
 
         cache_path = (
