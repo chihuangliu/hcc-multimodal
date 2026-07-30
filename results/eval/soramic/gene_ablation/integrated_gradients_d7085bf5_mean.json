@@ -1,0 +1,297 @@
+{
+  "model_id": "d7085bf5",
+  "gene_set": "all",
+  "target": "cosine(z_img, gene_enc(g))",
+  "baseline": "mean",
+  "steps": 200,
+  "n_patients": 60,
+  "n_genes": 40,
+  "baseline_auroc": 0.732,
+  "completeness_max_residual": 0.0011231601238250732,
+  "spearman_ig_vs_neg_loo_delta": {
+    "rho": -0.27368421052631575,
+    "p": 0.24296636906130648
+  },
+  "genes": [
+    {
+      "gene": "AC025580.2",
+      "mean_abs_ig": 0.051845841109752655,
+      "signed_mean_ig": -0.01664343848824501,
+      "loo_auroc": 0.6438746438746439,
+      "loo_delta": -0.0881253561253561
+    },
+    {
+      "gene": "LACC1",
+      "mean_abs_ig": 0.04253695160150528,
+      "signed_mean_ig": -0.015356122516095638,
+      "loo_auroc": 0.715099715099715,
+      "loo_delta": -0.016900284900284945
+    },
+    {
+      "gene": "ACSM3",
+      "mean_abs_ig": 0.041882459074258804,
+      "signed_mean_ig": -0.01287365797907114,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "PON1",
+      "mean_abs_ig": 0.040422242134809494,
+      "signed_mean_ig": -0.006806176621466875,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "AL449283.1",
+      "mean_abs_ig": 0.03008309192955494,
+      "signed_mean_ig": -0.013625205494463444,
+      "loo_auroc": 0.5299145299145299,
+      "loo_delta": -0.20208547008547006
+    },
+    {
+      "gene": "RAD52",
+      "mean_abs_ig": 0.030008753761649132,
+      "signed_mean_ig": -0.0005936898523941636,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "SLC25A13",
+      "mean_abs_ig": 0.02990838885307312,
+      "signed_mean_ig": -0.011987733654677868,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "REX1BD",
+      "mean_abs_ig": 0.028738103806972504,
+      "signed_mean_ig": -0.009407496079802513,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "M6PR",
+      "mean_abs_ig": 0.02870514988899231,
+      "signed_mean_ig": -0.006095170974731445,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "AC093826.2",
+      "mean_abs_ig": 0.024567054584622383,
+      "signed_mean_ig": -0.002643114421516657,
+      "loo_auroc": 0.6082621082621082,
+      "loo_delta": -0.12373789173789174
+    },
+    {
+      "gene": "ALS2",
+      "mean_abs_ig": 0.0244284700602293,
+      "signed_mean_ig": -0.012143580242991447,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "AP2B1",
+      "mean_abs_ig": 0.024134982377290726,
+      "signed_mean_ig": -0.0001861337514128536,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "CAMK2N2",
+      "mean_abs_ig": 0.021952759474515915,
+      "signed_mean_ig": -0.00792151503264904,
+      "loo_auroc": 0.5933048433048433,
+      "loo_delta": -0.13869515669515664
+    },
+    {
+      "gene": "CALCR",
+      "mean_abs_ig": 0.021220745518803596,
+      "signed_mean_ig": -0.008105584420263767,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "RALA",
+      "mean_abs_ig": 0.021153245121240616,
+      "signed_mean_ig": -5.058236274635419e-05,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "SGSM1",
+      "mean_abs_ig": 0.02089356817305088,
+      "signed_mean_ig": -0.007915275171399117,
+      "loo_auroc": 0.6623931623931624,
+      "loo_delta": -0.06960683760683761
+    },
+    {
+      "gene": "AL445235.1",
+      "mean_abs_ig": 0.019850853830575943,
+      "signed_mean_ig": 0.0003286026476416737,
+      "loo_auroc": 0.5698005698005698,
+      "loo_delta": -0.16219943019943017
+    },
+    {
+      "gene": "MYCBP2",
+      "mean_abs_ig": 0.018497705459594727,
+      "signed_mean_ig": 0.0024663403164595366,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "AC025198.1",
+      "mean_abs_ig": 0.018293816596269608,
+      "signed_mean_ig": -0.0022840285673737526,
+      "loo_auroc": 0.6296296296296297,
+      "loo_delta": -0.10237037037037033
+    },
+    {
+      "gene": "PDK4",
+      "mean_abs_ig": 0.016007263213396072,
+      "signed_mean_ig": -0.0031823660247027874,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "CYP51A1",
+      "mean_abs_ig": 0.015909072011709213,
+      "signed_mean_ig": -0.004572056699544191,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "ARF5",
+      "mean_abs_ig": 0.01590210758149624,
+      "signed_mean_ig": -0.0035587584134191275,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "AOC1",
+      "mean_abs_ig": 0.015865115448832512,
+      "signed_mean_ig": -0.0023474465124309063,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "AC130366.1",
+      "mean_abs_ig": 0.015159817412495613,
+      "signed_mean_ig": -0.00650162436068058,
+      "loo_auroc": 0.650997150997151,
+      "loo_delta": -0.08100284900284893
+    },
+    {
+      "gene": "SLC7A2",
+      "mean_abs_ig": 0.015009653754532337,
+      "signed_mean_ig": -0.004178786184638739,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "CFH",
+      "mean_abs_ig": 0.014453490264713764,
+      "signed_mean_ig": -0.0052353753708302975,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "USH1C",
+      "mean_abs_ig": 0.014414516277611256,
+      "signed_mean_ig": 0.0008972326759248972,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "CSF2",
+      "mean_abs_ig": 0.013671494089066982,
+      "signed_mean_ig": -0.005206768866628408,
+      "loo_auroc": 0.5185185185185186,
+      "loo_delta": -0.21348148148148138
+    },
+    {
+      "gene": "ABCB4",
+      "mean_abs_ig": 0.013055745512247086,
+      "signed_mean_ig": -0.0024358383379876614,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "AC063947.2",
+      "mean_abs_ig": 0.012195113115012646,
+      "signed_mean_ig": 0.0011075347429141402,
+      "loo_auroc": 0.6780626780626781,
+      "loo_delta": -0.053937321937321925
+    },
+    {
+      "gene": "AC004241.5",
+      "mean_abs_ig": 0.011896590702235699,
+      "signed_mean_ig": -0.0016564615070819855,
+      "loo_auroc": 0.6111111111111112,
+      "loo_delta": -0.12088888888888882
+    },
+    {
+      "gene": "H19",
+      "mean_abs_ig": 0.011819175444543362,
+      "signed_mean_ig": 0.00019063512445427477,
+      "loo_auroc": 0.6082621082621084,
+      "loo_delta": -0.12373789173789163
+    },
+    {
+      "gene": "HNRNPA1P9",
+      "mean_abs_ig": 0.011577087454497814,
+      "signed_mean_ig": -0.0020777892787009478,
+      "loo_auroc": 0.6538461538461537,
+      "loo_delta": -0.07815384615384624
+    },
+    {
+      "gene": "ZMYND12",
+      "mean_abs_ig": 0.011035921052098274,
+      "signed_mean_ig": -0.006264162249863148,
+      "loo_auroc": 0.636039886039886,
+      "loo_delta": -0.09596011396011395
+    },
+    {
+      "gene": "OR52N5",
+      "mean_abs_ig": 0.010389281436800957,
+      "signed_mean_ig": 0.0008276402368210256,
+      "loo_auroc": 0.5370370370370371,
+      "loo_delta": -0.1949629629629629
+    },
+    {
+      "gene": "RBMXL3",
+      "mean_abs_ig": 0.009936234913766384,
+      "signed_mean_ig": -0.0009754719794727862,
+      "loo_auroc": 0.5961538461538461,
+      "loo_delta": -0.13584615384615384
+    },
+    {
+      "gene": "MCUB",
+      "mean_abs_ig": 0.009027223102748394,
+      "signed_mean_ig": -0.002807783195748925,
+      "loo_auroc": NaN,
+      "loo_delta": NaN
+    },
+    {
+      "gene": "AC093525.8",
+      "mean_abs_ig": 0.008185967803001404,
+      "signed_mean_ig": -0.0003208417329005897,
+      "loo_auroc": 0.6025641025641025,
+      "loo_delta": -0.12943589743589745
+    },
+    {
+      "gene": "HIGD2B",
+      "mean_abs_ig": 0.00798072200268507,
+      "signed_mean_ig": -0.001660781679674983,
+      "loo_auroc": 0.5455840455840455,
+      "loo_delta": -0.1864159544159545
+    },
+    {
+      "gene": "AC138647.1",
+      "mean_abs_ig": 0.0073672146536409855,
+      "signed_mean_ig": 0.002287855139002204,
+      "loo_auroc": 0.5911680911680911,
+      "loo_delta": -0.14083190883190888
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+Ridge,All features,0.7149691358024691,0.06254437534554756,all,"{""model__alpha"": 100.0}"
+L-SVM,Variance,0.7066872427983539,0.06678864647228824,85,"{""model__C"": 0.1, ""selector__k"": 85}"
+Elastic Net,Boruta,0.7064814814814815,0.09831526781939531,128,"{""model__C"": 0.1, ""model__l1_ratio"": 0.2, ""selector__k"": 128}"

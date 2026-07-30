@@ -1,0 +1,2 @@
+model_id,best_classifier,best_fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params,soramic_auroc,lusanne_auroc
+d7085bf5+78456720+5cd1cc2d,LASSO,Boruta,0.7193930041152264,0.07469394416727004,85,"{""model__C"": 1.0, ""selector__k"": 85}",0.7134502923976608,0.4117647058823529

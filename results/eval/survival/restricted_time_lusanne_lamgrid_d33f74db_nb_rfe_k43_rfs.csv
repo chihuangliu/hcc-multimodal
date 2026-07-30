@@ -1,0 +1,6 @@
+head,cutoff,cohort,tau,n_high,n_low,events_high,events_low,logrank_p,hr,hr_lo,hr_hi,c_index,rmst_high,rmst_low,delta_rmst,delta_ci_low,delta_ci_high,rmst_point_p
+NB/RFE,median_frozen,lusanne,12,67,0,34,0,,,,,0.5,,,,,,
+NB/RFE,median_frozen,lusanne,24,67,0,48,0,,,,,0.5,,,,,,
+NB/RFE,median_frozen,lusanne,36,67,0,52,0,,,,,0.5,,,,,,
+NB/RFE,median_frozen,lusanne,48,67,0,56,0,,,,,0.5,,,,,,
+NB/RFE,median_frozen,lusanne,full,67,0,63,0,,,,,0.5,,,,,,

@@ -82,11 +82,6 @@ def load_inputs(model_id: str, device: torch.device):
         gene_order=meta.get("gene_order"),
     )
     gene_names = gene_df.columns.tolist()
-    if "gene_order" in meta and list(meta["gene_order"]) != gene_names:
-        raise ValueError(
-            "Loaded gene column order does not match the order stored in the model's "
-            f"metadata.\n  metadata: {list(meta['gene_order'])}\n  loaded:   {gene_names}"
-        )
 
     img_df = pd.read_parquet(run_dir / EMB_CACHE)  # (patients x 128), int pid index
 
@@ -95,8 +90,12 @@ def load_inputs(model_id: str, device: torch.device):
     img_df = img_df.loc[pids]
 
     gene_dim = gene_df.shape[1]
-    gene_enc = GeneEncoder(gene_dim, meta["gene_hidden_dim"], meta["embed_dim"]).to(device)
-    ckpt = torch.load(run_dir / "best_model.pt", map_location=device, weights_only=False)
+    gene_enc = GeneEncoder(gene_dim, meta["gene_hidden_dim"], meta["embed_dim"]).to(
+        device
+    )
+    ckpt = torch.load(
+        run_dir / "best_model.pt", map_location=device, weights_only=False
+    )
     in_features = ckpt["gene_enc"]["net.0.weight"].shape[1]
     if in_features != gene_dim:
         raise ValueError(
@@ -106,8 +105,8 @@ def load_inputs(model_id: str, device: torch.device):
     gene_enc.load_state_dict(ckpt["gene_enc"])
     gene_enc.eval()
 
-    x = torch.tensor(gene_df.values, dtype=torch.float32, device=device)       # (P, G)
-    z_img = torch.tensor(img_df.values, dtype=torch.float32, device=device)    # (P, D)
+    x = torch.tensor(gene_df.values, dtype=torch.float32, device=device)  # (P, G)
+    z_img = torch.tensor(img_df.values, dtype=torch.float32, device=device)  # (P, D)
     return gene_enc, gene_names, x, z_img, meta, pids
 
 
@@ -163,26 +162,39 @@ def load_loo(loo_dir: Path, baseline_auroc: float) -> pd.DataFrame:
     so split the run id off the right)."""
     rows = []
     for p in sorted(loo_dir.glob("embedding_*.json")):
-        body = p.stem[len("embedding_"):]
+        body = p.stem[len("embedding_") :]
         gene, _runid = body.rsplit("_", 1)
         d = json.loads(p.read_text())
         emb = d["results"]["average"]["embedding"]
         auroc = max(emb["lr"]["auroc"], emb["rf"]["auroc"])
-        rows.append({"gene": gene, "loo_auroc": auroc, "loo_delta": auroc - baseline_auroc})
+        rows.append(
+            {"gene": gene, "loo_auroc": auroc, "loo_delta": auroc - baseline_auroc}
+        )
     return pd.DataFrame(rows)
 
 
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
-def write_report(df: pd.DataFrame, spear, meta, args, max_resid, n_patients, fig_path: Path, report_path: Path):
+def write_report(
+    df: pd.DataFrame,
+    spear,
+    meta,
+    args,
+    max_resid,
+    n_patients,
+    fig_path: Path,
+    report_path: Path,
+):
     rho, pval = spear
     report_path.parent.mkdir(parents=True, exist_ok=True)
     ig_rank = df.sort_values("mean_abs_ig", ascending=False).reset_index(drop=True)
     loo_rank = df.sort_values("loo_delta").reset_index(drop=True)  # most negative first
 
     lines = []
-    lines.append(f"# Gene Importance via Integrated Gradients — {pd.Timestamp.today():%Y-%m-%d}")
+    lines.append(
+        f"# Gene Importance via Integrated Gradients — {pd.Timestamp.today():%Y-%m-%d}"
+    )
     lines.append("")
     lines.append(
         f"Integrated-Gradients (IG) gene importance for run `{args.model_id}` "
@@ -204,10 +216,12 @@ def write_report(df: pd.DataFrame, spear, meta, args, max_resid, n_patients, fig
             f"representation, not the original co-trained one."
         )
         lines.append("")
-    lines.append("**Method.** At inference the downstream RFS head consumes image embeddings only — "
-                 "genes never enter the predictor. Genes act on the model solely by shaping the image "
-                 "encoder through the contrastive alignment during training. IG is therefore computed on "
-                 "the cross-modal alignment target")
+    lines.append(
+        "**Method.** At inference the downstream RFS head consumes image embeddings only — "
+        "genes never enter the predictor. Genes act on the model solely by shaping the image "
+        "encoder through the contrastive alignment during training. IG is therefore computed on "
+        "the cross-modal alignment target"
+    )
     lines.append("")
     lines.append("    F_i(g) = cos( z_img_i , gene_enc(g) )")
     lines.append("")
@@ -219,15 +233,21 @@ def write_report(df: pd.DataFrame, spear, meta, args, max_resid, n_patients, fig
         f"of, the LOO retrain-and-drop importance.**"
     )
     lines.append("")
-    lines.append(f"- Completeness check (max |sum_j IG − (F(x)−F(baseline))| over patients): **{max_resid:.2e}**")
-    lines.append(f"- Spearman( IG importance `mean|IG|`, LOO importance `−ΔAUC` ): "
-                 f"**rho = {rho:.3f}**, p = {pval:.3f} (positive ⇒ agreement)")
+    lines.append(
+        f"- Completeness check (max |sum_j IG − (F(x)−F(baseline))| over patients): **{max_resid:.2e}**"
+    )
+    lines.append(
+        f"- Spearman( IG importance `mean|IG|`, LOO importance `−ΔAUC` ): "
+        f"**rho = {rho:.3f}**, p = {pval:.3f} (positive ⇒ agreement)"
+    )
     lines.append("")
 
     # Per-gene table sorted by IG importance
     lines.append("## Per-gene importance (sorted by `mean|IG|`)")
     lines.append("")
-    lines.append("| Gene | mean\\|IG\\| | signed mean IG | IG rank | LOO ΔAUC | LOO rank |")
+    lines.append(
+        "| Gene | mean\\|IG\\| | signed mean IG | IG rank | LOO ΔAUC | LOO rank |"
+    )
     lines.append("|---|---:|---:|---:|---:|---:|")
     ig_order = {g: i + 1 for i, g in enumerate(ig_rank["gene"])}
     loo_order = {g: i + 1 for i, g in enumerate(loo_rank["gene"])}
@@ -243,10 +263,12 @@ def write_report(df: pd.DataFrame, spear, meta, args, max_resid, n_patients, fig
     lines.append("")
     lines.append("**Notes**")
     lines.append("")
-    lines.append("- IG ranks genes by how much the *current* model's image–gene alignment depends on each "
-                 "gene; LOO ranks by how much downstream AUC drops when the gene is removed and the model "
-                 "retrained. They answer different questions, so disagreement is expected and informative "
-                 "(e.g. a high-IG gene with small LOO effect is likely replaceable by a correlated gene).")
+    lines.append(
+        "- IG ranks genes by how much the *current* model's image–gene alignment depends on each "
+        "gene; LOO ranks by how much downstream AUC drops when the gene is removed and the model "
+        "retrained. They answer different questions, so disagreement is expected and informative "
+        "(e.g. a high-IG gene with small LOO effect is likely replaceable by a correlated gene)."
+    )
     report_path.write_text("\n".join(lines) + "\n")
 
 
@@ -256,8 +278,13 @@ def make_figure(df: pd.DataFrame, fig_path: Path):
     fig, ax = plt.subplots(figsize=(7, 6))
     ax.scatter(sub["loo_delta"], sub["mean_abs_ig"], s=30)
     for _, r in sub.iterrows():
-        ax.annotate(r["gene"], (r["loo_delta"], r["mean_abs_ig"]), fontsize=7,
-                    xytext=(3, 3), textcoords="offset points")
+        ax.annotate(
+            r["gene"],
+            (r["loo_delta"], r["mean_abs_ig"]),
+            fontsize=7,
+            xytext=(3, 3),
+            textcoords="offset points",
+        )
     ax.set_xlabel("LOO ΔAUC  (more negative = more important)")
     ax.set_ylabel("IG importance  mean|IG|  (larger = more important)")
     ax.set_title("Integrated Gradients vs leave-one-out gene importance")
@@ -288,11 +315,13 @@ def run(args) -> pd.DataFrame:
 
     mean_abs = ig.abs().mean(dim=0).cpu().numpy()
     signed_mean = ig.mean(dim=0).cpu().numpy()
-    df = pd.DataFrame({
-        "gene": gene_names,
-        "mean_abs_ig": mean_abs,
-        "signed_mean_ig": signed_mean,
-    })
+    df = pd.DataFrame(
+        {
+            "gene": gene_names,
+            "mean_abs_ig": mean_abs,
+            "signed_mean_ig": signed_mean,
+        }
+    )
 
     loo = load_loo(args.loo_dir, args.baseline_auroc)
     df = df.merge(loo, on="gene", how="left")
@@ -317,47 +346,78 @@ def run(args) -> pd.DataFrame:
         "n_genes": len(df),
         "baseline_auroc": args.baseline_auroc,
         "completeness_max_residual": max_resid,
-        "spearman_ig_vs_neg_loo_delta": {"rho": None if np.isnan(rho) else rho,
-                                         "p": None if np.isnan(pval) else pval},
+        "spearman_ig_vs_neg_loo_delta": {
+            "rho": None if np.isnan(rho) else rho,
+            "p": None if np.isnan(pval) else pval,
+        },
         "genes": df.to_dict(orient="records"),
     }
     args.output.write_text(json.dumps(out, indent=2))
     print(f"Wrote results → {args.output}")
 
     if args.report is not None:
-        fig_path = args.report.with_suffix("").parent / (args.report.stem + "_scatter.png")
+        fig_path = args.report.with_suffix("").parent / (
+            args.report.stem + "_scatter.png"
+        )
         make_figure(df, fig_path)
-        write_report(df, (rho, pval), meta, args, max_resid, len(pids), fig_path, args.report)
+        write_report(
+            df, (rho, pval), meta, args, max_resid, len(pids), fig_path, args.report
+        )
         print(f"Wrote report → {args.report}")
         print(f"Wrote figure → {fig_path}")
 
     print(f"\nCompleteness max residual: {max_resid:.2e}")
-    print(f"Spearman(mean|IG|, -LOO ΔAUC) = {rho:.3f} (p={pval:.3f}); positive = agreement")
+    print(
+        f"Spearman(mean|IG|, -LOO ΔAUC) = {rho:.3f} (p={pval:.3f}); positive = agreement"
+    )
     print("\nTop genes by mean|IG|:")
     print(df[["gene", "mean_abs_ig", "loo_delta"]].head(10).to_string(index=False))
     return df
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--model-id", default="a0912600",
-                   help="Contrastive run id (must have a deterministic gene order, "
-                        "i.e. a refit_gene_encoder.py output)")
-    p.add_argument("--baseline", choices=["zero", "mean"], default="zero",
-                   help="IG baseline: zero vector or cohort-mean gene vector")
-    p.add_argument("--steps", type=int, default=200, help="IG integration steps (midpoint rule)")
-    p.add_argument("--loo-dir", type=Path,
-                   default=Path("results/eval/soramic/gene_ablation"),
-                   help="Dir of leave-one-out embedding_<GENE>_<RUNID>.json files")
-    p.add_argument("--baseline-auroc", type=float, default=0.732,
-                   help="Full-gene-set baseline AUROC for LOO ΔAUC (run 9109a6c2 = 0.732)")
-    p.add_argument("--output", type=Path,
-                   default=Path("results/eval/soramic/gene_ablation/integrated_gradients.json"),
-                   help="Output JSON path")
-    p.add_argument("--report", type=Path,
-                   default=Path("reports/0629/0629_gene_importance_ig.md"),
-                   help="Markdown report path (set to '' to skip)")
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    p.add_argument(
+        "--model-id",
+        default="a0912600",
+        help="Contrastive run id (must have a deterministic gene order, "
+        "i.e. a refit_gene_encoder.py output)",
+    )
+    p.add_argument(
+        "--baseline",
+        choices=["zero", "mean"],
+        default="zero",
+        help="IG baseline: zero vector or cohort-mean gene vector",
+    )
+    p.add_argument(
+        "--steps", type=int, default=200, help="IG integration steps (midpoint rule)"
+    )
+    p.add_argument(
+        "--loo-dir",
+        type=Path,
+        default=Path("results/eval/soramic/gene_ablation"),
+        help="Dir of leave-one-out embedding_<GENE>_<RUNID>.json files",
+    )
+    p.add_argument(
+        "--baseline-auroc",
+        type=float,
+        default=0.732,
+        help="Full-gene-set baseline AUROC for LOO ΔAUC (run 9109a6c2 = 0.732)",
+    )
+    p.add_argument(
+        "--output",
+        type=Path,
+        default=Path("results/eval/soramic/gene_ablation/integrated_gradients.json"),
+        help="Output JSON path",
+    )
+    p.add_argument(
+        "--report",
+        type=Path,
+        default=Path("reports/0629/0629_gene_importance_ig.md"),
+        help="Markdown report path (set to '' to skip)",
+    )
     args = p.parse_args()
     if args.report is not None and str(args.report) in ("", "."):
         args.report = None

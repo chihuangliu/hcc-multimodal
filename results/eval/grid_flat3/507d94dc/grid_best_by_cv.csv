@@ -1,0 +1,2 @@
+model_id,best_classifier,best_fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params,soramic_auroc,lusanne_auroc
+507d94dc,Ridge,Variance,0.7853909465020577,0.09268354015350956,85,"{""model__alpha"": 100.0, ""selector__k"": 85}",0.6538461538461539,0.460984393757503

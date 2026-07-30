@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+6a964bac,Ridge/Pearson + LASSO/Pearson + RF/Spearman,3,0.5789609053497943,0.09467885704302337,0.5213675213675213,0.42496998799519814

@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+39d54fe5,Ridge/Mutual Info + LASSO/Spearman + Elastic Net/Mutual Info,3,0.6903806584362139,0.06501052332819915,0.7193732193732194,0.4249699879951981

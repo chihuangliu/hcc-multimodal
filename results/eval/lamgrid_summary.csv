@@ -1,0 +1,8 @@
+run,head,tag,model,fs,grid_cv_auc,n_tied_cells,soramic_auroc,select_k,lusanne_auroc,resection_cv_auc,cv_rank_head,t24_logrank_p,t24_point_p,cutoff,n_high,n_low
+78456720,LASSO / Mutual Info k=43,lamgrid_78456720_lasso_mutualinfo_k43_rfs,LASSO,Mutual Info,0.6903806584362139,1,0.3260233918128655,43,0.4301470588235294,0.6361111111111111,LR,0.8483523636834149,0.0,median_frozen,97,1
+41c6db8a,NB / RF Import. k=43,lamgrid_41c6db8a_nb_rfimport_k43_rfs,NB,RF Import.,0.7186213991769548,1,0.5,43,0.5,0.5786265432098765,RF,,,kmeans_frozen,98,0
+d33f74db,NB / RFE k=43,lamgrid_d33f74db_nb_rfe_k43_rfs,NB,RFE,0.6939300411522634,1,0.5,43,0.5,0.5291152263374485,RF,,,median_frozen,98,0
+26a5a902,KNN / Mutual Info k=43,lamgrid_26a5a902_knn_mutualinfo_k43_rfs,KNN,Mutual Info,0.6325617283950616,1,0.5614035087719298,43,0.4252450980392156,0.6096707818930042,RF,0.2084808385291848,0.196409970190074,kmeans_frozen,79,19
+5cd1cc2d,RF / RF Import. k=43,lamgrid_5cd1cc2d_rf_rfimport_k43_rfs,RF,RF Import.,0.6655349794238683,1,0.6638176638176638,43,0.4741896758703481,0.6277777777777779,LR,,,median_frozen,100,0
+a2f950af,LR / RFE k=43,lamgrid_a2f950af_lr_rfe_k43_rfs,LR,RFE,0.6609567901234569,1,0.6111111111111112,43,0.5372148859543817,0.5782407407407407,LR,0.6146619301166978,0.977734870431136,median_frozen,53,47
+e837a0b4,NB / Elastic Net k=43,lamgrid_e837a0b4_nb_elasticnet_k43_rfs,NB,Elastic Net,0.6029835390946502,1,0.5,43,0.5,0.5208333333333334,LR,,,kmeans_frozen,100,0

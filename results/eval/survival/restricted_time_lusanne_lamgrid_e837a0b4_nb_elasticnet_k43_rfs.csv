@@ -1,0 +1,6 @@
+head,cutoff,cohort,tau,n_high,n_low,events_high,events_low,logrank_p,hr,hr_lo,hr_hi,c_index,rmst_high,rmst_low,delta_rmst,delta_ci_low,delta_ci_high,rmst_point_p
+NB/Elastic Net,kmeans_frozen,lusanne,12,68,0,35,0,,,,,0.5,,,,,,
+NB/Elastic Net,kmeans_frozen,lusanne,24,68,0,49,0,,,,,0.5,,,,,,
+NB/Elastic Net,kmeans_frozen,lusanne,36,68,0,53,0,,,,,0.5,,,,,,
+NB/Elastic Net,kmeans_frozen,lusanne,48,68,0,57,0,,,,,0.5,,,,,,
+NB/Elastic Net,kmeans_frozen,lusanne,full,68,0,64,0,,,,,0.5,,,,,,

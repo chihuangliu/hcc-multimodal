@@ -1,0 +1,2 @@
+model_id,best_classifier,best_fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params,soramic_auroc,lusanne_auroc
+26a5a902,KNN,Mutual Info,0.6325617283950616,0.05674915211089131,43,"{""model__n_neighbors"": 3, ""selector__k"": 43}",0.5614035087719298,0.4252450980392156

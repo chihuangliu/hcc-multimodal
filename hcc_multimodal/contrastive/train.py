@@ -14,12 +14,17 @@ from torchvision.transforms import v2
 from tqdm import tqdm
 
 import hcc_multimodal
-from hcc_multimodal.contrastive.data import build_dataset
-from hcc_multimodal.contrastive.encoders import BACKBONES, BACKBONE_TRANSFORMS, GeneEncoder, ImageEncoder
 from hcc_multimodal.contrastive.config import (
     GENE_SET,
     PREDEFINED_HCC_2Y_CV_GENES,
     RNA_2Y_BEFORE_CV_GENES,
+)
+from hcc_multimodal.contrastive.data import build_dataset
+from hcc_multimodal.contrastive.encoders import (
+    BACKBONE_TRANSFORMS,
+    BACKBONES,
+    GeneEncoder,
+    ImageEncoder,
 )
 from hcc_multimodal.contrastive.loss import contrastive_loss
 
@@ -96,8 +101,10 @@ def train(args: argparse.Namespace) -> None:
                 f"--drop-genes contains genes not in gene set '{args.gene_set}': {sorted(missing)}"
             )
         genes = genes - set(args.drop_genes)
-        print(f"Dropped {len(args.drop_genes)} gene(s): {sorted(args.drop_genes)} "
-              f"({len(genes)} remaining)")
+        print(
+            f"Dropped {len(args.drop_genes)} gene(s): {sorted(args.drop_genes)} "
+            f"({len(genes)} remaining)"
+        )
 
     dataset = build_dataset(
         n_per_axis=args.n_per_axis,
@@ -119,11 +126,18 @@ def train(args: argparse.Namespace) -> None:
         patients = sorted({pid for pid, _, _ in dataset._index})
         patient_labels = [int(dataset.outcomes[pid]) for pid in patients]
         train_pids, val_pids = train_test_split(
-            patients, test_size=args.val_split, stratify=patient_labels, random_state=args.seed
+            patients,
+            test_size=args.val_split,
+            stratify=patient_labels,
+            random_state=args.seed,
         )
         train_pid_set, val_pid_set = set(train_pids), set(val_pids)
-        train_idx = [i for i, (pid, _, _) in enumerate(dataset._index) if pid in train_pid_set]
-        val_idx = [i for i, (pid, _, _) in enumerate(dataset._index) if pid in val_pid_set]
+        train_idx = [
+            i for i, (pid, _, _) in enumerate(dataset._index) if pid in train_pid_set
+        ]
+        val_idx = [
+            i for i, (pid, _, _) in enumerate(dataset._index) if pid in val_pid_set
+        ]
     else:
         labels = [int(dataset.outcomes[pid]) for pid, _, _ in dataset._index]
         indices = list(range(len(dataset)))
@@ -161,7 +175,11 @@ def train(args: argparse.Namespace) -> None:
         print(f"Loaded weights from {ckpt_path}")
 
     optimizer = torch.optim.AdamW(
-        [p for p in list(img_enc.parameters()) + list(gene_enc.parameters()) if p.requires_grad],
+        [
+            p
+            for p in list(img_enc.parameters()) + list(gene_enc.parameters())
+            if p.requires_grad
+        ],
         lr=args.lr,
         weight_decay=args.weight_decay,
     )
@@ -178,7 +196,9 @@ def train(args: argparse.Namespace) -> None:
         img_enc.train()
         gene_enc.train()
         total_train = 0.0
-        train_pbar = tqdm(train_loader, desc=f"Epoch {epoch:3d}/{args.epochs} train", leave=False)
+        train_pbar = tqdm(
+            train_loader, desc=f"Epoch {epoch:3d}/{args.epochs} train", leave=False
+        )
         for imgs, genes, outcomes, _ in train_pbar:
             imgs, genes, outcomes = (
                 imgs.to(device),
@@ -206,7 +226,9 @@ def train(args: argparse.Namespace) -> None:
         gene_enc.eval()
         total_val = 0.0
         with torch.no_grad():
-            for imgs, genes, outcomes, _ in tqdm(val_loader, desc=f"Epoch {epoch:3d}/{args.epochs} val  ", leave=False):
+            for imgs, genes, outcomes, _ in tqdm(
+                val_loader, desc=f"Epoch {epoch:3d}/{args.epochs} val  ", leave=False
+            ):
                 imgs, genes, outcomes = (
                     imgs.to(device),
                     genes.to(device),
@@ -266,7 +288,9 @@ def _parse_args() -> argparse.Namespace:
 
     p.add_argument("--model", default="vit_b_32", choices=list(BACKBONES))
     p.add_argument(
-        "--base_model", default=None, metavar="RUN_ID",
+        "--base_model",
+        default=None,
+        metavar="RUN_ID",
         help="Run ID to continue training from (loads best_model.pt weights before epoch 1).",
     )
     p.add_argument("--embed_dim", type=int, default=128)
@@ -335,7 +359,9 @@ def _parse_args() -> argparse.Namespace:
         help="Voxel padding around the tumour bounding box (raw_bbox mode only). Default: 10.",
     )
     p.add_argument(
-        "--split-unit", default="patient", choices=["patient", "slice"],
+        "--split-unit",
+        default="patient",
+        choices=["patient", "slice"],
         help="Unit for train/val split. 'patient' (default) keeps all slices from a patient in one split; 'slice' splits across individual slices.",
     )
     p.add_argument("--val_split", type=float, default=0.1)

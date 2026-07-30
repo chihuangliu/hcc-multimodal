@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+L-SVM,LASSO,0.6861111111111112,0.06643908342329176,85,"{""model__C"": 0.1, ""selector__max_features"": 85}"
+Ridge,Spearman,0.6737139917695473,0.08517776080447059,43,"{""model__alpha"": 10.0, ""selector__k"": 43}"
+Elastic Net,Spearman,0.6573045267489711,0.06594658230768798,43,"{""model__C"": 1.0, ""model__l1_ratio"": 0.5, ""selector__k"": 43}"

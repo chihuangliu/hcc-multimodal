@@ -1,0 +1,4 @@
+cutoff,threshold,n_high,n_low,t24_logrank_p,t24_point_p,full_logrank_p,full_hr
+median_frozen,0.010503320190485122,98,0,,,,
+kmeans_frozen,0.49314096347002034,98,0,,,,
+youden_frozen,0.9190665248753244,98,0,,,,

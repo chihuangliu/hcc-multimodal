@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+NB,Boruta,0.7007201646090534,0.054014011340179906,43,"{""model__var_smoothing"": 1e-09, ""selector__k"": 43}"
+XGB,Boruta,0.6822016460905349,0.07450165231773581,85,"{""model__learning_rate"": 0.05, ""model__max_depth"": 2, ""model__n_estimators"": 50, ""selector__k"": 85}"
+Elastic Net,All features,0.6776748971193415,0.010256123251507454,all,"{""model__C"": 0.1, ""model__l1_ratio"": 0.5}"

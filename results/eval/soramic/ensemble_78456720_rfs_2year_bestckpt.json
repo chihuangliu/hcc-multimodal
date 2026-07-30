@@ -1,0 +1,42 @@
+{
+  "git_commit": "7f402481ce2e008bd9b83c22c28b72bbb90fd2ae",
+  "timestamp": "2026-07-30T13:12:37.249936",
+  "args": {
+    "ablation_set": "soramic",
+    "model_id": "78456720",
+    "radiomic_model": "models/radiomics/radiomic_rfs_2year_rf.joblib",
+    "target": "rfs_2year",
+    "mode": "ensemble",
+    "multi_lesion": "average",
+    "select_k": 100,
+    "rfs_tolerance_months": 0,
+    "batch_size": 32,
+    "num_workers": 0,
+    "output": "results/eval/soramic/ensemble_78456720_rfs_2year_bestckpt.json",
+    "overwrite_cache": false
+  },
+  "results": {
+    "average": {
+      "ensemble": {
+        "lr": {
+          "auroc": 0.4920634920634921,
+          "auprc": 0.6938937807007447,
+          "sensitivity": 0.9428571428571428,
+          "specificity": 0.0,
+          "ppv": 0.6470588235294118,
+          "npv": 0.0,
+          "f1": 0.7674418604651163
+        },
+        "rf": {
+          "auroc": 0.37777777777777777,
+          "auprc": 0.6074822895041052,
+          "sensitivity": 0.9428571428571428,
+          "specificity": 0.0,
+          "ppv": 0.6470588235294118,
+          "npv": 0.0,
+          "f1": 0.7674418604651163
+        }
+      }
+    }
+  }
+}

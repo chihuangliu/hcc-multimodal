@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+09cd4b36,LASSO/RF Import. + Elastic Net/Spearman + Ridge/Boruta,3,0.628343621399177,0.10449922780981184,0.6723646723646723,0.5330132052821128

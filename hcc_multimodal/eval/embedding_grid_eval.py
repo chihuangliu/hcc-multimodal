@@ -64,6 +64,7 @@ from hcc_multimodal.eval.grid import (
     select_k_grid,
 )
 from hcc_multimodal.eval.metrics import compute_metrics
+from hcc_multimodal.utils.model_ref import parse_model_ref
 from hcc_multimodal.survival.data import MODEL_INPUT, load_source_aligned
 from hcc_multimodal.train.config import RANDOM_STATE
 
@@ -719,8 +720,9 @@ def run_grid(args):
     summaries = []
     for model_id in model_ids:
         print(f"\n=== {model_id} ===")
-        out_dir = args.output_dir / model_id if len(model_ids) > 1 else args.output_dir
-        fig_dir = args.fig_dir / model_id if len(model_ids) > 1 else args.fig_dir
+        tag = parse_model_ref(model_id).tag  # filesystem-safe: '6a964bac@10' -> '6a964bac__ep010'
+        out_dir = args.output_dir / tag if len(model_ids) > 1 else args.output_dir
+        fig_dir = args.fig_dir / tag if len(model_ids) > 1 else args.fig_dir
         summary, cv_df, cell_params = grid_one_model(model_id, select_k_values, args, out_dir, fig_dir)
         summaries.append(summary)
         if args.model_ensemble:  # model axis only, per embedding

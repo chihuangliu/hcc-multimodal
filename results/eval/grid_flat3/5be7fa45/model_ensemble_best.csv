@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+5be7fa45,LR/RF Import. + LASSO/RF Import. + Elastic Net/RF Import.,3,0.8015946502057614,0.01810948004844955,0.6196581196581197,0.517406962785114

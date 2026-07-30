@@ -1,0 +1,2 @@
+model_id,best_classifier,best_fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params,soramic_auroc,lusanne_auroc
+6a964bac_ep10,Elastic Net,Boruta,0.636471193415638,0.11737436501252096,43,"{""model__C"": 1.0, ""model__l1_ratio"": 0.5, ""selector__k"": 43}",0.7108262108262108,0.4177671068427371

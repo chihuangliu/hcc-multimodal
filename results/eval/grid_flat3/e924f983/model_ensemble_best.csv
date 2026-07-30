@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+e924f983,L-SVM/LASSO + Ridge/Spearman + Elastic Net/Spearman,3,0.6532407407407407,0.08138507125197857,0.6381766381766382,0.4285714285714286

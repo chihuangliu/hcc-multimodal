@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+Ridge,Pearson,0.5996399176954733,0.09438729925237202,43,"{""model__alpha"": 1.0, ""selector__k"": 43}"
+LASSO,Pearson,0.5953703703703703,0.06925465606791578,43,"{""model__C"": 10.0, ""selector__k"": 43}"
+RF,Spearman,0.5952674897119342,0.07609775687005298,43,"{""model__max_depth"": null, ""model__min_samples_leaf"": 1, ""selector__k"": 43}"

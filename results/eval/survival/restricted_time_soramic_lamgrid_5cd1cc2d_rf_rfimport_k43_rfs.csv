@@ -1,0 +1,6 @@
+head,cutoff,cohort,tau,n_high,n_low,events_high,events_low,logrank_p,hr,hr_lo,hr_hi,c_index,rmst_high,rmst_low,delta_rmst,delta_ci_low,delta_ci_high,rmst_point_p
+RF/RF Import.,median_frozen,soramic,12,100,0,20,0,,,,,0.5055325034578146,,,,,,
+RF/RF Import.,median_frozen,soramic,24,100,0,39,0,,,,,0.5235732009925558,,,,,,
+RF/RF Import.,median_frozen,soramic,36,100,0,46,0,,,,,0.5186246418338109,,,,,,
+RF/RF Import.,median_frozen,soramic,48,100,0,50,0,,,,,0.518324607329843,,,,,,
+RF/RF Import.,median_frozen,soramic,full,100,0,50,0,,,,,0.518324607329843,,,,,,

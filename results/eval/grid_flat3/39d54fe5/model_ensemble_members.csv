@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+Ridge,Mutual Info,0.6823559670781894,0.09420815654697322,85,"{""model__alpha"": 100.0, ""selector__k"": 85}"
+LASSO,Spearman,0.6782407407407408,0.09822341951509646,43,"{""model__C"": 10.0, ""selector__k"": 43}"
+Elastic Net,Mutual Info,0.6779835390946501,0.07906430476066195,43,"{""model__C"": 1.0, ""model__l1_ratio"": 0.8, ""selector__k"": 43}"

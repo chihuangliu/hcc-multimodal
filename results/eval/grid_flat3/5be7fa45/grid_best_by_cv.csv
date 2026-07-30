@@ -1,0 +1,2 @@
+model_id,best_classifier,best_fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params,soramic_auroc,lusanne_auroc
+5be7fa45,LR,RF Import.,0.8058127572016461,0.030608076544881194,43,"{""selector__max_features"": 43}",0.5299145299145299,0.5126050420168067

@@ -1,0 +1,2 @@
+model_id,members,top_k,cv_auc_mean,cv_auc_std,soramic_auroc,lusanne_auroc
+d7085bf5+78456720+5cd1cc2d,LASSO/Boruta + Elastic Net/Boruta + Ridge/Boruta,3,0.7112139917695472,0.10065588309250115,0.6388888888888888,0.39950980392156865

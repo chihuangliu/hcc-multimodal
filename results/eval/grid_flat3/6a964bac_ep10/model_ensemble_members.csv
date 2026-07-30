@@ -1,0 +1,4 @@
+model,fs,cv_auc_mean,cv_auc_std,n_features_selected,best_params
+Elastic Net,Boruta,0.636471193415638,0.11737436501252096,43,"{""model__C"": 1.0, ""model__l1_ratio"": 0.5, ""selector__k"": 43}"
+Ridge,LASSO,0.632201646090535,0.15632613642337262,43,"{""model__alpha"": 10.0, ""selector__max_features"": 43}"
+XGB,Pearson,0.6287037037037037,0.10777661108358386,43,"{""model__learning_rate"": 0.05, ""model__max_depth"": 2, ""model__n_estimators"": 50, ""selector__k"": 43}"
