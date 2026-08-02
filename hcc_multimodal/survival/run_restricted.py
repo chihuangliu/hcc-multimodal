@@ -95,8 +95,13 @@ def _restricted_rows(groups, scores, cohort_data, cohort, taus):
     return rows
 
 
-def _draw_km(cohort_data, groups, cohort, head, cutoff, taus, out_path):
-    """Full-follow-up KM with the τ horizons marked by vertical dashed lines."""
+def _draw_km(cohort_data, groups, cohort, head, cutoff, taus, out_path,
+             *, titles=True, tau_marks=True, annotate=True):
+    """Full-follow-up KM, by default with the τ horizons marked by vertical dashed lines.
+
+    ``titles=False`` / ``tau_marks=False`` / ``annotate=False`` draw the plot bare, for
+    figures whose LaTeX caption and companion table carry that information instead (thesis).
+    """
     # ``groups`` may cover only a subset of the cohort (e.g. resection's out-of-fold
     # labelled patients); align time/event to it before plotting/scoring.
     time = cohort_data.time.loc[groups.index]
@@ -105,13 +110,16 @@ def _draw_km(cohort_data, groups, cohort, head, cutoff, taus, out_path):
     stats["c_index"] = concordance(_pseudo(groups), time, event)
     fig, ax = plt.subplots(figsize=(6.0, 4.4))
     _draw_subplot(ax, time, event, groups, stats,
-                  title=f"{head} · {cohort}", ci_show=True)
-    for tau in taus:
-        ax.axvline(tau, color="0.5", ls="--", lw=0.8)
-        ax.text(tau, 1.0, f"{int(tau)}mo", fontsize=7, color="0.4",
-                ha="center", va="bottom")
-    fig.suptitle(f"Restricted-time KM — {head} + {cutoff}", fontsize=11)
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+                  title=f"{head} · {cohort}" if titles else None, ci_show=True,
+                  annotate=annotate)
+    if tau_marks:
+        for tau in taus:
+            ax.axvline(tau, color="0.5", ls="--", lw=0.8)
+            ax.text(tau, 1.0, f"{int(tau)}mo", fontsize=7, color="0.4",
+                    ha="center", va="bottom")
+    if titles:
+        fig.suptitle(f"Restricted-time KM — {head} + {cutoff}", fontsize=11)
+    fig.tight_layout(rect=(0, 0, 1, 0.95) if titles else None)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     fig.savefig(out_path.with_suffix(".svg"), bbox_inches="tight")
@@ -188,7 +196,9 @@ def _emit(args, train, cohorts, freeze, head, cutoff):
         print(f"Wrote {path}")
         if args.km:
             _draw_km(cd, groups, cohort, head, cutoff, args.taus,
-                     args.fig_dir / f"km_restricted_{cohort}{suffix}.png")
+                     args.fig_dir / f"km_restricted_{cohort}{suffix}.png",
+                     titles=not args.no_fig_title, tau_marks=not args.no_tau_marks,
+                     annotate=not args.no_fig_stats)
 
 
 def parse_args():
@@ -212,6 +222,13 @@ def parse_args():
     p.add_argument("--output-dir", type=Path, default=Path("results/eval/survival"))
     p.add_argument("--fig-dir", type=Path, default=Path("reports/0706"))
     p.add_argument("--km", action="store_true", help="draw KM curves with τ horizons")
+    p.add_argument("--no-fig-title", action="store_true",
+                   help="draw KM curves without the in-figure title/suptitle (for figures that "
+                        "carry a caption instead, e.g. in the thesis).")
+    p.add_argument("--no-tau-marks", action="store_true",
+                   help="draw KM curves without the dashed τ-horizon vertical lines.")
+    p.add_argument("--no-fig-stats", action="store_true",
+                   help="draw KM curves without the log-rank / HR / C-index annotation box.")
     p.add_argument("--no-resection", dest="include_resection", action="store_false",
                    help="skip the in-sample resection training-cohort table")
     p.add_argument("--freeze-on", choices=["oof", "insample"], default="oof",

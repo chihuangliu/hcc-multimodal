@@ -302,7 +302,8 @@ def _grid_cells(X_res, y_res, test_sets, select_k_values, args, memory, blocks=N
 # ---------------------------------------------------------------------------
 # Heatmap
 # ---------------------------------------------------------------------------
-def draw_heatmap(matrix: pd.DataFrame, title: str, out_stem: Path, cbar_label: str):
+def draw_heatmap(matrix: pd.DataFrame, title: str | None, out_stem: Path, cbar_label: str):
+    """FS × classifier heatmap. ``title=None`` draws it bare (for figures with a caption)."""
     fig, ax = plt.subplots(figsize=(0.95 * matrix.shape[1] + 3, 0.55 * matrix.shape[0] + 2))
     data = matrix.values.astype(float)
     vmin, vmax = np.nanmin(data), np.nanmax(data)
@@ -313,7 +314,8 @@ def draw_heatmap(matrix: pd.DataFrame, title: str, out_stem: Path, cbar_label: s
     ax.set_yticklabels(matrix.index, fontsize=9)
     ax.set_xlabel("Feature Selection Technique")
     ax.set_ylabel("Model")
-    ax.set_title(title)
+    if title:
+        ax.set_title(title)
     for i in range(matrix.shape[0]):
         for j in range(matrix.shape[1]):
             v = data[i, j]
@@ -377,6 +379,9 @@ def parse_args():
     p.add_argument("--fs", nargs="+", default=FS_ORDER)
     p.add_argument("--output-dir", type=Path, default=Path("results/eval/grid"))
     p.add_argument("--fig-dir", type=Path, default=Path("reports/0706"))
+    p.add_argument("--no-fig-title", action="store_true",
+                   help="draw heatmaps without the in-figure title (for figures that carry a "
+                        "caption instead, e.g. in the thesis).")
     return p.parse_args()
 
 
@@ -467,7 +472,8 @@ def grid_one_model(model_id, select_k_values, args, out_dir, fig_dir):
         cv_title = f"Embedding {model_id} — resection CV AUC ({proto}, seed {args.seed})"
     else:
         cv_title = f"Embedding {model_id} — nested {args.outer_folds}-fold CV AUC (resection)"
-    draw_heatmap(cv_matrix, cv_title, fig_dir / "heatmap_cv_auc", "CV AUC")
+    draw_heatmap(cv_matrix, None if args.no_fig_title else cv_title,
+                 fig_dir / "heatmap_cv_auc", "CV AUC")
 
     for c in args.cohorts:
         tdf = pd.DataFrame(transfer_rows[c])
@@ -477,7 +483,7 @@ def grid_one_model(model_id, select_k_values, args, out_dir, fig_dir):
             columns=[f for f in FS_ORDER if f in args.fs],
         )
         draw_heatmap(
-            tmat, f"Embedding {model_id} — {c} transfer AUROC",
+            tmat, None if args.no_fig_title else f"Embedding {model_id} — {c} transfer AUROC",
             fig_dir / f"heatmap_{c}_auroc", "AUROC",
         )
 
@@ -543,7 +549,9 @@ def grid_ensemble(model_ids, select_k_values, args, out_dir, fig_dir):
     cv_matrix.to_csv(out_dir / "grid_cv_auc_matrix.csv")
     proto = (f"repeated {args.outer_folds}×{args.cv_repeats}" if args.cv_repeats > 1
              else f"{args.outer_folds}-fold")
-    draw_heatmap(cv_matrix, f"Ensemble {tag} — resection CV AUC ({proto}, seed {args.seed})",
+    draw_heatmap(cv_matrix,
+                 None if args.no_fig_title else
+                 f"Ensemble {tag} — resection CV AUC ({proto}, seed {args.seed})",
                  fig_dir / "heatmap_cv_auc", "CV AUC")
     for c in args.cohorts:
         tdf = pd.DataFrame(transfer_rows[c])
@@ -552,7 +560,7 @@ def grid_ensemble(model_ids, select_k_values, args, out_dir, fig_dir):
             index=[m for m in MODEL_ORDER if m in args.models],
             columns=[f for f in FS_ORDER if f in args.fs],
         )
-        draw_heatmap(tmat, f"Ensemble {tag} — {c} transfer AUROC",
+        draw_heatmap(tmat, None if args.no_fig_title else f"Ensemble {tag} — {c} transfer AUROC",
                      fig_dir / f"heatmap_{c}_auroc", "AUROC")
 
     best = cv_df.loc[cv_df["cv_auc_mean"].idxmax()]
