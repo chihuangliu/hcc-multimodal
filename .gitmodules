@@ -1,0 +1,3 @@
+[submodule "hcc-multimodal-thesis"]
+	path = hcc-multimodal-thesis
+	url = git@github.com:chihuangliu/hcc-multimodal-thesis.git
