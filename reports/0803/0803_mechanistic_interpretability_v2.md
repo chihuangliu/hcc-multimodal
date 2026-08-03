@@ -58,19 +58,15 @@ The head is refit here from the same `resection_img_emb.parquet` cache the grid 
 
 Three stages, as in 0727, with stage 1 generalised to a non-linear composition.
 
-**1 — Unwind each member.** Every member is a `SimpleImputer(median) → StandardScaler → selector → linear model` pipeline, so it collapses exactly to its own direction over the 128 dims: `f_m(z) = β_m·z + b_m`. Its positive-class score is then `sigmoid(a_m·f_m(z) + c_m)` — identity squash `(1, 0)` for logistic regression, Platt `(−A, −B)` for `SVC(probability=True)`. The ensemble score is the mean over members,
+**1. Unwind each member.** Every member is a `SimpleImputer(median) → StandardScaler → selector → linear model` pipeline, so it collapses exactly to its own direction over the 128 dims: `f_m(z) = β_m·z + b_m`. Its positive-class score is then `sigmoid(a_m·f_m(z) + c_m)` — identity squash `(1, 0)` for logistic regression, Platt `(−A, −B)` for `SVC(probability=True)`. The ensemble score is the mean over members,
 
         S(z) = (1/M) Σ_m sigmoid( a_m (β_m·z + b_m) + c_m )
 
 which reproduces `HeteroEnsembleGrid.predict_proba` to **2.67e-03** (the residual is libsvm's iterative pairwise-coupling step inside the Platt member, not the unwinding — each member's own `β_m·z + b_m` reproduces its `decision_function` to ≤1e-14, the L-SVM included).
 
-**2 — Decision axis.** `S` is not linear, so there is no global `β`. Stage 2 uses the **local** direction at the operating point `z0 = geneenc(ḡ)`,
 
-        β_eff = ∇_z logit S(z)|_z0 = Σ_m w_m β_m,   w_m = a_m σ_m(1−σ_m) / [M·S(1−S)]
 
-a gradient-weighted mean of the member directions, and `C[d,j] = β_eff,d · J[d,j]` with the GeneEncoder Jacobian `J[d,j] = ∂geneenc(g)_d/∂g_j` at the cohort-mean gene vector.
-
-**3 — Integrated Gradients** of the ensemble's *own* decision function
+**2. Integrated Gradients** of the ensemble's *own* decision function
 
         s(g) = logit S( geneenc(g) )
 
@@ -80,7 +76,7 @@ w.r.t. the gene input (4000 midpoint steps), aggregated over 60 patients as `mea
 
 The saturating target needs a finer integration path than a linear one: at 4000 steps the completeness residual is **1.16e-02** = **3.39e-04** of the per-patient target range (0727's single-cell head reached 2.41e-03 at 200 steps). The ranking is stable from ~1000 steps up (Spearman 1.0000 between 1000/4000/16000 steps).
 
-## 4. Per-gene mechanistic importance — baseline = cohort-mean
+## 3. Per-gene mechanistic importance — baseline = cohort-mean
 
 Integrated Gradients of the A2 ensemble's decision function, decomposed to the 40 genes,
 against the **cohort-mean** baseline: what does *this patient's deviation from the cohort*
@@ -469,6 +465,12 @@ Head-independent: which genes the GeneEncoder was actually *trained* to move. Ta
 Alignment importance and A2's downstream importance correlate at Spearman **+0.814** (A1: +0.818) at the zero baseline — the genes the encoder was trained to align on are largely the genes the classifier's axis reads, but the two are not the same ranking.
 
 ## Appendix E. Per-dimension contributions
+
+**Decision axis.** `S` is not linear, so there is no global `β`. Stage 2 uses the **local** direction at the operating point `z0 = geneenc(ḡ)`,
+
+        β_eff = ∇_z logit S(z)|_z0 = Σ_m w_m β_m,   w_m = a_m σ_m(1−σ_m) / [M·S(1−S)]
+
+a gradient-weighted mean of the member directions, and `C[d,j] = β_eff,d · J[d,j]` with the GeneEncoder Jacobian `J[d,j] = ∂geneenc(g)_d/∂g_j` at the cohort-mean gene vector.
 
 `C[d,j] = β_eff,d · J[d,j]` over the top 15 dims by |β_eff|. Bootstrap = 500 stratified patient resamples of the whole ensemble, with β_eff re-read at the same fixed `z0`. `nonzero freq` = fraction of resamples where the dim carries non-zero weight in β_eff, i.e. some member both selects it and is not saturated at `z0`.
 
