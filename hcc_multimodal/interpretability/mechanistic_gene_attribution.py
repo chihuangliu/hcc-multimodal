@@ -310,8 +310,8 @@ def integrated_gradients_ensemble(gene_enc, params, x, baseline, steps, device):
 
     w.r.t. the gene input. Same contract as
     :func:`~hcc_multimodal.interpretability.downstream_gene_attribution.integrated_gradients_beta`:
-    returns (ig (P,G), residual (P,), delta_s (P,)), with the completeness residual
-    ``sum_j ig − (s(x) − s(baseline))`` expected ~0.
+    returns (ig (P,G), residual (P,), delta_s (P,), avg_grad (P,G)), with the completeness
+    residual ``sum_j ig − (s(x) − s(baseline))`` expected ~0.
 
     The target is evaluated in the log domain (see :func:`ensemble_logit`) and in double
     precision: on the gene branch the members' scores run far into saturation, where a
@@ -347,7 +347,7 @@ def integrated_gradients_ensemble(gene_enc, params, x, baseline, steps, device):
     with torch.no_grad():
         delta_s = s(x) - s(base)
     residual = ig.sum(dim=-1) - delta_s
-    return ig.detach(), residual.detach(), delta_s.detach()
+    return ig.detach(), residual.detach(), delta_s.detach(), avg_grad.detach()
 
 
 # ---------------------------------------------------------------------------
@@ -495,11 +495,16 @@ def write_report(ctx, report_path: Path):
     # Table 1
     L.append("## 1. Per-gene mechanistic importance (sorted by `mean|IG|`)")
     L.append("")
-    L.append("| Gene | mean\\|IG\\| | signed mean IG | rank |")
-    L.append("|---|---:|---:|---:|")
+    L.append("`Avg grad` is the path-averaged `∂s/∂g_j` — the `IG = (x − baseline) · avg grad` "
+             "factor without the input-offset lever arm, in units of target per unit of "
+             "`log2(CPM+1)`.")
+    L.append("")
+    L.append("| Gene | mean\\|IG\\| | signed mean IG | Avg grad | rank |")
+    L.append("|---|---:|---:|---:|---:|")
     ig_rank = df.sort_values("mean_abs_ig", ascending=False).reset_index(drop=True)
     for i, r in ig_rank.iterrows():
-        L.append(f"| {r['gene']} | {r['mean_abs_ig']:.4f} | {r['signed_mean_ig']:+.4f} | {i + 1} |")
+        L.append(f"| {r['gene']} | {r['mean_abs_ig']:.4f} | {r['signed_mean_ig']:+.4f} | "
+                 f"{r['signed_mean_grad']:+.4f} | {i + 1} |")
     L.append("")
     L.append(f"![Gene → decision-axis contribution heatmap]({ctx['heatmap_name']})")
     L.append("")
@@ -591,12 +596,12 @@ def run(args):
     # Stage 3: IG
     baseline = torch.zeros(x.shape[1], device=device) if args.baseline == "zero" else g_bar
     if ensemble_mode:
-        ig, residual, delta_s = integrated_gradients_ensemble(
+        ig, residual, delta_s, avg_grad = integrated_gradients_ensemble(
             gene_enc, params, x, baseline, args.steps, device
         )
     else:
         beta = torch.tensor(beta_np, dtype=torch.float32, device=device)
-        ig, residual, delta_s = integrated_gradients_beta(
+        ig, residual, delta_s, avg_grad = integrated_gradients_beta(
             gene_enc, beta, x, baseline, args.steps, device
         )
     max_resid = float(residual.abs().max().cpu())
@@ -606,6 +611,7 @@ def run(args):
         "gene": gene_names,
         "mean_abs_ig": ig.abs().mean(0).cpu().numpy(),
         "signed_mean_ig": ig.mean(0).cpu().numpy(),
+        "signed_mean_grad": avg_grad.mean(0).cpu().numpy(),
     })
 
     params_str = f", α={model_params['model__alpha']}" if "model__alpha" in model_params else ""

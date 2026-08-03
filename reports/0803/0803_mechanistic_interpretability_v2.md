@@ -11,13 +11,14 @@ The 0727 report had to attribute a **refit** gene branch (`77d0103f`, a refit of
 - [1. Key findings](#1-key-findings)
 - [2. Setup and provenance](#2-setup-and-provenance)
 - [3. Method](#3-method)
-- [4. Ensemble members and the saturation asymmetry](#4-ensemble-members-and-the-saturation-asymmetry)
-- [5. Per-gene mechanistic importance — downstream classification](#5-per-gene-mechanistic-importance--downstream-classification)
-- [6. A1 vs A2 on the same encoder](#6-a1-vs-a2-on-the-same-encoder)
-- [7. Contrastive-learning alignment](#7-contrastive-learning-alignment)
-- [8. Per-dimension contributions](#8-per-dimension-contributions)
-- [9. Limitations](#9-limitations)
-- [10. File references](#10-file-references)
+- [4. Per-gene mechanistic importance — baseline = cohort-mean](#4-per-gene-mechanistic-importance--baseline--cohort-mean)
+- [5. Limitations](#5-limitations)
+- [6. File references](#6-file-references)
+- [Appendix A. Ensemble members and the saturation asymmetry](#appendix-a-ensemble-members-and-the-saturation-asymmetry)
+- [Appendix B. Full per-gene tables — both baselines](#appendix-b-full-per-gene-tables--both-baselines)
+- [Appendix C. A1 vs A2 on the same encoder](#appendix-c-a1-vs-a2-on-the-same-encoder)
+- [Appendix D. Contrastive-learning alignment](#appendix-d-contrastive-learning-alignment)
+- [Appendix E. Per-dimension contributions](#appendix-e-per-dimension-contributions)
 
 ## 1. Key findings
 
@@ -34,9 +35,9 @@ The 0727 report had to attribute a **refit** gene branch (`77d0103f`, a refit of
 
 The head is the *least* influential of the three: swapping one grid cell for a three-model ensemble moves the ranking by 0.054 of Spearman, while swapping the encoder moves it by 0.247 and swapping the IG baseline by 0.329. Rows 2 and 3 are within 0.001 of each other, i.e. essentially all of the divergence from 0727 is the encoder, none of it the head.
 
-**Top genes (A2, zero baseline):** SGSM1, ALS2, SLC25A13, AL445235.1, MYCBP2, USH1C — 6 of the top 10 are pre-defined genes. `SGSM1` leads on both heads and is *not* pre-defined.
+**Top genes (§4, cohort-mean baseline):** AC025580.2, ALS2, PDK4, LACC1, ARF5, HNRNPA1P9, USH1C — 4 of the top 10 are pre-defined. Under the `zero` baseline (Appendix B) the ranking is a different question and largely an expression-abundance ordering: SGSM1, ALS2, SLC25A13, AL445235.1, MYCBP2, USH1C, with 6 pre-defined in the top 10. The two agree at Spearman +0.671.
 
-**A saturation asymmetry worth knowing about (§4).** The head is fit on image embeddings but IG pushes *gene* embeddings through it, and the gene branch carries ~4.3× the norm — its members' logits span ±175 there against ±3.5 on the image branch. The two logistic members are therefore saturated over most of the gene branch: they carry 0.481 / 0.447 of the ensemble's gradient where it is scored, but 0.001 / 0.000 at the operating point `z0` where the decision axis is read, leaving the flat-Platt L-SVM to carry 0.999. Along the IG integration path the imbalance is milder but the same direction (0.17 / 0.20 / 0.65 of the path spent responsive). The gene-level attribution is thus read mostly through the one member that stays in its linear regime — and yet still lands on A1's ranking.
+**A saturation asymmetry worth knowing about (Appendix A).** The head is fit on image embeddings but IG pushes *gene* embeddings through it, and the gene branch carries ~4.3× the norm — its members' logits span ±175 there against ±3.5 on the image branch. The two logistic members are therefore saturated over most of the gene branch: they carry 0.481 / 0.447 of the ensemble's gradient where it is scored, but 0.001 / 0.000 at the operating point `z0` where the decision axis is read, leaving the flat-Platt L-SVM to carry 0.999. Along the IG integration path the imbalance is milder but the same direction (0.17 / 0.20 / 0.65 of the path spent responsive). The gene-level attribution is thus read mostly through the one member that stays in its linear regime — and yet still lands on A1's ranking.
 
 ## 2. Setup and provenance
 
@@ -73,13 +74,128 @@ a gradient-weighted mean of the member directions, and `C[d,j] = β_eff,d · J[d
 
         s(g) = logit S( geneenc(g) )
 
-w.r.t. the gene input (4000 midpoint steps), aggregated over 60 patients as `mean|IG|` (importance) and `mean IG` (signed; **+ = pushes toward recurrence ≤ 2yr**). Attributing the deployed score itself — rather than a linearised stand-in — is the point of this version; the `logit` keeps the units on the same logit scale as 0727.
+w.r.t. the gene input (4000 midpoint steps), aggregated over 60 patients as `mean|IG|` (importance), the path-averaged gradient `Avg grad` (direction and sensitivity, §4) and `mean IG` (signed, Appendix B). Attributing the deployed score itself — rather than a linearised stand-in — is the point of this version; the `logit` keeps the units on the same logit scale as 0727.
 
 > **Numerical note.** `logit S` and the stage-2 weights are evaluated in the log domain (`log S − log(1−S)` via `logsumexp` of `−softplus(∓u)`) and in double precision. On the gene branch the members' logits reach ±175, where a literal `logit(mean sigmoid)` is ±inf and its gradient NaN — this is also where `HeteroEnsembleGrid.decision_function`'s own 1e-9 clip saturates. The identity used is the unclipped, mathematically exact same quantity.
 
 The saturating target needs a finer integration path than a linear one: at 4000 steps the completeness residual is **1.16e-02** = **3.39e-04** of the per-patient target range (0727's single-cell head reached 2.41e-03 at 200 steps). The ranking is stable from ~1000 steps up (Spearman 1.0000 between 1000/4000/16000 steps).
 
-## 4. Ensemble members and the saturation asymmetry
+## 4. Per-gene mechanistic importance — baseline = cohort-mean
+
+Integrated Gradients of the A2 ensemble's decision function, decomposed to the 40 genes,
+against the **cohort-mean** baseline: what does *this patient's deviation from the cohort*
+contribute. Completeness residual **2.68e-03** = **8.25e-05** relative.
+
+- **`mean|IG|` — how much this gene actually moves the prediction** across the 60 patients,
+  ignoring direction. This is the ranking column. Compare magnitudes *relative to each
+  other only*; the absolute logit scale is not calibrated (Appendix A).
+- **`Avg grad` — which way, and how steeply.** The path-averaged `∂s/∂g_j`, i.e. the
+  `IG = (x − baseline) · avg grad` factor with the input-offset lever arm divided out, in
+  logits per unit of `log2(CPM+1)`. **Positive ⇒ higher expression pushes the patient
+  toward recurrence ≤ 2yr.** Read direction off this column, not off the signed IG in
+  Appendix B — the two answer different questions and disagree in sign for 15 of 40 genes.
+
+| Gene | mean\|IG\| | Avg grad | pre-defined gene | rank |
+|---|---:|---:|:---:|---:|
+| AC025580.2 | 2.4586 | -0.5412 | — | 1 |
+| ALS2 | 2.2689 | -0.3501 | ✓ | 2 |
+| PDK4 | 2.1458 | +0.3089 | ✓ | 3 |
+| LACC1 | 2.0706 | +0.4309 | — | 4 |
+| ARF5 | 2.0211 | +0.2993 | ✓ | 5 |
+| HNRNPA1P9 | 1.9261 | +0.4859 | — | 6 |
+| USH1C | 1.8632 | +0.2486 | ✓ | 7 |
+| AL445235.1 | 1.5094 | -0.2474 | — | 8 |
+| AL449283.1 | 1.4681 | +0.4669 | — | 9 |
+| SGSM1 | 1.4097 | +0.3056 | — | 10 |
+| H19 | 1.3409 | -0.1573 | — | 11 |
+| REX1BD | 1.2967 | -0.1771 | ✓ | 12 |
+| AC063947.2 | 1.2813 | +0.3010 | — | 13 |
+| SLC7A2 | 1.2553 | +0.1644 | ✓ | 14 |
+| CYP51A1 | 1.2494 | -0.2702 | ✓ | 15 |
+| RAD52 | 1.0913 | -0.1956 | ✓ | 16 |
+| CALCR | 1.0821 | -0.1632 | ✓ | 17 |
+| SLC25A13 | 1.0262 | -0.2144 | ✓ | 18 |
+| PON1 | 0.8390 | -0.0203 | ✓ | 19 |
+| AP2B1 | 0.8019 | -0.1366 | ✓ | 20 |
+| RBMXL3 | 0.7424 | -0.2230 | — | 21 |
+| M6PR | 0.7227 | +0.0142 | ✓ | 22 |
+| AC093826.2 | 0.7197 | +0.1371 | — | 23 |
+| AOC1 | 0.6931 | +0.0677 | ✓ | 24 |
+| ACSM3 | 0.6737 | -0.0667 | ✓ | 25 |
+| CSF2 | 0.6441 | +0.0694 | — | 26 |
+| ABCB4 | 0.6208 | +0.0421 | ✓ | 27 |
+| AC130366.1 | 0.5776 | +0.0941 | — | 28 |
+| AC093525.8 | 0.5708 | -0.0234 | — | 29 |
+| AC004241.5 | 0.5699 | -0.0453 | — | 30 |
+| RALA | 0.5156 | +0.0025 | ✓ | 31 |
+| MCUB | 0.5046 | -0.0268 | ✓ | 32 |
+| HIGD2B | 0.5021 | -0.1576 | — | 33 |
+| AC138647.1 | 0.4399 | -0.1219 | — | 34 |
+| CAMK2N2 | 0.4326 | -0.0544 | — | 35 |
+| CFH | 0.4243 | -0.0601 | ✓ | 36 |
+| OR52N5 | 0.3480 | -0.0558 | — | 37 |
+| AC025198.1 | 0.3211 | +0.1292 | — | 38 |
+| ZMYND12 | 0.2791 | +0.0803 | — | 39 |
+| MYCBP2 | 0.2775 | +0.0891 | ✓ | 40 |
+
+Direction is well determined at the top of the ranking and not at the bottom: for the top
+10 genes the per-patient gradient keeps a single sign in ≥92% of the 60 patients (1.00 for
+6 of them), while the low-ranked genes with `|Avg grad|` near zero are close to a coin flip
+(RALA 0.52, M6PR 0.52, PON1 0.57). Quote the direction of the top ranks only.
+
+## 5. Limitations
+
+- **Alignment-mediated proxy.** Genes never enter the predictor at inference — they shape the image encoder only through the contrastive alignment at training time. This is a decomposition of the decision axis on the co-trained gene branch, not a causal gene effect. Unlike 0727 there is no refit in the path, so the branch is the trained one, but the caveat is unchanged.
+- **The gene branch is out of the head's domain (Appendix A).** Attribution runs the head far outside the input range it was fit on, which is what saturates two of three members. The result is exact for the composed function, but it is the composed function evaluated off-distribution.
+- **Fixed-model importance.** No leave-one-out retraining; nothing here says the model would lose accuracy if a top gene were dropped.
+- **n = 54 fit / 60 attributed.** The bootstrap in Appendix E is the only stability estimate, and it is wide.
+
+## 6. File references
+
+| Artifact | Path |
+|---|---|
+| Attribution driver | `hcc_multimodal/interpretability/mechanistic_gene_attribution.py` (`--members-csv` = ensemble mode) |
+| Alignment IG driver | `hcc_multimodal/interpretability/gene_integrated_gradients.py` |
+| A2 results (§4) | `results/eval/soramic/gene_ablation/mechanistic_gene_attribution_v2_ens_zero.json`, `mechanistic_gene_attribution_v2_ens_mean.json` |
+| A1 results (Appendix C) | `results/eval/soramic/gene_ablation/mechanistic_gene_attribution_v2_A1_zero.json`, `mechanistic_gene_attribution_v2_A1_mean.json` |
+| Alignment results (Appendix D) | `results/eval/soramic/gene_ablation/integrated_gradients_d7085bf5_zero.json`, `integrated_gradients_d7085bf5_mean.json` |
+| Heatmap (Appendix E) | `reports/0803/0803_mechanistic_interpretability_v2_heatmap.png` |
+| A1 standalone report (auto-written, Appendix C's head) | [`0803_mechanistic_interpretability_v2_A1.md`](0803_mechanistic_interpretability_v2_A1.md) |
+| Ensemble membership | `results/eval/grid_flat3_bestckpt/d7085bf5/model_ensemble_members.csv` |
+| Head A1/A2 definition + survival | [`0803_embedding_grid_eval_v5.md`](0803_embedding_grid_eval_v5.md) §4.2, §6.2 |
+| Encoder provenance | [`0803_full_epochs_gene_randomized.md`](0803_full_epochs_gene_randomized.md) |
+| Prior version (refit branch, `dc7e1d10`) | [`0727_mechanistic_interpretability.md`](../0727/0727_mechanistic_interpretability.md) |
+
+Regenerate — A2 ensemble attribution (this report's §4 and Appendices A, B, E; the `zero` run also writes the heatmap and the auto-generated single-baseline report):
+```
+python -m hcc_multimodal.interpretability.mechanistic_gene_attribution \
+  --model-id d7085bf5 \
+  --members-csv results/eval/grid_flat3_bestckpt/d7085bf5/model_ensemble_members.csv \
+  --baseline zero --steps 4000 --n-boot 500 --top-k 15 \
+  --ref-cv-label "0803 v5 §4.2 model ensemble = 0.719" \
+  --ref-soramic-label "0803 v5 §4.2 = 0.722" \
+  --output results/eval/soramic/gene_ablation/mechanistic_gene_attribution_v2_ens_zero.json \
+  --report reports/0803/0803_mechanistic_interpretability_v2.md
+```
+Swap `--baseline mean` (and the output path) for §4 / Appendix B. Regenerate — A1 single cell (Appendix C):
+```
+python -m hcc_multimodal.interpretability.mechanistic_gene_attribution \
+  --model-id d7085bf5 --fs Pearson --model LASSO --select-k 85 \
+  --model-params '{"model__C": 1.0}' \
+  --baseline zero --steps 200 --n-boot 500 --top-k 15 \
+  --ref-cv-label "0803 v5 §4.1 best cell = 0.723" --ref-soramic-label "0803 v5 §4.1 = 0.694" \
+  --output results/eval/soramic/gene_ablation/mechanistic_gene_attribution_v2_A1_zero.json \
+  --report reports/0803/0803_mechanistic_interpretability_v2_A1.md
+```
+Regenerate — alignment IG (Appendix D):
+```
+python -m hcc_multimodal.interpretability.gene_integrated_gradients \
+  --model-id d7085bf5 --baseline zero --steps 200 \
+  --output results/eval/soramic/gene_ablation/integrated_gradients_d7085bf5_zero.json --report ''
+```
+This report is the composite of those runs; the drivers each write one baseline at a time.
+
+## Appendix A. Ensemble members and the saturation asymmetry
 
 `‖β_m‖` and `nnz` describe each member's own direction over the 128 dims; `squash a` is the slope of its probability squash. `u` is the squashed logit `a_m(β_m·z + b_m) + c_m` — the argument of the sigmoid — over each cohort of embeddings. A member only responds where `|u|` is small: `|u| = 4` leaves only ~7% of its peak gradient and `|u| ≳ 20` is numerically total saturation. `grad share` is the member's fraction of the summed gradient magnitude, i.e. how much it actually moves the ensemble score, at **both** operating points.
 
@@ -95,109 +211,117 @@ Three things follow.
 
 **On the gene branch the weighting inverts.** The head never sees inputs like `geneenc(g)`: the gene embeddings carry ~4.3× the image-embedding norm, which drives the two logistic members to a **median |u| of 48** over the 60 patients — only 3% and 7% of them land inside the responsive band `|u| < 4` — against a median |u| of 6.6 for the L-SVM, 28% of whose patients are inside that band (73% within `|u| < 10`). At the stage-2 operating point `z0` specifically, that leaves the L-SVM carrying 0.999 of the gradient.
 
-The `z0` share is a single point, though, and IG integrates along a path. Averaged over the 200-step path from the zero baseline, the fraction of the path each member spends inside `|u| < 4` is **0.17 / 0.20 / 0.65** (LASSO / Elastic Net / L-SVM): the logistic members are dead at the endpoint but do contribute over roughly a fifth of the path, where the path crosses their transition. So §5's attribution is L-SVM-dominated, not L-SVM-only.
+The `z0` share is a single point, though, and IG integrates along a path. Averaged over the 200-step path from the zero baseline, the fraction of the path each member spends inside `|u| < 4` is **0.17 / 0.20 / 0.65** (LASSO / Elastic Net / L-SVM): the logistic members are dead at the endpoint but do contribute over roughly a fifth of the path, where the path crosses their transition. So §4's attribution is L-SVM-dominated, not L-SVM-only.
 
-**The two facts partly cancel.** The L-SVM is the member with the widest support (43 non-zero dims vs 6 and 5) and its direction correlates with the other two (cos 0.72 / 0.78), so reading the ensemble through it is not reading a different model — which is why §6's ranking still matches A1's at +0.946. It does mean the gene-level result is **less** of a genuine three-model average than the survival result in v5 §6.2 is.
+**The two facts partly cancel.** The L-SVM is the member with the widest support (43 non-zero dims vs 6 and 5) and its direction correlates with the other two (cos 0.72 / 0.78), so reading the ensemble through it is not reading a different model — which is why Appendix C's ranking still matches A1's at +0.946. It does mean the gene-level result is **less** of a genuine three-model average than the survival result in v5 §6.2 is.
 
-## 5. Per-gene mechanistic importance — downstream classification
+## Appendix B. Full per-gene tables — both baselines
 
-Integrated Gradients of the A2 ensemble's decision function, decomposed to the 40 genes. Reported under both IG baselines, as in 0727. **Signed IG > 0 ⇒ higher expression pushes the patient toward recurrence ≤ 2yr.**
+The `signed mean IG` column lives here rather than in §4. Under the cohort-mean baseline
+the patients' deviations sum to zero, so this column is not the gene's direction — it is
+the covariance between a patient's deviation and that patient's own gradient, i.e. how
+*asymmetrically* the model responds above versus below the cohort mean. It disagrees in
+sign with `Avg grad` for 15 of the 40 genes, and its magnitude averages only 22% of
+`mean|IG|` (70% under the `zero` baseline, where no such cancellation occurs). For
+direction, use `Avg grad`.
 
-### 5.1 Baseline = 0
+Integrated Gradients of the A2 ensemble's decision function, decomposed to the 40 genes, under both IG baselines as in 0727. `Avg grad` is the path-averaged `∂s/∂g_j` — the `IG = (x − baseline) · avg grad` factor without the input-offset lever arm, in logits per unit of `log2(CPM+1)`; **positive ⇒ higher expression pushes the patient toward recurrence ≤ 2yr**, at either baseline. `signed mean IG` carries that same reading only under the `zero` baseline (4/40 genes disagree with `Avg grad` in sign there, against 15/40 at the cohort mean).
 
-| Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
-|---|---:|---:|:---:|---:|
-| SGSM1 | 4.1860 | +4.1860 | — | 1 |
-| ALS2 | 3.1814 | -3.1348 | ✓ | 2 |
-| SLC25A13 | 2.7881 | -2.6356 | ✓ | 3 |
-| AL445235.1 | 2.5528 | -2.4632 | — | 4 |
-| MYCBP2 | 2.5519 | -0.9259 | ✓ | 5 |
-| USH1C | 2.1351 | +2.0275 | ✓ | 6 |
-| H19 | 2.0560 | -1.1805 | — | 7 |
-| AC025580.2 | 1.9802 | -1.9802 | — | 8 |
-| PDK4 | 1.9769 | +1.8537 | ✓ | 9 |
-| ARF5 | 1.9500 | +1.1580 | ✓ | 10 |
-| REX1BD | 1.9291 | -1.7709 | ✓ | 11 |
-| SLC7A2 | 1.8812 | +1.7209 | ✓ | 12 |
-| PON1 | 1.8693 | -0.3314 | ✓ | 13 |
-| AP2B1 | 1.7151 | -1.0580 | ✓ | 14 |
-| CFH | 1.7020 | -0.2752 | ✓ | 15 |
-| LACC1 | 1.5443 | +1.5288 | — | 16 |
-| ABCB4 | 1.4750 | +0.5732 | ✓ | 17 |
-| HNRNPA1P9 | 1.4095 | +1.4095 | — | 18 |
-| AC063947.2 | 1.2592 | +1.2592 | — | 19 |
-| ACSM3 | 1.1326 | -0.9565 | ✓ | 20 |
-| CALCR | 1.0648 | -0.7710 | ✓ | 21 |
-| CYP51A1 | 1.0389 | -1.0389 | ✓ | 22 |
-| M6PR | 0.9167 | +0.2463 | ✓ | 23 |
-| AL449283.1 | 0.9089 | +0.8549 | — | 24 |
-| AOC1 | 0.8212 | +0.4006 | ✓ | 25 |
-| RALA | 0.7922 | +0.0940 | ✓ | 26 |
-| AC093525.8 | 0.7577 | +0.1827 | — | 27 |
-| CAMK2N2 | 0.7130 | -0.5355 | — | 28 |
-| RAD52 | 0.7072 | -0.5366 | ✓ | 29 |
-| AC130366.1 | 0.6959 | +0.6749 | — | 30 |
-| AC093826.2 | 0.6264 | +0.0467 | — | 31 |
-| RBMXL3 | 0.5961 | -0.5961 | — | 32 |
-| AC004241.5 | 0.5492 | -0.2837 | — | 33 |
-| CSF2 | 0.5431 | -0.4797 | — | 34 |
-| MCUB | 0.4711 | +0.1223 | ✓ | 35 |
-| OR52N5 | 0.4279 | -0.3781 | — | 36 |
-| HIGD2B | 0.3279 | -0.3231 | — | 37 |
-| ZMYND12 | 0.2853 | +0.2418 | — | 38 |
-| AC025198.1 | 0.2580 | +0.1769 | — | 39 |
-| AC138647.1 | 0.2325 | -0.0990 | — | 40 |
+### B.1 Baseline = 0
 
-### 5.2 Baseline = cohort-mean
+| Gene | mean\|IG\| | signed mean IG | Avg grad | pre-defined gene | rank |
+|---|---:|---:|---:|:---:|---:|
+| SGSM1 | 4.1860 | +4.1860 | +0.3988 | — | 1 |
+| ALS2 | 3.1814 | -3.1348 | -0.2742 | ✓ | 2 |
+| SLC25A13 | 2.7881 | -2.6356 | -0.2161 | ✓ | 3 |
+| AL445235.1 | 2.5528 | -2.4632 | -0.2767 | — | 4 |
+| MYCBP2 | 2.5519 | -0.9259 | -0.0656 | ✓ | 5 |
+| USH1C | 2.1351 | +2.0275 | +0.2540 | ✓ | 6 |
+| H19 | 2.0560 | -1.1805 | -0.1771 | — | 7 |
+| AC025580.2 | 1.9802 | -1.9802 | -0.6194 | — | 8 |
+| PDK4 | 1.9769 | +1.8537 | +0.2852 | ✓ | 9 |
+| ARF5 | 1.9500 | +1.1580 | +0.2161 | ✓ | 10 |
+| REX1BD | 1.9291 | -1.7709 | -0.1665 | ✓ | 11 |
+| SLC7A2 | 1.8812 | +1.7209 | +0.2412 | ✓ | 12 |
+| PON1 | 1.8693 | -0.3314 | -0.0408 | ✓ | 13 |
+| AP2B1 | 1.7151 | -1.0580 | -0.0633 | ✓ | 14 |
+| CFH | 1.7020 | -0.2752 | -0.0069 | ✓ | 15 |
+| LACC1 | 1.5443 | +1.5288 | +0.4388 | — | 16 |
+| ABCB4 | 1.4750 | +0.5732 | -0.0141 | ✓ | 17 |
+| HNRNPA1P9 | 1.4095 | +1.4095 | +0.5840 | — | 18 |
+| AC063947.2 | 1.2592 | +1.2592 | +0.4278 | — | 19 |
+| ACSM3 | 1.1326 | -0.9565 | -0.0588 | ✓ | 20 |
+| CALCR | 1.0648 | -0.7710 | -0.1819 | ✓ | 21 |
+| CYP51A1 | 1.0389 | -1.0389 | -0.3089 | ✓ | 22 |
+| M6PR | 0.9167 | +0.2463 | +0.0886 | ✓ | 23 |
+| AL449283.1 | 0.9089 | +0.8549 | +0.3788 | — | 24 |
+| AOC1 | 0.8212 | +0.4006 | +0.1046 | ✓ | 25 |
+| RALA | 0.7922 | +0.0940 | +0.0265 | ✓ | 26 |
+| AC093525.8 | 0.7577 | +0.1827 | -0.0435 | — | 27 |
+| CAMK2N2 | 0.7130 | -0.5355 | -0.1523 | — | 28 |
+| RAD52 | 0.7072 | -0.5366 | -0.0931 | ✓ | 29 |
+| AC130366.1 | 0.6959 | +0.6749 | +0.0877 | — | 30 |
+| AC093826.2 | 0.6264 | +0.0467 | +0.1229 | — | 31 |
+| RBMXL3 | 0.5961 | -0.5961 | -0.2942 | — | 32 |
+| AC004241.5 | 0.5492 | -0.2837 | -0.0619 | — | 33 |
+| CSF2 | 0.5431 | -0.4797 | +0.0391 | — | 34 |
+| MCUB | 0.4711 | +0.1223 | -0.0332 | ✓ | 35 |
+| OR52N5 | 0.4279 | -0.3781 | -0.1433 | — | 36 |
+| HIGD2B | 0.3279 | -0.3231 | -0.2074 | — | 37 |
+| ZMYND12 | 0.2853 | +0.2418 | +0.0736 | — | 38 |
+| AC025198.1 | 0.2580 | +0.1769 | +0.1621 | — | 39 |
+| AC138647.1 | 0.2325 | -0.0990 | -0.1215 | — | 40 |
+
+### B.2 Baseline = cohort-mean
 
 Completeness residual **2.68e-03** = **8.25e-05** relative.
 
-| Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
-|---|---:|---:|:---:|---:|
-| AC025580.2 | 2.4586 | -0.0436 | — | 1 |
-| ALS2 | 2.2689 | -0.2184 | ✓ | 2 |
-| PDK4 | 2.1458 | -0.3318 | ✓ | 3 |
-| LACC1 | 2.0706 | +0.0450 | — | 4 |
-| ARF5 | 2.0211 | -0.0830 | ✓ | 5 |
-| HNRNPA1P9 | 1.9261 | +0.0564 | — | 6 |
-| USH1C | 1.8632 | +0.3861 | ✓ | 7 |
-| AL445235.1 | 1.5094 | +0.0099 | — | 8 |
-| AL449283.1 | 1.4681 | -0.1591 | — | 9 |
-| SGSM1 | 1.4097 | +0.1806 | — | 10 |
-| H19 | 1.3409 | +0.5703 | — | 11 |
-| REX1BD | 1.2967 | -0.1747 | ✓ | 12 |
-| AC063947.2 | 1.2813 | +0.2828 | — | 13 |
-| SLC7A2 | 1.2553 | -0.3008 | ✓ | 14 |
-| CYP51A1 | 1.2494 | -0.0618 | ✓ | 15 |
-| RAD52 | 1.0913 | -0.0265 | ✓ | 16 |
-| CALCR | 1.0821 | -0.0562 | ✓ | 17 |
-| SLC25A13 | 1.0262 | +0.0722 | ✓ | 18 |
-| PON1 | 0.8390 | +0.0585 | ✓ | 19 |
-| AP2B1 | 0.8019 | -0.2865 | ✓ | 20 |
-| RBMXL3 | 0.7424 | -0.1476 | — | 21 |
-| M6PR | 0.7227 | -0.3804 | ✓ | 22 |
-| AC093826.2 | 0.7197 | -0.0552 | — | 23 |
-| AOC1 | 0.6931 | +0.0094 | ✓ | 24 |
-| ACSM3 | 0.6737 | -0.2137 | ✓ | 25 |
-| CSF2 | 0.6441 | -0.5177 | — | 26 |
-| ABCB4 | 0.6208 | +0.4683 | ✓ | 27 |
-| AC130366.1 | 0.5776 | +0.2239 | — | 28 |
-| AC093525.8 | 0.5708 | -0.1205 | — | 29 |
-| AC004241.5 | 0.5699 | -0.0854 | — | 30 |
-| RALA | 0.5156 | -0.1291 | ✓ | 31 |
-| MCUB | 0.5046 | +0.0581 | ✓ | 32 |
-| HIGD2B | 0.5021 | -0.0915 | — | 33 |
-| AC138647.1 | 0.4399 | -0.0490 | — | 34 |
-| CAMK2N2 | 0.4326 | +0.1513 | — | 35 |
-| CFH | 0.4243 | -0.2491 | ✓ | 36 |
-| OR52N5 | 0.3480 | -0.1286 | — | 37 |
-| AC025198.1 | 0.3211 | -0.1458 | — | 38 |
-| ZMYND12 | 0.2791 | +0.0271 | — | 39 |
-| MYCBP2 | 0.2775 | +0.0566 | ✓ | 40 |
+| Gene | mean\|IG\| | signed mean IG | Avg grad | pre-defined gene | rank |
+|---|---:|---:|---:|:---:|---:|
+| AC025580.2 | 2.4586 | -0.0436 | -0.5412 | — | 1 |
+| ALS2 | 2.2689 | -0.2184 | -0.3501 | ✓ | 2 |
+| PDK4 | 2.1458 | -0.3318 | +0.3089 | ✓ | 3 |
+| LACC1 | 2.0706 | +0.0450 | +0.4309 | — | 4 |
+| ARF5 | 2.0211 | -0.0830 | +0.2993 | ✓ | 5 |
+| HNRNPA1P9 | 1.9261 | +0.0564 | +0.4859 | — | 6 |
+| USH1C | 1.8632 | +0.3861 | +0.2486 | ✓ | 7 |
+| AL445235.1 | 1.5094 | +0.0099 | -0.2474 | — | 8 |
+| AL449283.1 | 1.4681 | -0.1591 | +0.4669 | — | 9 |
+| SGSM1 | 1.4097 | +0.1806 | +0.3056 | — | 10 |
+| H19 | 1.3409 | +0.5703 | -0.1573 | — | 11 |
+| REX1BD | 1.2967 | -0.1747 | -0.1771 | ✓ | 12 |
+| AC063947.2 | 1.2813 | +0.2828 | +0.3010 | — | 13 |
+| SLC7A2 | 1.2553 | -0.3008 | +0.1644 | ✓ | 14 |
+| CYP51A1 | 1.2494 | -0.0618 | -0.2702 | ✓ | 15 |
+| RAD52 | 1.0913 | -0.0265 | -0.1956 | ✓ | 16 |
+| CALCR | 1.0821 | -0.0562 | -0.1632 | ✓ | 17 |
+| SLC25A13 | 1.0262 | +0.0722 | -0.2144 | ✓ | 18 |
+| PON1 | 0.8390 | +0.0585 | -0.0203 | ✓ | 19 |
+| AP2B1 | 0.8019 | -0.2865 | -0.1366 | ✓ | 20 |
+| RBMXL3 | 0.7424 | -0.1476 | -0.2230 | — | 21 |
+| M6PR | 0.7227 | -0.3804 | +0.0142 | ✓ | 22 |
+| AC093826.2 | 0.7197 | -0.0552 | +0.1371 | — | 23 |
+| AOC1 | 0.6931 | +0.0094 | +0.0677 | ✓ | 24 |
+| ACSM3 | 0.6737 | -0.2137 | -0.0667 | ✓ | 25 |
+| CSF2 | 0.6441 | -0.5177 | +0.0694 | — | 26 |
+| ABCB4 | 0.6208 | +0.4683 | +0.0421 | ✓ | 27 |
+| AC130366.1 | 0.5776 | +0.2239 | +0.0941 | — | 28 |
+| AC093525.8 | 0.5708 | -0.1205 | -0.0234 | — | 29 |
+| AC004241.5 | 0.5699 | -0.0854 | -0.0453 | — | 30 |
+| RALA | 0.5156 | -0.1291 | +0.0025 | ✓ | 31 |
+| MCUB | 0.5046 | +0.0581 | -0.0268 | ✓ | 32 |
+| HIGD2B | 0.5021 | -0.0915 | -0.1576 | — | 33 |
+| AC138647.1 | 0.4399 | -0.0490 | -0.1219 | — | 34 |
+| CAMK2N2 | 0.4326 | +0.1513 | -0.0544 | — | 35 |
+| CFH | 0.4243 | -0.2491 | -0.0601 | ✓ | 36 |
+| OR52N5 | 0.3480 | -0.1286 | -0.0558 | — | 37 |
+| AC025198.1 | 0.3211 | -0.1458 | +0.1292 | — | 38 |
+| ZMYND12 | 0.2791 | +0.0271 | +0.0803 | — | 39 |
+| MYCBP2 | 0.2775 | +0.0566 | +0.0891 | ✓ | 40 |
 
 The two baselines agree at Spearman **+0.671** — the same order of baseline sensitivity 0727 reported. The `zero` baseline asks *what does the whole expression vector contribute*; the cohort-mean baseline asks *what does this patient's deviation from the cohort contribute*, which is why absolute-expression genes drop and variable ones rise.
 
-## 6. A1 vs A2 on the same encoder
+## Appendix C. A1 vs A2 on the same encoder
 
 The comparison 0727 could not make: the same encoder, the same gene branch, the same IG baseline, one grid cell (**A1** — `LASSO`/`Pearson` k=85, v5 §4.1's best cell, CV 0.723 / Soramic 0.694) versus the three-model ensemble (**A2**). A1 is a single linear direction, so its target is 0727's `s(g) = β·geneenc(g)` and no saturation arises.
 
@@ -248,11 +372,11 @@ Spearman of `mean|IG|` = **+0.946**; 6/10 shared top-10 genes (SGSM1, ALS2, SLC2
 
 The `mean|IG|` *magnitudes* are not comparable between the two columns — A1's target is a raw linear score (‖β‖ = 74.1) and A2's is a logit of a probability average — only the ordering is.
 
-## 7. Contrastive-learning alignment
+## Appendix D. Contrastive-learning alignment
 
 Head-independent: which genes the GeneEncoder was actually *trained* to move. Target is the cross-modal alignment score `F_i(g) = cos(z_img_i, geneenc(g))` — patient *i*'s **frozen** image embedding against the gene encoder output — with IG integrated only through the GeneEncoder (200 midpoint steps, 60 patients). **Signed IG > 0 ⇒ higher expression pulls the gene embedding *toward* that patient's own image.** These tables describe `d7085bf5`'s gene branch and are shared by heads A1 and A2.
 
-### 7.1 Baseline = 0
+### D.1 Baseline = 0
 
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
@@ -297,7 +421,7 @@ Head-independent: which genes the GeneEncoder was actually *trained* to move. Ta
 | RBMXL3 | 0.0099 | -0.0085 | — | 39 |
 | AC138647.1 | 0.0097 | +0.0050 | — | 40 |
 
-### 7.2 Baseline = cohort-mean
+### D.2 Baseline = cohort-mean
 
 | Gene | mean\|IG\| | signed mean IG | pre-defined gene | rank |
 |---|---:|---:|:---:|---:|
@@ -344,7 +468,7 @@ Head-independent: which genes the GeneEncoder was actually *trained* to move. Ta
 
 Alignment importance and A2's downstream importance correlate at Spearman **+0.814** (A1: +0.818) at the zero baseline — the genes the encoder was trained to align on are largely the genes the classifier's axis reads, but the two are not the same ranking.
 
-## 8. Per-dimension contributions
+## Appendix E. Per-dimension contributions
 
 `C[d,j] = β_eff,d · J[d,j]` over the top 15 dims by |β_eff|. Bootstrap = 500 stratified patient resamples of the whole ensemble, with β_eff re-read at the same fixed `z0`. `nonzero freq` = fraction of resamples where the dim carries non-zero weight in β_eff, i.e. some member both selects it and is not saturated at `z0`.
 
@@ -366,58 +490,6 @@ Alignment importance and A2's downstream importance correlate at Spearman **+0.8
 | 41 | -0.319 | -0.240±1.085 | 0.61 | LACC1 (-0.019), AC025580.2 (+0.017), CAMK2N2 (-0.016) |
 | 70 | -0.200 | -0.211±0.993 | 0.47 | LACC1 (-0.008), AL445235.1 (+0.008), CSF2 (-0.007) |
 
-**The bootstrap spread is wide** — every sd exceeds its mean. Two compounding causes: the L1/elastic-net members reselect different dims per resample (as in 0727), and β_eff's overall scale carries a `1/[S(1−S)]` factor that swings by orders of magnitude as a resampled head moves in and out of saturation at `z0`. Read the *ordering* and the driver genes, not the magnitudes; the per-gene IG in §5 is the stable readout.
+**The bootstrap spread is wide** — every sd exceeds its mean. Two compounding causes: the L1/elastic-net members reselect different dims per resample (as in 0727), and β_eff's overall scale carries a `1/[S(1−S)]` factor that swings by orders of magnitude as a resampled head moves in and out of saturation at `z0`. Read the *ordering* and the driver genes, not the magnitudes; the per-gene IG in §4 is the stable readout.
 
 ![Gene → decision-axis contribution heatmap](0803_mechanistic_interpretability_v2_heatmap.png)
-
-## 9. Limitations
-
-- **Alignment-mediated proxy.** Genes never enter the predictor at inference — they shape the image encoder only through the contrastive alignment at training time. This is a decomposition of the decision axis on the co-trained gene branch, not a causal gene effect. Unlike 0727 there is no refit in the path, so the branch is the trained one, but the caveat is unchanged.
-- **The gene branch is out of the head's domain (§4).** Attribution runs the head far outside the input range it was fit on, which is what saturates two of three members. The result is exact for the composed function, but it is the composed function evaluated off-distribution.
-- **Fixed-model importance.** No leave-one-out retraining; nothing here says the model would lose accuracy if a top gene were dropped.
-- **n = 54 fit / 60 attributed.** The bootstrap in §8 is the only stability estimate, and it is wide.
-
-## 10. File references
-
-| Artifact | Path |
-|---|---|
-| Attribution driver | `hcc_multimodal/interpretability/mechanistic_gene_attribution.py` (`--members-csv` = ensemble mode) |
-| Alignment IG driver | `hcc_multimodal/interpretability/gene_integrated_gradients.py` |
-| A2 results (§5) | `results/eval/soramic/gene_ablation/mechanistic_gene_attribution_v2_ens_zero.json`, `mechanistic_gene_attribution_v2_ens_mean.json` |
-| A1 results (§6) | `results/eval/soramic/gene_ablation/mechanistic_gene_attribution_v2_A1_zero.json`, `mechanistic_gene_attribution_v2_A1_mean.json` |
-| Alignment results (§7) | `results/eval/soramic/gene_ablation/integrated_gradients_d7085bf5_zero.json`, `integrated_gradients_d7085bf5_mean.json` |
-| Heatmap (§8) | `reports/0803/0803_mechanistic_interpretability_v2_heatmap.png` |
-| A1 standalone report (auto-written, §6's head) | [`0803_mechanistic_interpretability_v2_A1.md`](0803_mechanistic_interpretability_v2_A1.md) |
-| Ensemble membership | `results/eval/grid_flat3_bestckpt/d7085bf5/model_ensemble_members.csv` |
-| Head A1/A2 definition + survival | [`0803_embedding_grid_eval_v5.md`](0803_embedding_grid_eval_v5.md) §4.2, §6.2 |
-| Encoder provenance | [`0803_full_epochs_gene_randomized.md`](0803_full_epochs_gene_randomized.md) |
-| Prior version (refit branch, `dc7e1d10`) | [`0727_mechanistic_interpretability.md`](../0727/0727_mechanistic_interpretability.md) |
-
-Regenerate — A2 ensemble attribution (this report's §4, §5, §8; the `zero` run also writes the heatmap and the auto-generated single-baseline report):
-```
-python -m hcc_multimodal.interpretability.mechanistic_gene_attribution \
-  --model-id d7085bf5 \
-  --members-csv results/eval/grid_flat3_bestckpt/d7085bf5/model_ensemble_members.csv \
-  --baseline zero --steps 4000 --n-boot 500 --top-k 15 \
-  --ref-cv-label "0803 v5 §4.2 model ensemble = 0.719" \
-  --ref-soramic-label "0803 v5 §4.2 = 0.722" \
-  --output results/eval/soramic/gene_ablation/mechanistic_gene_attribution_v2_ens_zero.json \
-  --report reports/0803/0803_mechanistic_interpretability_v2.md
-```
-Swap `--baseline mean` (and the output path) for §5.2. Regenerate — A1 single cell (§6):
-```
-python -m hcc_multimodal.interpretability.mechanistic_gene_attribution \
-  --model-id d7085bf5 --fs Pearson --model LASSO --select-k 85 \
-  --model-params '{"model__C": 1.0}' \
-  --baseline zero --steps 200 --n-boot 500 --top-k 15 \
-  --ref-cv-label "0803 v5 §4.1 best cell = 0.723" --ref-soramic-label "0803 v5 §4.1 = 0.694" \
-  --output results/eval/soramic/gene_ablation/mechanistic_gene_attribution_v2_A1_zero.json \
-  --report reports/0803/0803_mechanistic_interpretability_v2_A1.md
-```
-Regenerate — alignment IG (§7):
-```
-python -m hcc_multimodal.interpretability.gene_integrated_gradients \
-  --model-id d7085bf5 --baseline zero --steps 200 \
-  --output results/eval/soramic/gene_ablation/integrated_gradients_d7085bf5_zero.json --report ''
-```
-This report is the composite of those runs; the drivers each write one baseline at a time.

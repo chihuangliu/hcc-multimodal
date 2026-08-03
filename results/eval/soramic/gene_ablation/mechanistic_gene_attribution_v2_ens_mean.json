@@ -847,202 +847,242 @@
     {
       "gene": "AC025580.2",
       "mean_abs_ig": 2.458629608154297,
-      "signed_mean_ig": -0.04358236864209175
+      "signed_mean_ig": -0.04358236864209175,
+      "signed_mean_grad": -0.5412259697914124
     },
     {
       "gene": "ALS2",
       "mean_abs_ig": 2.2688534259796143,
-      "signed_mean_ig": -0.21843019127845764
+      "signed_mean_ig": -0.21843019127845764,
+      "signed_mean_grad": -0.3501249849796295
     },
     {
       "gene": "PDK4",
       "mean_abs_ig": 2.1458489894866943,
-      "signed_mean_ig": -0.33177870512008667
+      "signed_mean_ig": -0.33177870512008667,
+      "signed_mean_grad": 0.3088996708393097
     },
     {
       "gene": "LACC1",
       "mean_abs_ig": 2.070565938949585,
-      "signed_mean_ig": 0.044969335198402405
+      "signed_mean_ig": 0.044969335198402405,
+      "signed_mean_grad": 0.4309021532535553
     },
     {
       "gene": "ARF5",
       "mean_abs_ig": 2.0210773944854736,
-      "signed_mean_ig": -0.08304747194051743
+      "signed_mean_ig": -0.08304747194051743,
+      "signed_mean_grad": 0.29930952191352844
     },
     {
       "gene": "HNRNPA1P9",
       "mean_abs_ig": 1.9261329174041748,
-      "signed_mean_ig": 0.05635425075888634
+      "signed_mean_ig": 0.05635425075888634,
+      "signed_mean_grad": 0.4859010577201843
     },
     {
       "gene": "USH1C",
       "mean_abs_ig": 1.8631870746612549,
-      "signed_mean_ig": 0.3860509693622589
+      "signed_mean_ig": 0.3860509693622589,
+      "signed_mean_grad": 0.24858739972114563
     },
     {
       "gene": "AL445235.1",
       "mean_abs_ig": 1.5093994140625,
-      "signed_mean_ig": 0.009931369684636593
+      "signed_mean_ig": 0.009931369684636593,
+      "signed_mean_grad": -0.24742905795574188
     },
     {
       "gene": "AL449283.1",
       "mean_abs_ig": 1.4681313037872314,
-      "signed_mean_ig": -0.1590787023305893
+      "signed_mean_ig": -0.1590787023305893,
+      "signed_mean_grad": 0.46694231033325195
     },
     {
       "gene": "SGSM1",
       "mean_abs_ig": 1.4097446203231812,
-      "signed_mean_ig": 0.1805802881717682
+      "signed_mean_ig": 0.1805802881717682,
+      "signed_mean_grad": 0.30564627051353455
     },
     {
       "gene": "H19",
       "mean_abs_ig": 1.3409174680709839,
-      "signed_mean_ig": 0.5703219175338745
+      "signed_mean_ig": 0.5703219175338745,
+      "signed_mean_grad": -0.15728607773780823
     },
     {
       "gene": "REX1BD",
       "mean_abs_ig": 1.2966865301132202,
-      "signed_mean_ig": -0.17472600936889648
+      "signed_mean_ig": -0.17472600936889648,
+      "signed_mean_grad": -0.17710714042186737
     },
     {
       "gene": "AC063947.2",
       "mean_abs_ig": 1.2813066244125366,
-      "signed_mean_ig": 0.28284454345703125
+      "signed_mean_ig": 0.28284454345703125,
+      "signed_mean_grad": 0.300994336605072
     },
     {
       "gene": "SLC7A2",
       "mean_abs_ig": 1.2552927732467651,
-      "signed_mean_ig": -0.3008183240890503
+      "signed_mean_ig": -0.3008183240890503,
+      "signed_mean_grad": 0.1643991321325302
     },
     {
       "gene": "CYP51A1",
       "mean_abs_ig": 1.2494127750396729,
-      "signed_mean_ig": -0.06178886443376541
+      "signed_mean_ig": -0.06178886443376541,
+      "signed_mean_grad": -0.2701640725135803
     },
     {
       "gene": "RAD52",
       "mean_abs_ig": 1.0913467407226562,
-      "signed_mean_ig": -0.026549117639660835
+      "signed_mean_ig": -0.026549117639660835,
+      "signed_mean_grad": -0.19564983248710632
     },
     {
       "gene": "CALCR",
       "mean_abs_ig": 1.0820859670639038,
-      "signed_mean_ig": -0.056187525391578674
+      "signed_mean_ig": -0.056187525391578674,
+      "signed_mean_grad": -0.1632366180419922
     },
     {
       "gene": "SLC25A13",
       "mean_abs_ig": 1.0261585712432861,
-      "signed_mean_ig": 0.07217103987932205
+      "signed_mean_ig": 0.07217103987932205,
+      "signed_mean_grad": -0.21437512338161469
     },
     {
       "gene": "PON1",
       "mean_abs_ig": 0.8390418887138367,
-      "signed_mean_ig": 0.05847226828336716
+      "signed_mean_ig": 0.05847226828336716,
+      "signed_mean_grad": -0.020336130633950233
     },
     {
       "gene": "AP2B1",
       "mean_abs_ig": 0.801939845085144,
-      "signed_mean_ig": -0.286516398191452
+      "signed_mean_ig": -0.286516398191452,
+      "signed_mean_grad": -0.136581689119339
     },
     {
       "gene": "RBMXL3",
       "mean_abs_ig": 0.7423862218856812,
-      "signed_mean_ig": -0.14764346182346344
+      "signed_mean_ig": -0.14764346182346344,
+      "signed_mean_grad": -0.2229972779750824
     },
     {
       "gene": "M6PR",
       "mean_abs_ig": 0.7227199077606201,
-      "signed_mean_ig": -0.3803841173648834
+      "signed_mean_ig": -0.3803841173648834,
+      "signed_mean_grad": 0.014216961339116096
     },
     {
       "gene": "AC093826.2",
       "mean_abs_ig": 0.7196611166000366,
-      "signed_mean_ig": -0.05523676797747612
+      "signed_mean_ig": -0.05523676797747612,
+      "signed_mean_grad": 0.13707132637500763
     },
     {
       "gene": "AOC1",
       "mean_abs_ig": 0.6931391358375549,
-      "signed_mean_ig": 0.009400268085300922
+      "signed_mean_ig": 0.009400268085300922,
+      "signed_mean_grad": 0.06767375767230988
     },
     {
       "gene": "ACSM3",
       "mean_abs_ig": 0.6737378239631653,
-      "signed_mean_ig": -0.21367716789245605
+      "signed_mean_ig": -0.21367716789245605,
+      "signed_mean_grad": -0.06667839735746384
     },
     {
       "gene": "CSF2",
       "mean_abs_ig": 0.6441411972045898,
-      "signed_mean_ig": -0.517656147480011
+      "signed_mean_ig": -0.517656147480011,
+      "signed_mean_grad": 0.06935899704694748
     },
     {
       "gene": "ABCB4",
       "mean_abs_ig": 0.6207879781723022,
-      "signed_mean_ig": 0.46833378076553345
+      "signed_mean_ig": 0.46833378076553345,
+      "signed_mean_grad": 0.04207272827625275
     },
     {
       "gene": "AC130366.1",
       "mean_abs_ig": 0.5776112675666809,
-      "signed_mean_ig": 0.2239195853471756
+      "signed_mean_ig": 0.2239195853471756,
+      "signed_mean_grad": 0.09413786232471466
     },
     {
       "gene": "AC093525.8",
       "mean_abs_ig": 0.5707751512527466,
-      "signed_mean_ig": -0.12053181976079941
+      "signed_mean_ig": -0.12053181976079941,
+      "signed_mean_grad": -0.023368237540125847
     },
     {
       "gene": "AC004241.5",
       "mean_abs_ig": 0.5698565244674683,
-      "signed_mean_ig": -0.0853615552186966
+      "signed_mean_ig": -0.0853615552186966,
+      "signed_mean_grad": -0.045267295092344284
     },
     {
       "gene": "RALA",
       "mean_abs_ig": 0.5155845284461975,
-      "signed_mean_ig": -0.12911035120487213
+      "signed_mean_ig": -0.12911035120487213,
+      "signed_mean_grad": 0.0024850356858223677
     },
     {
       "gene": "MCUB",
       "mean_abs_ig": 0.5045865774154663,
-      "signed_mean_ig": 0.058102332055568695
+      "signed_mean_ig": 0.058102332055568695,
+      "signed_mean_grad": -0.026817483827471733
     },
     {
       "gene": "HIGD2B",
       "mean_abs_ig": 0.5021378397941589,
-      "signed_mean_ig": -0.09146899729967117
+      "signed_mean_ig": -0.09146899729967117,
+      "signed_mean_grad": -0.15757805109024048
     },
     {
       "gene": "AC138647.1",
       "mean_abs_ig": 0.43987756967544556,
-      "signed_mean_ig": -0.04896305501461029
+      "signed_mean_ig": -0.04896305501461029,
+      "signed_mean_grad": -0.12187477946281433
     },
     {
       "gene": "CAMK2N2",
       "mean_abs_ig": 0.43262308835983276,
-      "signed_mean_ig": 0.15127931535243988
+      "signed_mean_ig": 0.15127931535243988,
+      "signed_mean_grad": -0.05436854436993599
     },
     {
       "gene": "CFH",
       "mean_abs_ig": 0.4243091344833374,
-      "signed_mean_ig": -0.24907547235488892
+      "signed_mean_ig": -0.24907547235488892,
+      "signed_mean_grad": -0.06007738783955574
     },
     {
       "gene": "OR52N5",
       "mean_abs_ig": 0.3479742705821991,
-      "signed_mean_ig": -0.12864093482494354
+      "signed_mean_ig": -0.12864093482494354,
+      "signed_mean_grad": -0.05579381808638573
     },
     {
       "gene": "AC025198.1",
       "mean_abs_ig": 0.32112276554107666,
-      "signed_mean_ig": -0.14579972624778748
+      "signed_mean_ig": -0.14579972624778748,
+      "signed_mean_grad": 0.12917174398899078
     },
     {
       "gene": "ZMYND12",
       "mean_abs_ig": 0.27906331419944763,
-      "signed_mean_ig": 0.027141978964209557
+      "signed_mean_ig": 0.027141978964209557,
+      "signed_mean_grad": 0.0802922248840332
     },
     {
       "gene": "MYCBP2",
       "mean_abs_ig": 0.27752241492271423,
-      "signed_mean_ig": 0.056568700820207596
+      "signed_mean_ig": 0.056568700820207596,
+      "signed_mean_grad": 0.08907194435596466
     }
   ]
 }

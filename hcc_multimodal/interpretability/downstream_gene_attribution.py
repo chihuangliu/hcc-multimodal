@@ -150,8 +150,10 @@ def gene_jacobian(gene_enc, g_point: torch.Tensor) -> np.ndarray:
 def integrated_gradients_beta(gene_enc, beta, x, baseline, steps, device):
     """Midpoint-rule IG of s(g) = beta . gene_enc(g) w.r.t. the gene input.
 
-    Returns (ig (P,G), residual (P,), delta_s (P,)). The completeness residual
-    sum_j ig - (s(x) - s(baseline)) should be ~0.
+    Returns (ig (P,G), residual (P,), delta_s (P,), avg_grad (P,G)). The completeness
+    residual sum_j ig - (s(x) - s(baseline)) should be ~0. ``avg_grad`` is the path
+    average of ds/dg_j, i.e. the ``ig = (x - baseline) * avg_grad`` factor that carries
+    the sensitivity without the input-offset lever arm.
     """
     P, G = x.shape
     base = baseline.unsqueeze(0).expand(P, G)
@@ -172,7 +174,7 @@ def integrated_gradients_beta(gene_enc, beta, x, baseline, steps, device):
     with torch.no_grad():
         delta_s = s(x) - s(base)
     residual = ig.sum(dim=-1) - delta_s
-    return ig.detach(), residual.detach(), delta_s.detach()
+    return ig.detach(), residual.detach(), delta_s.detach(), avg_grad.detach()
 
 
 # ---------------------------------------------------------------------------
@@ -417,7 +419,9 @@ def run(args):
 
     # Stage 3: IG on the decision target
     baseline = torch.zeros(x.shape[1], device=device) if args.baseline == "zero" else x.mean(0)
-    ig, residual, delta_s = integrated_gradients_beta(gene_enc, beta, x, baseline, args.steps, device)
+    ig, residual, delta_s, _ = integrated_gradients_beta(
+        gene_enc, beta, x, baseline, args.steps, device
+    )
     max_resid = float(residual.abs().max().cpu())
     # s(g) is unnormalized (unlike the bounded cosine target), so report the
     # completeness gap relative to the per-patient target range it must explain.
