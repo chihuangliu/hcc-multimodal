@@ -1,0 +1,21 @@
+cohort,case,case_desc,case_order,SID,y,p,fold
+resection,tp_high,"y=1, pred=1, high p (confident hit)",0,162,1,0.839906135913274,-1
+resection,tn_low,"y=0, pred=0, low p (confident hit)",1,49,0,0.2095568741205093,-1
+resection,fp_high,"y=0, pred=1, high p (confident miss)",2,186,0,0.7034347918517514,-1
+resection,fp_borderline,"y=0, pred=1, p near 0.5",3,10,0,0.5056515805080268,-1
+resection,fn_borderline,"y=1, pred=0, p near 0.5",4,7,1,0.4972950007638783,-1
+resection,fn_low,"y=1, pred=0, low p (confident miss)",5,113,1,0.22171880909169905,-1
+resection,tp_high_2,"y=1, pred=1, high p (confident hit), rank 2",6,176,1,0.8249651946271167,-1
+resection,tp_high_3,"y=1, pred=1, high p (confident hit), rank 3",7,33,1,0.7996323555584998,-1
+resection,tn_low_2,"y=0, pred=0, low p (confident hit), rank 2",8,133,0,0.27937169250769117,-1
+resection,tn_low_3,"y=0, pred=0, low p (confident hit), rank 3",9,53,0,0.2838435869855968,-1
+soramic,tp_high,"y=1, pred=1, high p (confident hit)",0,1905004,1,0.9237177942192747,-1
+soramic,tn_low,"y=0, pred=0, low p (confident hit)",1,1201006,0,0.16356146906441552,-1
+soramic,fp_high,"y=0, pred=1, high p (confident miss)",2,1001007,0,0.7779266431711812,-1
+soramic,fp_borderline,"y=0, pred=1, p near 0.5",3,1301008,0,0.5360030575647391,-1
+soramic,fn_borderline,"y=1, pred=0, p near 0.5",4,1011005,1,0.4797888274778292,-1
+soramic,fn_low,"y=1, pred=0, low p (confident miss)",5,1901014,1,0.23144730257691126,-1
+soramic,tp_high_2,"y=1, pred=1, high p (confident hit), rank 2",6,1905005,1,0.8641458386428115,-1
+soramic,tp_high_3,"y=1, pred=1, high p (confident hit), rank 3",7,1013011,1,0.8193501835772947,-1
+soramic,tn_low_2,"y=0, pred=0, low p (confident hit), rank 2",8,1201008,0,0.23169527183464086,-1
+soramic,tn_low_3,"y=0, pred=0, low p (confident hit), rank 3",9,1201001,0,0.27300651379242186,-1

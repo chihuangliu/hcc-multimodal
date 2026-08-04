@@ -7,3 +7,5 @@ data/*
 training/contrastive/*/cached_embeddings/
 models/*
 results/**/*.parquet
+results/eval/interpretability/**/*.nii.gz
+results/eval/interpretability/**/*.npz

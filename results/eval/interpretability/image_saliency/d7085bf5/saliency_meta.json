@@ -1,0 +1,58 @@
+{
+  "model_id": "d7085bf5",
+  "members_csv": "results/eval/grid_flat3_bestckpt/d7085bf5/model_ensemble_members.csv",
+  "members": [
+    {
+      "model": "LASSO",
+      "fs": "Pearson",
+      "select_k": 85,
+      "params": {
+        "model__C": 1.0,
+        "selector__k": 85
+      },
+      "cv_auc": 0.7232510288065844
+    },
+    {
+      "model": "Elastic Net",
+      "fs": "Pearson",
+      "select_k": 43,
+      "params": {
+        "model__C": 1.0,
+        "model__l1_ratio": 0.8,
+        "selector__k": 43
+      },
+      "cv_auc": 0.7065843621399178
+    },
+    {
+      "model": "L-SVM",
+      "fs": "Pearson",
+      "select_k": 43,
+      "params": {
+        "model__C": 0.1,
+        "selector__k": 43
+      },
+      "cv_auc": 0.7024176954732511
+    }
+  ],
+  "target": "rfs_2year",
+  "cohorts": [
+    "resection",
+    "soramic"
+  ],
+  "resection_head": "full",
+  "extra_tp": 2,
+  "extra_tn": 2,
+  "top_k_slices": 16,
+  "ig_steps": 256,
+  "baseline": "blur",
+  "head_reconstruction_max_residual": 0.002674976335472201,
+  "encoder": {
+    "model": "vit_b_32",
+    "axes": 0,
+    "n_per_axis": null,
+    "img_size": 224,
+    "mri_type": "raw",
+    "freeze_backbone": true,
+    "lam": 0.1
+  }
+}
