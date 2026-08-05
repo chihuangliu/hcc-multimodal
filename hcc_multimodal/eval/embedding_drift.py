@@ -4,12 +4,14 @@ Compares patient-level embedding distributions across three cohorts:
   resection (training) · soramic (ablation test) · lausanne (external test)
 
 For each model and each cohort pair, runs a per-dimension KS test and reports:
-  median_d  – median KS D-statistic across embedding dimensions
-  mean_d    – mean   KS D-statistic across embedding dimensions
-  frac_sig  – fraction of dimensions with p < 0.05
+  median_d     – median KS D-statistic across embedding dimensions
+  mean_d       – mean   KS D-statistic across embedding dimensions
+  frac_sig     – fraction of dimensions with raw p < 0.05
+  frac_sig_bh  – fraction of dimensions with Benjamini--Hochberg q < 0.05
 
 Usage:
   python -m hcc_multimodal.eval.embedding_drift [--out PATH]
+  python -m hcc_multimodal.eval.embedding_drift --model-id d7085bf5 --input raw
 """
 
 import argparse
@@ -19,7 +21,11 @@ import numpy as np
 import pandas as pd
 from scipy.stats import ks_2samp
 
-from hcc_multimodal.eval.data import TRAINING_ROOT
+from hcc_multimodal.eval.data import (
+    TRAINING_ROOT,
+    load_ablation_outcomes,
+    load_resection_outcomes,
+)
 from hcc_multimodal.eval.eval_utils import PROJECT_ROOT
 
 # (model_id, input_suffix)
@@ -64,6 +70,17 @@ def _emb_path(model_id: str, suffix: str, cohort: str) -> Path:
     return base / f"ablation_{_COHORT_FILENAME[cohort]}_img_emb_{suffix}.parquet"
 
 
+def bh_qvalues(p_vals: np.ndarray) -> np.ndarray:
+    """Benjamini--Hochberg adjusted p-values."""
+    n = p_vals.size
+    order = np.argsort(p_vals)
+    ranked = p_vals[order] * n / np.arange(1, n + 1)
+    ranked = np.minimum.accumulate(ranked[::-1])[::-1]
+    q = np.empty(n)
+    q[order] = np.clip(ranked, 0.0, 1.0)
+    return q
+
+
 def ks_drift(a: np.ndarray, b: np.ndarray) -> dict[str, float]:
     n_dims = a.shape[1]
     d_stats = np.empty(n_dims)
@@ -73,29 +90,66 @@ def ks_drift(a: np.ndarray, b: np.ndarray) -> dict[str, float]:
         d_stats[i] = res.statistic
         p_vals[i]  = res.pvalue
     return {
-        "median_d": float(np.median(d_stats)),
-        "mean_d":   float(np.mean(d_stats)),
-        "frac_sig": float(np.mean(p_vals < 0.05)),
+        "n_dims":      n_dims,
+        "median_d":    float(np.median(d_stats)),
+        "mean_d":      float(np.mean(d_stats)),
+        "max_d":       float(np.max(d_stats)),
+        "frac_sig":    float(np.mean(p_vals < 0.05)),
+        "frac_sig_bh": float(np.mean(bh_qvalues(p_vals) < 0.05)),
     }
 
 
-def run(out_path: Path) -> pd.DataFrame:
+def _outcomes(cohort: str, target: str) -> pd.Series:
+    """``target`` labels, indexed by SID — the patients the downstream head is
+    actually fitted or evaluated on."""
+    if cohort == "resection":
+        return load_resection_outcomes(target)
+    return load_ablation_outcomes(_COHORT_FILENAME[cohort], target)
+
+
+def run(
+    out_path: Path,
+    configs: list[tuple[str, str]] = MODEL_CONFIGS,
+    target: str | None = None,
+    stratify: bool = False,
+) -> pd.DataFrame:
+    if stratify and target is None:
+        raise ValueError("stratify=True requires a target")
+
     records = []
-    for model_id, suffix in MODEL_CONFIGS:
-        embs: dict[str, np.ndarray] = {}
+    for model_id, suffix in configs:
+        embs: dict[str, pd.DataFrame] = {}
+        labels: dict[str, pd.Series] = {}
         for cohort in ("resection", "soramic", "lausanne"):
-            embs[cohort] = pd.read_parquet(_emb_path(model_id, suffix, cohort)).values
+            df = pd.read_parquet(_emb_path(model_id, suffix, cohort))
+            if target is not None:
+                y = _outcomes(cohort, target)
+                idx = df.index.intersection(y.index)
+                df, labels[cohort] = df.loc[idx], y.loc[idx]
+            embs[cohort] = df
+
+        # (stratum label, row mask per cohort); "all" = no label stratification
+        strata: list[tuple[str, int | None]] = [("all", None)]
+        if stratify:
+            strata += [("positives", 1), ("negatives", 0)]
 
         for cohort_a, cohort_b in COMPARISONS:
-            stats = ks_drift(embs[cohort_a], embs[cohort_b])
-            records.append(
-                {
-                    "model_id":   model_id,
-                    "input":      suffix,
-                    "comparison": f"{cohort_a}_vs_{cohort_b}",
-                    **stats,
-                }
-            )
+            for stratum, value in strata:
+                a, b = embs[cohort_a], embs[cohort_b]
+                if value is not None:
+                    a = a[labels[cohort_a] == value]
+                    b = b[labels[cohort_b] == value]
+                records.append(
+                    {
+                        "model_id":   model_id,
+                        "input":      suffix,
+                        "comparison": f"{cohort_a}_vs_{cohort_b}",
+                        "stratum":    stratum,
+                        "n_a":        a.shape[0],
+                        "n_b":        b.shape[0],
+                        **ks_drift(a.values, b.values),
+                    }
+                )
 
     df = pd.DataFrame(records)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -109,11 +163,17 @@ def _print_summary(df: pd.DataFrame) -> None:
         print(f"\n{'='*60}")
         print(f"  {comparison}")
         print(f"{'='*60}")
-        show = grp[["model_id", "input", "median_d", "mean_d", "frac_sig"]].copy()
-        print(show.sort_values("median_d", ascending=False).to_string(index=False, float_format="%.3f"))
+        cols = ["model_id", "input", "stratum", "n_a", "n_b", "median_d", "mean_d",
+                "max_d", "frac_sig", "frac_sig_bh"]
+        show = grp[cols].copy()
+        print(show.sort_values(["stratum", "median_d"], ascending=[True, False])
+                  .to_string(index=False, float_format="%.3f"))
 
-    # Soramic-drift vs Lausanne-drift side-by-side
-    pivot = df[df["comparison"].isin(["resection_vs_soramic", "resection_vs_lausanne"])].pivot(
+    # Soramic-drift vs Lausanne-drift side-by-side (unstratified rows only)
+    unstratified = df[df["stratum"] == "all"]
+    pivot = unstratified[
+        unstratified["comparison"].isin(["resection_vs_soramic", "resection_vs_lausanne"])
+    ].pivot(
         index=["model_id", "input"], columns="comparison", values=["median_d", "frac_sig"]
     )
     pivot.columns = ["_".join(c[::-1]).replace("resection_vs_", "") for c in pivot.columns]
@@ -138,8 +198,53 @@ def main() -> None:
         type=Path,
         default=PROJECT_ROOT / "results" / "eval" / "embedding_drift.csv",
     )
+    parser.add_argument(
+        "--model-id",
+        nargs="+",
+        help="Restrict the run to these model ids (default: the full MODEL_CONFIGS list).",
+    )
+    parser.add_argument(
+        "--input",
+        nargs="+",
+        choices=["raw", "bbox"],
+        help="Input suffix per --model-id; a single value applies to all. "
+             "Defaults to the suffix recorded in MODEL_CONFIGS.",
+    )
+    parser.add_argument(
+        "--target",
+        help="Restrict every cohort to patients with a non-missing label for this "
+             "outcome (e.g. rfs_2year). Default: all cached patients.",
+    )
+    parser.add_argument(
+        "--stratify-by-label",
+        action="store_true",
+        help="In addition to the pooled comparison, repeat each cohort pair within the "
+             "positive and negative strata of --target.",
+    )
     args = parser.parse_args()
-    _print_summary(run(args.out))
+
+    configs = MODEL_CONFIGS
+    if args.model_id:
+        known = dict(MODEL_CONFIGS)
+        if args.input and len(args.input) == 1:
+            suffixes = args.input * len(args.model_id)
+        elif args.input:
+            if len(args.input) != len(args.model_id):
+                parser.error("--input must have 1 value or one per --model-id")
+            suffixes = args.input
+        else:
+            missing = [m for m in args.model_id if m not in known]
+            if missing:
+                parser.error(f"--input required for unlisted model ids: {missing}")
+            suffixes = [known[m] for m in args.model_id]
+        configs = list(zip(args.model_id, suffixes))
+
+    if args.stratify_by_label and not args.target:
+        parser.error("--stratify-by-label requires --target")
+
+    _print_summary(
+        run(args.out, configs, target=args.target, stratify=args.stratify_by_label)
+    )
 
 
 if __name__ == "__main__":
