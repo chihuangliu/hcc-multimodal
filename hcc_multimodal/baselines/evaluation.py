@@ -159,7 +159,8 @@ def apply_selector_before_cv(
         When True the selector receives raw X (e.g. DeseqCPMSelector on counts).
         When False the column-type preprocessor runs first.
     save_path:
-        If given, saves a CSV of selected feature names to this path.
+        If given, saves a CSV of selected feature names to this path,
+        with a padj column (sorted ascending) when the selector exposes one.
     """
     y_mask = ~y.isna()
     y_fit = y[y_mask]
@@ -204,7 +205,11 @@ def apply_selector_before_cv(
     if label:
         print(f"[{label}] selector applied before CV: {len(feature_names)} features")
     if save_path is not None:
-        pd.DataFrame({"feature": feature_names}).to_csv(save_path, index=False)
+        selected = pd.DataFrame({"feature": feature_names})
+        if hasattr(sel_pre, "padj_"):
+            selected["padj"] = np.asarray(sel_pre.padj_)[support]
+            selected = selected.sort_values("padj").reset_index(drop=True)
+        selected.to_csv(save_path, index=False)
 
     return X_cv, y_cv, x_columns_cv, cv_kwargs
 
