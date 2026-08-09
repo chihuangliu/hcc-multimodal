@@ -96,7 +96,8 @@ def _restricted_rows(groups, scores, cohort_data, cohort, taus):
 
 
 def _draw_km(cohort_data, groups, cohort, head, cutoff, taus, out_path,
-             *, titles=True, tau_marks=True, annotate=True):
+             *, titles=True, tau_marks=True, annotate=True,
+             ylabel="Recurrence-free survival"):
     """Full-follow-up KM, by default with the τ horizons marked by vertical dashed lines.
 
     ``titles=False`` / ``tau_marks=False`` / ``annotate=False`` draw the plot bare, for
@@ -111,7 +112,7 @@ def _draw_km(cohort_data, groups, cohort, head, cutoff, taus, out_path,
     fig, ax = plt.subplots(figsize=(6.0, 4.4))
     _draw_subplot(ax, time, event, groups, stats,
                   title=f"{head} · {cohort}" if titles else None, ci_show=True,
-                  annotate=annotate)
+                  annotate=annotate, ylabel=ylabel)
     if tau_marks:
         for tau in taus:
             ax.axvline(tau, color="0.5", ls="--", lw=0.8)
@@ -198,7 +199,7 @@ def _emit(args, train, cohorts, freeze, head, cutoff):
             _draw_km(cd, groups, cohort, head, cutoff, args.taus,
                      args.fig_dir / f"km_restricted_{cohort}{suffix}.png",
                      titles=not args.no_fig_title, tau_marks=not args.no_tau_marks,
-                     annotate=not args.no_fig_stats)
+                     annotate=not args.no_fig_stats, ylabel=args.ylabel)
 
 
 def parse_args():
@@ -227,6 +228,9 @@ def parse_args():
                         "carry a caption instead, e.g. in the thesis).")
     p.add_argument("--no-tau-marks", action="store_true",
                    help="draw KM curves without the dashed τ-horizon vertical lines.")
+    p.add_argument("--ylabel", default="Recurrence-free survival",
+                   help="y-axis label of the KM curves (e.g. 'Freedom from recurrence' when the "
+                        "endpoint is TTR).")
     p.add_argument("--no-fig-stats", action="store_true",
                    help="draw KM curves without the log-rank / HR / C-index annotation box.")
     p.add_argument("--no-resection", dest="include_resection", action="store_false",
