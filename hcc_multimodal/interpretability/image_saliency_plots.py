@@ -47,6 +47,7 @@ from hcc_multimodal.interpretability.image_saliency import (  # noqa: E402
 _POS, _NEG = "#c44e52", "#4c72b0"
 _ASPECT = 3.0        # 3 mm slice thickness against 1 mm in-plane
 _PATCH_GRID = 7      # ViT-B/32: 224px input / 32px patches
+_OVERLAY_FLOOR = 0.10  # hide patches below this fraction of the colour scale
 
 
 def _save(fig, fig_dir: Path, stem: str) -> None:
@@ -115,13 +116,19 @@ def _patch_pool(attr: np.ndarray, grid: int = _PATCH_GRID,
     return out
 
 
-def _overlay(ax, attr: np.ndarray, pct: float = 99.0, pool: bool = True) -> float:
-    """Diverging saliency overlay, symmetric about zero at the ``pct`` percentile."""
+def _overlay(ax, attr: np.ndarray, pct: float = 99.0, pool: bool = True,
+             floor: float = _OVERLAY_FLOOR) -> float:
+    """Diverging saliency overlay, symmetric about zero at the ``pct`` percentile.
+
+    ``floor`` hides patches below that fraction of the colour scale. It is a *relative*
+    cut, so how much it hides depends on how peaked the attribution is: a map with one
+    dominant region keeps only that region, while a flat one stays almost fully painted.
+    """
     if pool:
         attr = _patch_pool(attr)
     v = np.percentile(np.abs(attr), pct)
     v = float(v) if v > 0 else float(np.abs(attr).max() or 1.0)
-    masked = np.ma.masked_where(np.abs(attr) < 0.10 * v, attr)
+    masked = np.ma.masked_where(np.abs(attr) < floor * v, attr)
     ax.imshow(masked.T, cmap="bwr", vmin=-v, vmax=v, alpha=0.50,
               aspect=_ASPECT, origin="lower")
     return v
@@ -181,7 +188,8 @@ def fig_slice_profile(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Pa
 # Figure 2 — IG on the extreme slices
 # ---------------------------------------------------------------------------
 def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
-                   meta: dict, mask_overlay: bool, stem: str | None = None) -> None:
+                   meta: dict, mask_overlay: bool, stem: str | None = None,
+                   floor: float = _OVERLAY_FLOOR) -> None:
     """One row per patient: the most positive slice and the most negative slice.
 
     Like :func:`fig_saliency_mip`, the 2D content is gathered first so the grid rows can
@@ -225,7 +233,7 @@ def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
         for col, cell in enumerate(p["cells"]):
             ax = axes[r, col]
             _show_slice(ax, cell["img"])
-            _overlay(ax, cell["ig"])
+            _overlay(ax, cell["ig"], floor=floor)
             _contour(ax, cell["mask"])
             ax.set_title(cell["title"], fontsize=8)
         axes[r, 0].set_ylabel(p["label"], fontsize=8)
@@ -244,7 +252,7 @@ def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
 # ---------------------------------------------------------------------------
 def fig_saliency_mip(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
                      meta: dict, mask_overlay: bool, ncol: int = 3,
-                     stem: str | None = None) -> None:
+                     stem: str | None = None, floor: float = _OVERLAY_FLOOR) -> None:
     """MIP of the Gradient×Input volume along the slicing axis, over the anatomical MIP.
 
     The 2D projections are collected before the figure is created so each grid row can be
@@ -287,7 +295,7 @@ def fig_saliency_mip(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Pat
 
     for ax, p in zip(axes, panels):
         _show_slice(ax, p["anat"])
-        _overlay(ax, p["signed"])
+        _overlay(ax, p["signed"], floor=floor)
         _contour(ax, p["mask"])
         # The tallest panel in a row fills its cell exactly, so the title needs its own
         # pad or the second line sits flush on the image.
@@ -659,9 +667,11 @@ def run(args) -> None:
             if not len(subset):
                 continue
             fig_top_slices(cohort, subset, args.input_dir, args.fig_dir, meta,
-                           args.mask_overlay, stem=f"top_slices_{cohort}{suffix}")
+                           args.mask_overlay, stem=f"top_slices_{cohort}{suffix}",
+                           floor=args.overlay_floor)
             fig_saliency_mip(cohort, subset, args.input_dir, args.fig_dir, meta,
-                             args.mask_overlay, stem=f"saliency_mip_{cohort}{suffix}")
+                             args.mask_overlay, stem=f"saliency_mip_{cohort}{suffix}",
+                             floor=args.overlay_floor)
 
     if args.report is not None:
         write_report(summary, main, extra, meta_all, args.input_dir, args.fig_dir,
@@ -675,6 +685,10 @@ def parse_args() -> argparse.Namespace:
                    default=Path("results/eval/interpretability/image_saliency/d7085bf5"))
     p.add_argument("--fig-dir", type=Path, default=Path("reports/0810/image_saliency"))
     p.add_argument("--no-mask-overlay", dest="mask_overlay", action="store_false")
+    p.add_argument("--overlay-floor", type=float, default=_OVERLAY_FLOOR,
+                   help="hide saliency patches below this fraction of the colour "
+                        "scale. Relative, so its effect depends on how peaked the "
+                        "attribution is: raise it when a flat map paints every patch")
     p.add_argument("--main-cases", nargs="+", default=list(CASES),
                    help="cases carried by the main text's two voxel-level figures, one "
                         "exemplar per outcome x prediction category. Everything else "
