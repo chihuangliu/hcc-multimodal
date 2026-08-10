@@ -1,40 +1,42 @@
-# Image Saliency — 2026-08-06
+# Image Saliency — 2026-08-10
 
-Attributes the deployed 2-year RFS **model ensemble** (`LASSO`/`Pearson` k=85, `Elastic Net`/`Pearson` k=43, `L-SVM`/`Pearson` k=43) on run `d7085bf5` back to MRI voxels, through the frozen image encoder. The main text shows one exemplar per outcome × prediction category (12 patients across `resection`, `soramic`). A further 8 confident hits, taken at the next probability ranks, are in Appendix D.
+Attributes the deployed 2-year RFS **model ensemble** (`LASSO`/`Pearson` k=85, `Elastic Net`/`Pearson` k=43, `L-SVM`/`Pearson` k=43) on run `d7085bf5` back to MRI voxels, through the frozen image encoder. The main text shows one exemplar per outcome × prediction category (18 patients across `resection`, `soramic`, `lusanne`). A further 12 confident hits, taken at the next probability ranks, are in Appendix D.
 
-> **Head.** Both cohorts are scored and attributed by the single downstream head fit on the **whole** resection cohort. Resection `p` is therefore **in-sample and optimistic** — it is not a performance estimate and does not correspond to the cross-validated AUROC in the thesis tables. It is used here only to rank patients into the six categories, so that every panel in this report is attributing the same head. Pass `--resection-head oof` for out-of-fold probabilities with each resection patient attributed by its own held-out fold's head.
+> **Head.** Every cohort is scored and attributed by the single downstream head fit on the **whole** resection cohort. Resection $p$ is therefore **in-sample and optimistic** — it is not a performance estimate and does not correspond to the cross-validated AUROC in the thesis tables. It is used here only to rank patients into the six categories, so that every panel in this report is attributing the same head. Pass `--resection-head oof` for out-of-fold probabilities with each resection patient attributed by its own held-out fold's head.
 
 ## 1. Key findings
 
-1. **The model's strongest evidence usually does not sit on the lesion, and that does not separate hits from misses.** Pooling every patient run, including the Appendix D extras, the most positive slice falls inside the tumour's slice extent for **2 of 12** confident hits (`tp_*`/`tn_*`) and **1 of 8** misses — on Soramic alone, 2 of 6 hits. With only a handful of exemplars per cell this is an observation, not a test; the per-case detail is in Appendix B.
-2. **A large share of the extreme slices are at the edge of the volume.** The most negative slice lies in the outermost 10% of the stack for **10 of 20** patients, and the most positive slice for **9 of 20**. Those slices are body wall, air, or a small off-anatomy bright artefact — not liver.
+1. **The model's strongest evidence usually does not sit on the lesion, and that does not separate hits from misses.** Pooling every patient run, including the Appendix D extras, the most positive slice falls inside the tumour's slice extent for **3 of 18** confident hits (`tp_*`/`tn_*`) and **1 of 12** misses — by cohort, hits are `resection` 0 of 6, `soramic` 2 of 6, `lusanne` 1 of 6. With only a handful of exemplars per cell this is an observation, not a test; the per-case detail is in Appendix B.
+2. **A large share of the extreme slices are at the edge of the volume.** The most negative slice lies in the outermost 10% of the stack for **18 of 30** patients, and the most positive slice for **13 of 30**. Those slices are body wall, air, or a small off-anatomy bright artefact — not liver.
 3. **Integrated Gradients needs a blur baseline here.** With a zero baseline the completeness residual does not converge at any practical step count (relative 1.24/4.48/5.46 at 64 steps, still 0.34/0.68/0.73 at 256, non-monotone): a uniform image sits in LayerNorm's near-singular region. The blur baseline converges monotonically to 0.010/0.017/0.034 at 256 steps, which is what §3 reports.
-4. **On the resection cohort a large part of the decision magnitude comes from slices that contain no anatomy at all** — a preprocessing artefact carrying 10%–57% of `Σ|c_s|` there and 0.1% or less on Soramic. Mechanism, quantification and cohort asymmetry are in Appendix C.
+4. **On some cohorts a large part of the decision magnitude comes from slices that contain no anatomy at all** — a preprocessing artefact whose share of $\sum_s |c_s|$ runs `resection` 10.2%–56.8%; `soramic` 0.0%–0.1%; `lusanne` 0.0%–0.1%. Mechanism, quantification and cohort asymmetry are in Appendix C.
 
 ## 2. Method
 
-The patient embedding is the mean over **every** slice along axis 0 of the volume (`n_per_axis=None`), and all ensemble members are linear, so with `z̄ = (1/S) Σ_s f(x_s)` and `S(z) = (1/M) Σ_m σ(a_m(β_m·z + b_m) + c_m)` the local decision direction `β_eff = ∇_z logit S(z̄)` yields an **exact** additive decomposition
+The patient embedding is the mean over **every** one of the $S$ slices along axis 0 of the volume (`n_per_axis=None`), and all $M$ ensemble members are linear, so with the encoder $f$, the embedding and the ensemble score
 
-```
-c_s = β_eff · f(x_s) / S,        Σ_s c_s = β_eff · z̄
-```
+$$\bar z \;=\; \frac{1}{S}\sum_{s=1}^{S} f(x_s), \qquad \hat p(z) \;=\; \frac{1}{M}\sum_{m=1}^{M} \sigma\!\big(a_m(\beta_m^\top z + b_m) + c_m\big),$$
 
-Which slices matter is therefore read off the model rather than chosen by hand. The two figures below attribute at the voxel level within those slices: **Integrated Gradients** (256 midpoint steps, baseline `blur`) on the top-16 slices by `|c_s|`, with the most positive and most negative slice forced in, and **Gradient×Input** on every slice, stacked into a 3D volume and projected along the slicing axis. Both are mapped back to the native voxel grid, inverting the backbone's hidden 224→256 resize and 224 centre crop, and rescaled to preserve their signed sum.
+the local decision direction $\beta_{\mathrm{eff}} = \nabla_z\,\operatorname{logit}\hat p(\bar z)$ yields an **exact** additive decomposition
 
-The per-slice profile `c_s` itself is plotted in Appendix A; the constant-input slices it exposes, and how they are excluded from the extreme-slice selection, are described in Appendix C.
+$$c_s \;=\; \frac{\beta_{\mathrm{eff}}^\top f(x_s)}{S}, \qquad \sum_{s=1}^{S} c_s \;=\; \beta_{\mathrm{eff}}^\top \bar z .$$
+
+Which slices matter is therefore read off the model rather than chosen by hand. The two figures below attribute at the voxel level within those slices: **Integrated Gradients** (256 midpoint steps, baseline `blur`) on the top-16 slices by $|c_s|$, with the most positive and most negative slice forced in, and **Gradient×Input** on every slice, stacked into a 3D volume and projected along the slicing axis. Both are mapped back to the native voxel grid, inverting the backbone's hidden 224→256 resize and 224 centre crop, and rescaled to preserve their signed sum.
+
+The per-slice profile $c_s$ itself is plotted in Appendix A; the constant-input slices it exposes, and how they are excluded from the extreme-slice selection, are described in Appendix C.
 
 ## 3. Validation gates
 
-- Recomputed `z̄` vs the cached embedding the thesis tables use: max **2.05e-06** over 20 patients
-- Decomposition identity `Σ_s c_s` vs `β_eff·z̄`: max **2.24e-05**
+- Recomputed $\bar z$ vs the cached embedding the thesis tables use: max **2.05e-06** over 30 patients
+- Decomposition identity $\sum_s c_s$ vs $\beta_{\mathrm{eff}}^\top \bar z$: max **2.24e-05**
 - Head reconstruction (closed-form ensemble score vs `predict_proba`): **2.67e-03** — the residual is libsvm's iterative pairwise-coupling step in the Platt-scaled `L-SVM` member, not the unwinding (same behaviour as the gene-side report)
-- IG completeness `Σ IG − Δtarget`, each residual against its own slice's target change: worst-patient median **0.047**, worst single slice **0.819** (max absolute 1.17e-03)
+- IG completeness $\sum \mathrm{IG} - \Delta c_s$, each residual against its own slice's target change: worst-patient median **0.066**, worst single slice **0.819** (max absolute 1.61e-03)
 
 ## 4. Selected cases
 
-Every patient is attributed with the head fit on all labelled resection patients, so `β_eff` differs between patients only through their own embedding. Resection `p` is in-sample (see the note at the top).
+Every patient is attributed with the head fit on all labelled resection patients, so $\beta_{\mathrm{eff}}$ differs between patients only through their own embedding. Resection $p$ is in-sample (see the note at the top).
 
-| Cohort | Case | SID | y | p | slices | Σc_s | ‖β_eff‖ | nnz | max-pos slice | max-neg slice | tumour slices |
+| Cohort | Case | SID | $y$ | $p$ | slices | $\sum_s c_s$ | $\|\beta_{\mathrm{eff}}\|$ | nnz | max-pos slice | max-neg slice | tumour slices |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | resection | tp_high | 162 | 1 | 0.840 | 421 | +0.3404 | 20.5 | 45 | 372 | 407 | 27 |
 | resection | tn_low | 49 | 0 | 0.210 | 400 | -1.9087 | 30.5 | 45 | 388 | 333 | 32 |
@@ -48,8 +50,14 @@ Every patient is attributed with the head fit on all labelled resection patients
 | soramic | fp_borderline | 1301008 | 0 | 0.536 | 380 | -1.3136 | 48.3 | 45 | 154 | 27 | 16 |
 | soramic | fn_borderline | 1011005 | 1 | 0.480 | 380 | -1.5554 | 49.0 | 45 | 2 | 376 | 90 |
 | soramic | fn_low | 1901014 | 1 | 0.231 | 450 | -1.8428 | 31.6 | 45 | 442 | 398 | 44 |
+| lusanne | tp_high | 9 | 1 | 0.856 | 380 | +0.3835 | 15.2 | 45 | 39 | 1 | 33 |
+| lusanne | tn_low | 56 | 0 | 0.182 | 390 | -2.0373 | 29.9 | 45 | 127 | 377 | 11 |
+| lusanne | fp_high | 57 | 0 | 0.835 | 440 | +0.2477 | 16.3 | 45 | 91 | 6 | 17 |
+| lusanne | fp_borderline | 25 | 0 | 0.500 | 380 | -1.4757 | 49.0 | 45 | 176 | 377 | 28 |
+| lusanne | fn_borderline | 32 | 1 | 0.456 | 380 | -1.6469 | 48.8 | 45 | 349 | 379 | 21 |
+| lusanne | fn_low | 6 | 1 | 0.156 | 380 | -1.6697 | 21.2 | 45 | 2 | 230 | 50 |
 
-`Σc_s = β_eff·z̄` is the **linear part** of the score at that patient's operating point; the member intercepts carry the rest, so its sign need not track `p`. `max-pos`/`max-neg slice` are the extremes among slices that carry anatomy (Appendix C).
+$\sum_s c_s = \beta_{\mathrm{eff}}^\top \bar z$ is the **linear part** of the score at that patient's operating point; the member intercepts carry the rest, so its sign need not track $p$. `max-pos`/`max-neg slice` are the extremes among slices that carry anatomy (Appendix C).
 
 ## 5. Figures
 
@@ -65,12 +73,18 @@ Every patient is attributed with the head fit on all labelled resection patients
 
 ![Gradient×Input MIP](image_saliency/saliency_mip_soramic.png)
 
+### lusanne
+
+![IG on the extreme slices](image_saliency/top_slices_lusanne.png)
+
+![Gradient×Input MIP](image_saliency/saliency_mip_lusanne.png)
+
 ## 6. Caveats
 
 - **Spatial resolution.** `vit_b_32` gives a 7×7 patch grid over the 224px input; after the anisotropic resize of an elongated sagittal slice one patch covers tens of millimetres. The attribution is regional, not textural — which is why both figures are pooled to that grid.
 - **Frozen backbone** (`freeze_backbone=True`): only the projection MLP was trained, so the spatial features are ImageNet's.
 - **Centre crop.** The backbone transform resizes 224→256 and centre-crops back to 224, so a ~6% border of every slice is never seen by the encoder and is given exactly zero attribution.
-- **`β_eff` is patient-specific** — the local gradient of a mean of sigmoids. `c_s` decomposes the linearised logit exactly, not `logit S` itself.
+- **$\beta_{\mathrm{eff}}$ is patient-specific** — the local gradient of a mean of sigmoids. $c_s$ decomposes the linearised logit exactly, not $\operatorname{logit}\hat p$ itself.
 - **Per-slice p99 normalisation** means the attribution is with respect to the model's input, not raw MRI intensity.
 - **The MIP discards the slice axis.** A positive and a negative peak on the same ray compete, and only the larger survives, so a blank region in the MIP is not evidence of no contribution. Colour scales are per-panel, so saturation is not comparable between patients.
 - **Deployed vs training input.** The encoder was trained on the raw resection volumes (resampled on load) but the deployed embeddings are extracted from the preprocessed root without resampling. The attribution follows the **deployed** path — the one behind every number in the thesis tables.
@@ -80,7 +94,7 @@ Every patient is attributed with the head fit on all labelled resection patients
 ```
 python -m hcc_multimodal.interpretability.image_saliency \
   --model-id d7085bf5 --members-csv results/eval/grid_flat3_bestckpt/d7085bf5/model_ensemble_members.csv \
-  --cohorts resection soramic --resection-head full --extra-tp 2 --extra-tn 2 \
+  --cohorts resection soramic lusanne --resection-head full --extra-tp 2 --extra-tn 2 \
   --top-k-slices 16 --ig-steps 256 \
   --output-dir results/eval/interpretability/image_saliency/d7085bf5
 python -m hcc_multimodal.interpretability.image_saliency_plots \
@@ -91,7 +105,7 @@ python -m hcc_multimodal.interpretability.image_saliency_plots \
 
 ## Appendix A — Per-slice contribution profiles
 
-`c_s` against slice index for every case, main and extra. The tumour's extent along the slicing axis is shaded green and constant-input slices (Appendix C) grey. This is the figure that shows *how the score is distributed over the volume* before any voxel-level attribution: the two figures in §5 are zoom-ins on the extremes of these curves.
+$c_s$ against slice index for every case, main and extra. The tumour's extent along the slicing axis is shaded green and constant-input slices (Appendix C) grey. This is the figure that shows *how the score is distributed over the volume* before any voxel-level attribution: the two figures in §5 are zoom-ins on the extremes of these curves.
 
 ### resection
 
@@ -101,6 +115,11 @@ python -m hcc_multimodal.interpretability.image_saliency_plots \
 ### soramic
 
 ![Per-slice contribution profile](image_saliency/slice_profile_soramic.png)
+
+
+### lusanne
+
+![Per-slice contribution profile](image_saliency/slice_profile_lusanne.png)
 
 ## Appendix B — Where the extreme slices sit relative to the tumour
 
@@ -128,16 +147,26 @@ Slice-level overlap only: whether the index of the extreme slice falls within th
 | soramic | tp_high_3 | 1013011 | 277–323 | 80 | no | 344 | no |
 | soramic | tn_low_2 | 1201008 | 287–311 | 186 | no | 363 | no |
 | soramic | tn_low_3 | 1201001 | 249–284 | 2 | no | 14 | no |
+| lusanne | tp_high | 9 | 90–122 | 39 | no | 1 | no |
+| lusanne | tn_low | 56 | 122–132 | 127 | **yes** | 377 | no |
+| lusanne | fp_high | 57 | 101–117 | 91 | no | 6 | no |
+| lusanne | fp_borderline | 25 | 104–131 | 176 | no | 377 | no |
+| lusanne | fn_borderline | 32 | 99–119 | 349 | no | 379 | no |
+| lusanne | fn_low | 6 | 42–105 | 2 | no | 230 | no |
+| lusanne | tp_high_2 | 67 | 117–143 | 3 | no | 15 | no |
+| lusanne | tp_high_3 | 45 | 113–122 | 306 | no | 399 | no |
+| lusanne | tn_low_2 | 36 | 198–209 | 226 | no | 377 | no |
+| lusanne | tn_low_3 | 55 | 168–194 | 7 | no | 328 | no |
 
-Extremes are over slices carrying anatomy (constant-input slices excluded). `c_s` is signed, so a tumour slice can legitimately contribute negatively — the point of the column is *whether the model's strongest evidence sits on the lesion at all*.
+Extremes are over slices carrying anatomy (constant-input slices excluded). $c_s$ is signed, so a tumour slice can legitimately contribute negatively — the point of the column is *whether the model's strongest evidence sits on the lesion at all*.
 
 ## Appendix C — Constant-input (degenerate) slices
 
 `_normalize_slice` (`eval/data.py`, mirrored in `contrastive/data.py`) does `np.clip(s, 0, p99)`. When a slice's 99th percentile is **negative** — a background-only slice of a volume whose background is negative — `a_min > a_max`, so numpy returns `p99` at every pixel, and the following `if p99 > 0` rescale is skipped. The slice reaches the encoder as a **constant image at a large negative value** (~-54 in ImageNet-normalised units, against [-2.12, 2.64] for a real slice): far outside anything the backbone saw in training, carrying no anatomy, and still averaged into the patient embedding.
 
-Such slices are flagged by the mechanism itself (`percentile(slice, 99) <= 0` on the source volume) rather than by testing the tensor for constancy, which is unreliable: two bilinear resizes leave float32 noise on the constant, and the ImageNet normalisation then gives each channel its own constant. They are excluded from the extreme-slice selection — a constant image has no spatial story to tell — but they remain inside the mean-pooled embedding, so their share of `Σ|c_s|` is reported here instead.
+Such slices are flagged by the mechanism itself (`percentile(slice, 99) <= 0` on the source volume) rather than by testing the tensor for constancy, which is unreliable: two bilinear resizes leave float32 noise on the constant, and the ImageNet normalisation then gives each channel its own constant. They are excluded from the extreme-slice selection — a constant image has no spatial story to tell — but they remain inside the mean-pooled embedding, so their share of $\sum_s |c_s|$ is reported here instead.
 
-| Cohort | Case | SID | slices | degenerate | share of Σ\|c_s\| |
+| Cohort | Case | SID | slices | degenerate | share of $\sum_s \|c_s\|$ |
 |---|---|---:|---:|---:|---:|
 | resection | tp_high | 162 | 421 | 26 (6.2%) | 11.6% |
 | resection | tn_low | 49 | 400 | 64 (16.0%) | 38.7% |
@@ -159,6 +188,16 @@ Such slices are flagged by the mechanism itself (`percentile(slice, 99) <= 0` on
 | soramic | tp_high_3 | 1013011 | 420 | 0 (0.0%) | 0.0% |
 | soramic | tn_low_2 | 1201008 | 380 | 1 (0.3%) | 0.0% |
 | soramic | tn_low_3 | 1201001 | 380 | 1 (0.3%) | 0.0% |
+| lusanne | tp_high | 9 | 380 | 1 (0.3%) | 0.1% |
+| lusanne | tn_low | 56 | 390 | 3 (0.8%) | 0.0% |
+| lusanne | fp_high | 57 | 440 | 1 (0.2%) | 0.0% |
+| lusanne | fp_borderline | 25 | 380 | 2 (0.5%) | 0.1% |
+| lusanne | fn_borderline | 32 | 380 | 2 (0.5%) | 0.1% |
+| lusanne | fn_low | 6 | 380 | 2 (0.5%) | 0.0% |
+| lusanne | tp_high_2 | 67 | 430 | 2 (0.5%) | 0.1% |
+| lusanne | tp_high_3 | 45 | 400 | 9 (2.2%) | 0.0% |
+| lusanne | tn_low_2 | 36 | 380 | 1 (0.3%) | 0.0% |
+| lusanne | tn_low_3 | 55 | 380 | 1 (0.3%) | 0.0% |
 
 This is a property of the **deployed** pipeline, not of this analysis: every cached embedding and every AUROC in the thesis was produced with it. It is reported, not fixed — changing `_normalize_slice` would invalidate all of them.
 
@@ -166,7 +205,7 @@ This is a property of the **deployed** pipeline, not of this analysis: every cac
 
 The next-ranked true positives and true negatives by predicted probability. They are kept out of §5 so that each outcome × prediction category is represented there by a single exemplar, but they are what the pooled counts in finding 1 are based on: a pattern seen in one confident hit is not distinguishable from a coincidence.
 
-| Cohort | Case | SID | y | p | slices | Σc_s | ‖β_eff‖ | nnz | max-pos slice | max-neg slice | tumour slices |
+| Cohort | Case | SID | $y$ | $p$ | slices | $\sum_s c_s$ | $\|\beta_{\mathrm{eff}}\|$ | nnz | max-pos slice | max-neg slice | tumour slices |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | resection | tp_high_2 | 176 | 1 | 0.825 | 350 | +0.1742 | 16.6 | 45 | 5 | 329 | 42 |
 | resection | tp_high_3 | 33 | 1 | 0.800 | 402 | +0.1149 | 27.4 | 45 | 25 | 338 | 195 |
@@ -176,6 +215,10 @@ The next-ranked true positives and true negatives by predicted probability. They
 | soramic | tp_high_3 | 1013011 | 1 | 0.819 | 420 | +0.2158 | 24.5 | 45 | 80 | 344 | 47 |
 | soramic | tn_low_2 | 1201008 | 0 | 0.232 | 380 | -1.8785 | 32.3 | 45 | 186 | 363 | 25 |
 | soramic | tn_low_3 | 1201001 | 0 | 0.273 | 380 | -1.9457 | 37.5 | 45 | 2 | 14 | 36 |
+| lusanne | tp_high_2 | 67 | 1 | 0.850 | 430 | +0.3537 | 16.2 | 45 | 3 | 15 | 27 |
+| lusanne | tp_high_3 | 45 | 1 | 0.794 | 400 | +0.0856 | 30.7 | 45 | 306 | 399 | 10 |
+| lusanne | tn_low_2 | 36 | 0 | 0.322 | 380 | -2.0499 | 44.5 | 45 | 226 | 377 | 12 |
+| lusanne | tn_low_3 | 55 | 0 | 0.376 | 380 | -1.8946 | 46.6 | 45 | 7 | 328 | 27 |
 
 ### resection
 
@@ -189,3 +232,10 @@ The next-ranked true positives and true negatives by predicted probability. They
 ![IG on the extreme slices](image_saliency/top_slices_soramic_extra.png)
 
 ![Gradient×Input MIP](image_saliency/saliency_mip_soramic_extra.png)
+
+
+### lusanne
+
+![IG on the extreme slices](image_saliency/top_slices_lusanne_extra.png)
+
+![Gradient×Input MIP](image_saliency/saliency_mip_lusanne_extra.png)

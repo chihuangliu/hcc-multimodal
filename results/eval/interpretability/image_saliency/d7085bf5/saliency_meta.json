@@ -37,7 +37,8 @@
   "target": "rfs_2year",
   "cohorts": [
     "resection",
-    "soramic"
+    "soramic",
+    "lusanne"
   ],
   "resection_head": "full",
   "extra_tp": 2,

@@ -4,8 +4,8 @@ All read back from the runner's ``--output-dir``. The two voxel-level figures ca
 report's main text and are drawn for the ``--main-cases`` set only; everything else is
 appendix material:
 
-1. ``top_slices_<cohort>`` — the most positive and most negative contributing slice per
-   patient, with the Integrated-Gradients map overlaid and the tumour contoured.
+1. ``top_slices_<cohort>`` — the most positive and the most negative contributing slice
+   per patient, with the Integrated-Gradients map overlaid and the tumour contoured.
 2. ``saliency_mip_<cohort>`` — maximum-intensity projection of the Gradient×Input volume
    along the slicing axis over the anatomical MIP.
 3. ``slice_profile_<cohort>`` (appendix) — per-slice contribution ``c_s`` against slice
@@ -182,7 +182,7 @@ def fig_slice_profile(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Pa
 # ---------------------------------------------------------------------------
 def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
                    meta: dict, mask_overlay: bool, stem: str | None = None) -> None:
-    """One row per patient: reference anatomy, most positive slice, most negative slice.
+    """One row per patient: the most positive slice and the most negative slice.
 
     Like :func:`fig_saliency_mip`, the 2D content is gathered first so the grid rows can
     be sized to their own slice shape rather than all being forced equal.
@@ -198,28 +198,25 @@ def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
             mask = None
 
         c_top = npz["c_s"]
-        # Column 1 is the strongest slice either way, shown clean as an anatomical
-        # reference; it usually coincides with column 2 or 3.
-        picks = [(int(np.argmax(np.abs(c_top))), "anatomy", False),
-                 (int(np.argmax(c_top)), "most positive", True),
-                 (int(np.argmin(c_top)), "most negative", True)]
+        picks = [(int(np.argmax(c_top)), "most positive"),
+                 (int(np.argmin(c_top)), "most negative")]
         cells = []
-        for idx, label, show_ig in picks:
+        for idx, label in picks:
             si = int(npz["slice_ids"][idx])
             cells.append({
                 "img": _normalize_slice(np.take(vol, si, axis=axis)),
-                "ig": npz["ig"][idx] if show_ig else None,
+                "ig": npz["ig"][idx],
                 "mask": np.take(mask, si, axis=axis) if mask is not None else None,
                 "title": f"{label} — slice {si}\n$c_s$={c_top[idx]:+.4f}",
             })
         panels.append({"cells": cells, "label": _panel_title(row)})
 
-    n = len(panels)
+    n, ncol = len(panels), 2
     ratios = [_ASPECT * p["cells"][0]["img"].shape[1] / p["cells"][0]["img"].shape[0]
               for p in panels]
-    panel_w = 3.5
+    panel_w = 4.5
     fig, axes = plt.subplots(
-        n, 3, figsize=(panel_w * 3, panel_w * sum(ratios) + 0.85 * n + 0.8),
+        n, ncol, figsize=(panel_w * ncol, panel_w * sum(ratios) + 0.85 * n + 0.8),
         gridspec_kw={"height_ratios": ratios}, layout="constrained",
     )
     axes = np.atleast_2d(axes)
@@ -228,8 +225,7 @@ def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
         for col, cell in enumerate(p["cells"]):
             ax = axes[r, col]
             _show_slice(ax, cell["img"])
-            if cell["ig"] is not None:
-                _overlay(ax, cell["ig"])
+            _overlay(ax, cell["ig"])
             _contour(ax, cell["mask"])
             ax.set_title(cell["title"], fontsize=8)
         axes[r, 0].set_ylabel(p["label"], fontsize=8)
@@ -332,8 +328,9 @@ def peak_vs_tumour(summary: pd.DataFrame, in_dir: Path) -> pd.DataFrame:
 
 def _case_table(rows: pd.DataFrame) -> list[str]:
     """The per-case summary table body, shared by the main text and Appendix D."""
-    L = ["| Cohort | Case | SID | y | p | slices | Σc_s | ‖β_eff‖ | nnz | "
-         "max-pos slice | max-neg slice | tumour slices |",
+    L = [r"| Cohort | Case | SID | $y$ | $p$ | slices | $\sum_s c_s$ | "
+         r"$\|\beta_{\mathrm{eff}}\|$ | nnz | max-pos slice | max-neg slice | "
+         r"tumour slices |",
          "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
     for _, r in rows.iterrows():
         L.append(
@@ -371,8 +368,8 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
            f"are in Appendix D." if len(extra) else "")
     )
     if meta_all.get("resection_head", "oof") == "full":
-        L += ["", "> **Head.** Both cohorts are scored and attributed by the single "
-              "downstream head fit on the **whole** resection cohort. Resection `p` is "
+        L += ["", "> **Head.** Every cohort is scored and attributed by the single "
+              "downstream head fit on the **whole** resection cohort. Resection $p$ is "
               "therefore **in-sample and optimistic** — it is not a performance estimate "
               "and does not correspond to the cross-validated AUROC in the thesis tables. "
               "It is used here only to rank patients into the six categories, so that "
@@ -382,8 +379,6 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
 
     # --- findings, computed from the same data the figures plot ---
     pk = peak_vs_tumour(summary, in_dir)
-    res = summary["cohort"] == "resection"
-    sor = summary["cohort"] == "soramic"
 
     L += ["", "## 1. Key findings", ""]
     # 1. Do the model's strongest slices sit on the lesion, and does that separate the
@@ -397,13 +392,14 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
 
     h_in, h_n = _tally(hit)
     m_in, m_n = _tally(~hit)
-    hs_in, hs_n = _tally(hit & sor.values)
+    by_cohort = {c: _tally(hit & (summary["cohort"] == c).values) for c in cohorts}
+    per_cohort = ", ".join(f"`{c}` {i} of {n}" for c, (i, n) in by_cohort.items())
     L.append(
         f"1. **The model's strongest evidence usually does not sit on the lesion, and "
         f"that does not separate hits from misses.** Pooling every patient run, including "
         f"the Appendix D extras, the most positive slice falls inside the tumour's slice "
         f"extent for **{h_in} of {h_n}** confident hits (`tp_*`/`tn_*`) and **{m_in} of "
-        f"{m_n}** misses — on Soramic alone, {hs_in} of {hs_n} hits. With only a handful "
+        f"{m_n}** misses — by cohort, hits are {per_cohort}. With only a handful "
         f"of exemplars per cell this is an observation, not a test; the per-case detail "
         f"is in Appendix B."
     )
@@ -427,30 +423,37 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
         "a uniform image sits in LayerNorm's near-singular region. The blur baseline "
         "converges monotonically to 0.010/0.017/0.034 at 256 steps, which is what §3 reports."
     )
+    degen = summary.groupby("cohort")["degenerate_c_s_fraction"]
+    shares = "; ".join(f"`{c}` {degen.min()[c]:.1%}–{degen.max()[c]:.1%}" for c in cohorts)
     L.append(
-        f"4. **On the resection cohort a large part of the decision magnitude comes from "
-        f"slices that contain no anatomy at all** — a preprocessing artefact carrying "
-        f"{summary.loc[res, 'degenerate_c_s_fraction'].min():.0%}–"
-        f"{summary.loc[res, 'degenerate_c_s_fraction'].max():.0%} of `Σ|c_s|` there and "
-        f"{summary.loc[sor, 'degenerate_c_s_fraction'].max():.1%} or less on Soramic. "
-        f"Mechanism, quantification and cohort asymmetry are in Appendix C."
+        f"4. **On some cohorts a large part of the decision magnitude comes from slices "
+        f"that contain no anatomy at all** — a preprocessing artefact whose share of "
+        f"$\\sum_s |c_s|$ runs {shares}. Mechanism, quantification and cohort asymmetry "
+        f"are in Appendix C."
     )
 
     L += ["", "## 2. Method", ""]
     L.append(
-        f"The patient embedding is the mean over **every** slice along axis "
-        f"{enc['axes']} of the volume (`n_per_axis={enc['n_per_axis']}`), and all "
-        f"ensemble members are linear, so with `z̄ = (1/S) Σ_s f(x_s)` and "
-        f"`S(z) = (1/M) Σ_m σ(a_m(β_m·z + b_m) + c_m)` the local decision direction "
-        f"`β_eff = ∇_z logit S(z̄)` yields an **exact** additive decomposition"
+        f"The patient embedding is the mean over **every** one of the $S$ slices along "
+        f"axis {enc['axes']} of the volume (`n_per_axis={enc['n_per_axis']}`), and all "
+        f"$M$ ensemble members are linear, so with the encoder $f$, the embedding and the "
+        f"ensemble score"
     )
-    L += ["", "```", "c_s = β_eff · f(x_s) / S,        Σ_s c_s = β_eff · z̄", "```", ""]
+    L += ["", r"$$\bar z \;=\; \frac{1}{S}\sum_{s=1}^{S} f(x_s), \qquad "
+          r"\hat p(z) \;=\; \frac{1}{M}\sum_{m=1}^{M} "
+          r"\sigma\!\big(a_m(\beta_m^\top z + b_m) + c_m\big),$$", ""]
+    L.append(
+        "the local decision direction $\\beta_{\\mathrm{eff}} = \\nabla_z\\,"
+        "\\operatorname{logit}\\hat p(\\bar z)$ yields an **exact** additive decomposition"
+    )
+    L += ["", r"$$c_s \;=\; \frac{\beta_{\mathrm{eff}}^\top f(x_s)}{S}, \qquad "
+          r"\sum_{s=1}^{S} c_s \;=\; \beta_{\mathrm{eff}}^\top \bar z .$$", ""]
     L.append(
         f"Which slices matter is therefore read off the model rather than chosen by hand. "
         f"The two figures below attribute at the voxel level within those slices: "
         f"**Integrated Gradients** ({meta_all['ig_steps']} midpoint steps, baseline "
         f"`{meta_all['baseline']}`) on the top-{meta_all['top_k_slices']} slices by "
-        f"`|c_s|`, with the most positive and most negative slice forced in, and "
+        f"$|c_s|$, with the most positive and most negative slice forced in, and "
         f"**Gradient×Input** on every slice, stacked into a 3D volume and projected along "
         f"the slicing axis. Both are mapped back to the native voxel grid, inverting the "
         f"backbone's hidden 224→256 resize and 224 centre crop, and rescaled to preserve "
@@ -458,22 +461,24 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
     )
     L.append("")
     L.append(
-        "The per-slice profile `c_s` itself is plotted in Appendix A; the constant-input "
+        "The per-slice profile $c_s$ itself is plotted in Appendix A; the constant-input "
         "slices it exposes, and how they are excluded from the extreme-slice selection, "
         "are described in Appendix C."
     )
 
     L += ["", "## 3. Validation gates", ""]
-    L.append(f"- Recomputed `z̄` vs the cached embedding the thesis tables use: "
+    L.append(f"- Recomputed $\\bar z$ vs the cached embedding the thesis tables use: "
              f"max **{summary['embedding_gate_max_abs'].max():.2e}** over "
              f"{len(summary)} patients")
-    L.append(f"- Decomposition identity `Σ_s c_s` vs `β_eff·z̄`: max "
+    L.append(f"- Decomposition identity $\\sum_s c_s$ vs "
+             f"$\\beta_{{\\mathrm{{eff}}}}^\\top \\bar z$: max "
              f"**{summary['decomposition_gap'].max():.2e}**")
     L.append(f"- Head reconstruction (closed-form ensemble score vs `predict_proba`): "
              f"**{meta_all['head_reconstruction_max_residual']:.2e}** — the residual is "
              f"libsvm's iterative pairwise-coupling step in the Platt-scaled `L-SVM` "
              f"member, not the unwinding (same behaviour as the gene-side report)")
-    L.append(f"- IG completeness `Σ IG − Δtarget`, each residual against its own slice's "
+    L.append(f"- IG completeness $\\sum \\mathrm{{IG}} - \\Delta c_s$, each residual "
+             f"against its own slice's "
              f"target change: worst-patient median **"
              f"{summary['ig_relative_residual_median'].max():.3f}**, worst single slice "
              f"**{summary['ig_relative_residual'].max():.3f}** "
@@ -482,18 +487,18 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
     L += ["", "## 4. Selected cases", ""]
     L.append(
         "Every patient is attributed with the head fit on all labelled resection "
-        "patients, so `β_eff` differs between patients only through their own embedding. "
-        "Resection `p` is in-sample (see the note at the top)."
+        "patients, so $\\beta_{\\mathrm{eff}}$ differs between patients only through "
+        "their own embedding. Resection $p$ is in-sample (see the note at the top)."
         if meta_all.get("resection_head", "oof") == "full" else
         "Resection probabilities are **out-of-fold** and each resection patient is "
-        "attributed with its own held-out fold's head; Soramic uses the head refit "
-        "on all labelled resection patients."
+        "attributed with its own held-out fold's head; the external cohorts use the head "
+        "refit on all labelled resection patients."
     )
     L += [""] + _case_table(main)
-    L += ["", "`Σc_s = β_eff·z̄` is the **linear part** of the score at that patient's "
-          "operating point; the member intercepts carry the rest, so its sign need not "
-          "track `p`. `max-pos`/`max-neg slice` are the extremes among slices that carry "
-          "anatomy (Appendix C).", ""]
+    L += ["", "$\\sum_s c_s = \\beta_{\\mathrm{eff}}^\\top \\bar z$ is the **linear "
+          "part** of the score at that patient's operating point; the member intercepts "
+          "carry the rest, so its sign need not track $p$. `max-pos`/`max-neg slice` are "
+          "the extremes among slices that carry anatomy (Appendix C).", ""]
 
     L += ["## 5. Figures", ""]
     for cohort in cohorts:
@@ -514,8 +519,9 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
         "- **Centre crop.** The backbone transform resizes 224→256 and centre-crops back "
         "to 224, so a ~6% border of every slice is never seen by the encoder and is given "
         "exactly zero attribution.",
-        "- **`β_eff` is patient-specific** — the local gradient of a mean of sigmoids. "
-        "`c_s` decomposes the linearised logit exactly, not `logit S` itself.",
+        "- **$\\beta_{\\mathrm{eff}}$ is patient-specific** — the local gradient of a "
+        "mean of sigmoids. $c_s$ decomposes the linearised logit exactly, not "
+        "$\\operatorname{logit}\\hat p$ itself.",
         "- **Per-slice p99 normalisation** means the attribution is with respect to the "
         "model's input, not raw MRI intensity.",
         "- **The MIP discards the slice axis.** A positive and a negative peak on the same "
@@ -544,7 +550,7 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
     # ------------------------------------------------------------------ appendices
     L += ["---", "", "## Appendix A — Per-slice contribution profiles", ""]
     L.append(
-        "`c_s` against slice index for every case, main and extra. The tumour's extent "
+        "$c_s$ against slice index for every case, main and extra. The tumour's extent "
         "along the slicing axis is shaded green and constant-input slices (Appendix C) "
         "grey. This is the figure that shows *how the score is distributed over the "
         "volume* before any voxel-level attribution: the two figures in §5 are zoom-ins "
@@ -569,7 +575,7 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
                  f"{r['max_neg_slice']} | {mark(k['neg_in'])} |")
     L += ["",
           "Extremes are over slices carrying anatomy (constant-input slices excluded). "
-          "`c_s` is signed, so a tumour slice can legitimately contribute negatively — "
+          "$c_s$ is signed, so a tumour slice can legitimately contribute negatively — "
           "the point of the column is *whether the model's strongest evidence sits on "
           "the lesion at all*.", ""]
 
@@ -591,8 +597,8 @@ def write_report(summary: pd.DataFrame, main: pd.DataFrame, extra: pd.DataFrame,
           "the ImageNet normalisation then gives each channel its own constant. They are "
           "excluded from the extreme-slice selection — a constant image has no spatial "
           "story to tell — but they remain inside the mean-pooled embedding, so their "
-          "share of `Σ|c_s|` is reported here instead.", ""]
-    L += ["| Cohort | Case | SID | slices | degenerate | share of Σ\\|c_s\\| |",
+          "share of $\\sum_s |c_s|$ is reported here instead.", ""]
+    L += [r"| Cohort | Case | SID | slices | degenerate | share of $\sum_s \|c_s\|$ |",
           "|---|---|---:|---:|---:|---:|"]
     for _, r in summary.iterrows():
         L.append(
@@ -630,7 +636,12 @@ def run(args) -> None:
     meta_all = json.loads((args.input_dir / "saliency_meta.json").read_text())
     meta = meta_all["encoder"]
     summary = pd.read_csv(args.input_dir / "saliency_summary.csv")
-    summary = summary.sort_values(["cohort", "case_order"])
+    # Cohorts appear in the order they were requested of the runner, not alphabetically,
+    # so the report keeps resection (the training cohort) first.
+    rank = {c: i for i, c in enumerate(meta_all.get("cohorts")
+                                       or summary["cohort"].unique())}
+    summary = (summary.assign(_ord=summary["cohort"].map(lambda c: rank.get(c, len(rank))))
+               .sort_values(["_ord", "case_order"]).drop(columns="_ord"))
 
     is_main = summary["case"].isin(args.main_cases)
     main, extra = summary[is_main], summary[~is_main]

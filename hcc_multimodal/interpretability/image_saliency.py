@@ -548,6 +548,32 @@ def run_patient(row, img_enc, meta, heads, model_id, args, device) -> dict:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+def _merge_existing(out_dir: Path, summary: pd.DataFrame, cases: pd.DataFrame,
+                    cohorts: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
+    """Fold this run's cohorts into the index files already in ``out_dir``.
+
+    Rows for a cohort computed in this run replace any older rows for the same cohort,
+    so re-running one cohort with different settings refreshes it rather than duplicating
+    it. Cohorts keep the order they were first written in, with the new ones appended.
+    """
+    prev_meta = out_dir / "saliency_meta.json"
+    prev_summary = out_dir / "saliency_summary.csv"
+    if not (prev_summary.exists() and (out_dir / "saliency_cases.csv").exists()):
+        return summary, cases, cohorts
+
+    fresh = set(summary["cohort"])
+    old = pd.read_csv(prev_summary)
+    summary = pd.concat([old[~old["cohort"].isin(fresh)], summary], ignore_index=True)
+    old_cases = pd.read_csv(out_dir / "saliency_cases.csv")
+    cases = pd.concat([old_cases[~old_cases["cohort"].isin(fresh)], cases],
+                      ignore_index=True)
+
+    prev = json.loads(prev_meta.read_text()).get("cohorts", []) if prev_meta.exists() else []
+    merged = prev + [c for c in cohorts if c not in prev]
+    print(f"  appended to {out_dir}: cohorts {merged}")
+    return summary, cases, merged
+
+
 def run(args) -> pd.DataFrame:
     device = torch.device(args.device)
     specs = load_members(args.members_csv)
@@ -560,7 +586,8 @@ def run(args) -> pd.DataFrame:
         extra_tp=args.extra_tp, extra_tn=args.extra_tn,
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    cases.to_csv(args.output_dir / "saliency_cases.csv", index=False)
+    if not args.append:   # in append mode the previous file is needed for the merge
+        cases.to_csv(args.output_dir / "saliency_cases.csv", index=False)
     print(f"\n{len(cases)} cases selected:")
     print(cases[["cohort", "case", "SID", "y", "p"]].to_string(index=False))
 
@@ -580,14 +607,21 @@ def run(args) -> pd.DataFrame:
     rows = [run_patient(r, img_enc, meta, heads, args.model_id, args, device)
             for _, r in cases.iterrows()]
     summary = pd.DataFrame(rows)
+    cohorts = list(args.cohorts)
+    if args.append:
+        # Adding a cohort to an existing run: the per-patient artefacts are already on
+        # disk for the cohorts done earlier, and every stage is deterministic, so only
+        # the index files have to be reconciled.
+        summary, cases, cohorts = _merge_existing(args.output_dir, summary, cases, cohorts)
     summary.to_csv(args.output_dir / "saliency_summary.csv", index=False)
+    cases.to_csv(args.output_dir / "saliency_cases.csv", index=False)
 
     (args.output_dir / "saliency_meta.json").write_text(json.dumps({
         "model_id": args.model_id,
         "members_csv": str(args.members_csv),
         "members": specs,
         "target": args.target,
-        "cohorts": args.cohorts,
+        "cohorts": cohorts,
         "resection_head": args.resection_head,
         "extra_tp": args.extra_tp,
         "extra_tn": args.extra_tn,
@@ -610,6 +644,11 @@ def parse_args() -> argparse.Namespace:
                    default=Path("results/eval/grid_flat3_bestckpt/d7085bf5/"
                                 "model_ensemble_members.csv"))
     p.add_argument("--cohorts", nargs="+", default=["resection", "soramic"])
+    p.add_argument("--append", action="store_true",
+                   help="merge these cohorts into the summary/case index already in "
+                        "--output-dir instead of replacing it, so a cohort can be added "
+                        "to an existing run without recomputing the others. Rows for a "
+                        "cohort present in this run replace their older counterparts")
     p.add_argument("--target", default="rfs_2year")
     p.add_argument("--resection-head", choices=["full", "oof"], default="full",
                    help="which head scores and attributes the resection cohort. "
