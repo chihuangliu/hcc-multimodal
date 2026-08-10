@@ -288,7 +288,19 @@ def map_to_native(a: np.ndarray, native_hw: tuple[int, int],
 
     The centre crop means the model never saw a border of the slice, so that border gets
     exactly zero attribution rather than an extrapolated value. The resized map is
-    rescaled to preserve its signed sum, keeping it consistent with ``c_s``.
+    rescaled to preserve its **absolute** mass, so a slice's attribution keeps the
+    magnitude it had on the model's own grid.
+
+    Normalising on the *signed* sum instead is unusable here: an attribution map carries
+    cancelling positive and negative mass, so ``out.sum()`` is a small difference of large
+    numbers and the interpolation's own error on it is unbounded in relative terms. On
+    ``soramic/1905004`` slice 332 it collapsed to 2.4e-08 against a signed sum of 1.2e-03,
+    scaling that slice by 4.9e+04 until it carried 97% of the patient's ``Σ|attr|`` and
+    set the colour scale of the whole MIP; a neighbouring slice landed on the opposite
+    sign and had its map inverted. The absolute mass cannot cancel, so the ratio below
+    stays at the interpolation's area factor. The signed sum is then preserved only to the
+    interpolation's accuracy — which is all this map needs, as the exact chain that
+    ``c_s`` belongs to never passes through here.
     """
     pad = (resize_size - crop) // 2
     canvas = np.zeros((resize_size, resize_size), dtype=np.float32)
@@ -297,9 +309,9 @@ def map_to_native(a: np.ndarray, native_hw: tuple[int, int],
         torch.from_numpy(canvas)[None, None], size=native_hw,
         mode="bilinear", align_corners=False, antialias=True,
     )[0, 0].numpy()
-    s0, s1 = float(canvas.sum()), float(out.sum())
-    if abs(s1) > 1e-12:
-        out = out * (s0 / s1)
+    m0, m1 = float(np.abs(canvas).sum()), float(np.abs(out).sum())
+    if m1 > 0:
+        out = out * (m0 / m1)
     return out
 
 
