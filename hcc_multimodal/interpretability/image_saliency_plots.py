@@ -52,6 +52,14 @@ _POS, _NEG = "#c44e52", "#4c72b0"
 _ASPECT = 3.0        # 3 mm slice thickness against 1 mm in-plane
 _PATCH_GRID = 7      # ViT-B/32: 224px input / 32px patches
 _OVERLAY_FLOOR = 0.10  # hide patches below this fraction of the colour scale
+_EXTREMES = ("most positive", "most negative")
+# The `bare` figure is placed at \textwidth in the thesis, so its physical width is fixed
+# here and the row height follows from the slice shapes. Point sizes are then true page
+# points and identical across cohorts — letting the width float instead scales each cohort
+# by a different factor, and the labels come out both tiny and mismatched between panels.
+_BARE_WIDTH_IN = 6.4
+_BARE_TITLE_FONT = 9
+_BARE_LABEL_FONT = 7
 
 
 def _save(fig, fig_dir: Path, stem: str) -> None:
@@ -193,11 +201,17 @@ def fig_slice_profile(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Pa
 # ---------------------------------------------------------------------------
 def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
                    meta: dict, mask_overlay: bool, stem: str | None = None,
-                   floor: float = _OVERLAY_FLOOR) -> None:
+                   floor: float = _OVERLAY_FLOOR, row_labels: list[str] | None = None,
+                   bare: bool = False) -> None:
     """One row per patient: the most positive slice and the most negative slice.
 
     Like :func:`fig_saliency_mip`, the 2D content is gathered first so the grid rows can
     be sized to their own slice shape rather than all being forced equal.
+
+    ``row_labels`` overrides the per-patient label. ``bare`` is the thesis layout: the
+    grid is transposed to patients-across / extremes-down, which is much wider than tall
+    and so costs a fraction of the page, the figure title is dropped and the per-cell
+    titles collapse to one label per row and column. The caption carries the rest.
     """
     panels = []
     for _, row in rows.iterrows():
@@ -210,8 +224,8 @@ def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
             mask = None
 
         c_top = npz["c_s"]
-        picks = [(int(np.argmax(c_top)), "most positive"),
-                 (int(np.argmin(c_top)), "most negative")]
+        picks = [(int(np.argmax(c_top)), _EXTREMES[0]),
+                 (int(np.argmin(c_top)), _EXTREMES[1])]
         cells = []
         for idx, label in picks:
             si = int(npz["slice_ids"][idx])
@@ -222,13 +236,45 @@ def fig_top_slices(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Path,
                 "title": f"{label} — slice {si}\n$c_s$={c_top[idx]:+.4f}",
             })
         panels.append({"cells": cells, "label": _panel_title(row)})
+    if row_labels is not None:
+        for p, lab in zip(panels, row_labels):
+            p["label"] = lab
 
-    n, ncol = len(panels), 2
+    n = len(panels)
+    # Displayed height/width of a panel: the array is drawn transposed at 3:1 aspect.
+    # Both cells of a panel come from the same volume, so one ratio covers the pair.
     ratios = [_ASPECT * p["cells"][0]["img"].shape[1] / p["cells"][0]["img"].shape[0]
               for p in panels]
+
+    if bare:
+        # Patients across, the two extremes down. Each column is given the width its own
+        # slice shape needs at the common row height, so no panel is letterboxed.
+        unit_w = [1.0 / r for r in ratios]
+        row_h = (_BARE_WIDTH_IN - 0.40) / sum(unit_w)
+        widths = [row_h * u for u in unit_w]
+        fig, axes = plt.subplots(
+            2, n, figsize=(_BARE_WIDTH_IN, 2 * row_h + 0.32),
+            gridspec_kw={"width_ratios": widths}, layout="constrained",
+        )
+        axes = np.atleast_2d(axes)
+        for col, p in enumerate(panels):
+            for r, cell in enumerate(p["cells"]):
+                ax = axes[r, col]
+                _show_slice(ax, cell["img"])
+                _overlay(ax, cell["ig"], floor=floor)
+                _contour(ax, cell["mask"])
+            axes[0, col].set_title(p["label"], fontsize=_BARE_TITLE_FONT)
+        # Two lines: on the flattest cohort a row is under an inch tall on the page, and a
+        # single-line label is longer than that and runs into its neighbour.
+        for r, label in enumerate(_EXTREMES):
+            axes[r, 0].set_ylabel(f"{label}\nslice", fontsize=_BARE_LABEL_FONT,
+                                  linespacing=0.95)
+        _save(fig, fig_dir, stem or f"top_slices_{cohort}")
+        return
+
     panel_w = 4.5
     fig, axes = plt.subplots(
-        n, ncol, figsize=(panel_w * ncol, panel_w * sum(ratios) + 0.85 * n + 0.8),
+        n, 2, figsize=(panel_w * 2, panel_w * sum(ratios) + 0.85 * n + 0.8),
         gridspec_kw={"height_ratios": ratios}, layout="constrained",
     )
     axes = np.atleast_2d(axes)
@@ -318,10 +364,45 @@ def fig_saliency_mip(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Pat
 # Main
 # ---------------------------------------------------------------------------
 
+def _parse_quad(specs: list[str]) -> dict[str, list[tuple[str, int]]]:
+    """``cohort:LABEL=SID`` -> ``{cohort: [(LABEL, SID), ...]}``, order preserved."""
+    out: dict[str, list[tuple[str, int]]] = {}
+    for spec in specs:
+        try:
+            cohort, rest = spec.split(":", 1)
+            label, sid = rest.split("=", 1)
+            out.setdefault(cohort, []).append((label, int(sid)))
+        except ValueError:
+            raise SystemExit(f"--quad-case expects cohort:LABEL=SID, got {spec!r}")
+    return out
+
+
+def run_quad(args, meta: dict, summary: pd.DataFrame) -> None:
+    """One figure per cohort, one row per named patient, labelled ``LABEL, p=...``.
+
+    Nothing else identifies the patient: the caption carries the SIDs, so the panels stay
+    readable at thesis figure width.
+    """
+    for cohort, picks in _parse_quad(args.quad_case).items():
+        sids = [sid for _, sid in picks]
+        missing = [s for s in sids if not (summary["SID"] == s).any()]
+        if missing:
+            raise SystemExit(f"{cohort}: no attribution cached for SID(s) {missing}")
+        rows = (summary[(summary["cohort"] == cohort) & summary["SID"].isin(sids)]
+                .set_index("SID").loc[sids].reset_index())
+        labels = [f"{lab}, p={p:.3f}" for (lab, _), p in zip(picks, rows["p"])]
+        print(f"{cohort} quad: " + ", ".join(f"{lab} SID {sid}" for lab, sid in picks))
+        fig_top_slices(cohort, rows, args.input_dir, args.fig_dir, meta,
+                       args.mask_overlay, stem=f"{args.quad_stem}_{cohort}",
+                       floor=args.overlay_floor, row_labels=labels, bare=True)
+
+
 def run(args) -> None:
     meta_all = json.loads((args.input_dir / "saliency_meta.json").read_text())
     meta = meta_all["encoder"]
     summary = pd.read_csv(args.input_dir / "saliency_summary.csv")
+    if args.quad_case:
+        return run_quad(args, meta, summary)
     # Cohorts appear in the order they were requested of the runner, not alphabetically,
     # so the report keeps resection (the training cohort) first.
     rank = {c: i for i, c in enumerate(meta_all.get("cohorts")
@@ -373,6 +454,13 @@ def parse_args() -> argparse.Namespace:
                    help="cases carried by the main text's two voxel-level figures, one "
                         "exemplar per outcome x prediction category. Everything else "
                         "(the rank-2/3 confident hits) goes to Appendix D")
+    p.add_argument("--quad-case", nargs="+", default=[], metavar="COHORT:LABEL=SID",
+                   help="draw only the labelled extreme-slice figures, one per cohort, "
+                        "one row per patient given here (e.g. resection:TP=61). Panels "
+                        "are titled by LABEL and p alone — no SID, slice index or figure "
+                        "title — so the caption can carry that text")
+    p.add_argument("--quad-stem", default="saliency_extremes",
+                   help="filename stem for --quad-case figures; the cohort is appended")
     p.add_argument("--liver-cases", nargs="+", default=["tp_liver", "tn_liver"],
                    help="cases pinned by the runner's --screen pass for having their "
                         "extreme slices at the liver. They get their own `_liver` figures "
