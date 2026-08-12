@@ -1,0 +1,35 @@
+cohort,case,case_desc,case_order,SID,y,p,fold
+soramic,tp_high,"y=1, pred=1, high p (confident hit)",0,1905004,1,0.9237177942192748,-1
+soramic,tn_low,"y=0, pred=0, low p (confident hit)",1,1201006,0,0.1635614690644155,-1
+soramic,fp_high,"y=0, pred=1, high p (confident miss)",2,1001007,0,0.7779266431711812,-1
+soramic,fp_borderline,"y=0, pred=1, p near 0.5",3,1301008,0,0.5360030575647391,-1
+soramic,fn_borderline,"y=1, pred=0, p near 0.5",4,1011005,1,0.4797888274778292,-1
+soramic,fn_low,"y=1, pred=0, low p (confident miss)",5,1901014,1,0.2314473025769112,-1
+soramic,tp_high_2,"y=1, pred=1, high p (confident hit), rank 2",6,1905005,1,0.8641458386428115,-1
+soramic,tp_high_3,"y=1, pred=1, high p (confident hit), rank 3",7,1013011,1,0.8193501835772947,-1
+soramic,tn_low_2,"y=0, pred=0, low p (confident hit), rank 2",8,1201008,0,0.2316952718346408,-1
+soramic,tn_low_3,"y=0, pred=0, low p (confident hit), rank 3",9,1201001,0,0.2730065137924218,-1
+resection,tp_high,"y=1, pred=1, high p (confident hit)",0,162,1,0.839906135913274,-1
+resection,tn_low,"y=0, pred=0, low p (confident hit)",1,49,0,0.2095568741205093,-1
+resection,fp_high,"y=0, pred=1, high p (confident miss)",2,186,0,0.7034347918517514,-1
+resection,fp_borderline,"y=0, pred=1, p near 0.5",3,10,0,0.5056515805080268,-1
+resection,fn_borderline,"y=1, pred=0, p near 0.5",4,7,1,0.4972950007638783,-1
+resection,fn_low,"y=1, pred=0, low p (confident miss)",5,113,1,0.221718809091699,-1
+resection,tp_high_2,"y=1, pred=1, high p (confident hit), rank 2",6,176,1,0.8249651946271167,-1
+resection,tp_high_3,"y=1, pred=1, high p (confident hit), rank 3",7,33,1,0.7996323555584998,-1
+resection,tn_low_2,"y=0, pred=0, low p (confident hit), rank 2",8,133,0,0.2793716925076911,-1
+resection,tn_low_3,"y=0, pred=0, low p (confident hit), rank 3",9,53,0,0.2838435869855968,-1
+resection,tp_liver,"y=1, pred=1 — extremes nearest the liver (screened, not rank-selected)",10,61,1,0.701306516889482,-1
+resection,tn_liver,"y=0, pred=0 — extremes nearest the liver (screened, not rank-selected)",11,135,0,0.3279039883065007,-1
+lusanne,tp_high,"y=1, pred=1, high p (confident hit)",0,9,1,0.8560364789228201,-1
+lusanne,tn_low,"y=0, pred=0, low p (confident hit)",1,56,0,0.18248599562322987,-1
+lusanne,fp_high,"y=0, pred=1, high p (confident miss)",2,57,0,0.8351522410210007,-1
+lusanne,fp_borderline,"y=0, pred=1, p near 0.5",3,25,0,0.500125558590388,-1
+lusanne,fn_borderline,"y=1, pred=0, p near 0.5",4,32,1,0.45589401260753865,-1
+lusanne,fn_low,"y=1, pred=0, low p (confident miss)",5,6,1,0.15604586087905653,-1
+lusanne,tp_high_2,"y=1, pred=1, high p (confident hit), rank 2",6,67,1,0.8497380294574489,-1
+lusanne,tp_high_3,"y=1, pred=1, high p (confident hit), rank 3",7,45,1,0.7942327635645268,-1
+lusanne,tn_low_2,"y=0, pred=0, low p (confident hit), rank 2",8,36,0,0.3216124864433559,-1
+lusanne,tn_low_3,"y=0, pred=0, low p (confident hit), rank 3",9,55,0,0.37604171456634766,-1
+lusanne,tp_liver,"y=1, pred=1 — extremes nearest the liver (screened, not rank-selected)",10,28,1,0.6171151845083875,-1
+lusanne,tn_liver,"y=0, pred=0 — extremes nearest the liver (screened, not rank-selected)",11,52,0,0.46183829775890217,-1
