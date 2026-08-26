@@ -32,8 +32,16 @@ from hcc_multimodal.eval.eval_utils import PROJECT_ROOT
 COHORTS = ("resection", "soramic", "lausanne")
 _COHORT_FILENAME = {"soramic": "soramic", "lausanne": "lusanne"}
 
-# BCLC raw code -> stage. The resection export is shifted one down from the other two.
-BCLC_OFFSET = {"resection": {1: "A", 2: "B", 3: "C"},
+# BCLC raw code -> stage. All three exports share the scheme; the resection file is a
+# re-export into the Soramic CRF format (hence its ``_soramic_format`` filename), so it is
+# not offset. It was previously mapped as ``1=A, 2=B, 3=C`` on the assumption that a code
+# range starting at 1 must start at stage A, which put 86.7% of a *curative resection*
+# cohort at BCLC B/C -- stages that are not resection-eligible under the allocation the
+# cohort was selected by. Lesion morphology settles it: resection code 1 is 10 patients,
+# every one a single lesion, median 14 mm and none above 20 mm, which is the definition of
+# stage 0 and is indistinguishable from Lausanne's code 1 (single, median 13.5 mm, max
+# 19 mm); resection code 3 is multinodular (median 4.5 lesions), i.e. stage B.
+BCLC_OFFSET = {"resection": {1: "0", 2: "A", 3: "B", 4: "C"},
                "soramic":   {1: "0", 2: "A", 3: "B", 4: "C"},
                "lausanne":  {1: "0", 2: "A", 3: "B", 4: "C"}}
 
