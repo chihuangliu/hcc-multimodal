@@ -364,6 +364,17 @@ def fig_saliency_mip(cohort: str, rows: pd.DataFrame, in_dir: Path, fig_dir: Pat
 # Main
 # ---------------------------------------------------------------------------
 
+def _platt(p: pd.Series, a: float, b: float) -> pd.Series:
+    """Recalibrated probability ``sigmoid(a * logit(p) + b)``.
+
+    Only the printed probabilities move: the map is strictly monotone, so it reorders
+    nothing, and the attributions are gradients of the member logits, which it rescales
+    by ``a`` without changing any pattern.
+    """
+    z = np.log(p / (1.0 - p))
+    return 1.0 / (1.0 + np.exp(-(a * z + b)))
+
+
 def _parse_quad(specs: list[str]) -> dict[str, list[tuple[str, int]]]:
     """``cohort:LABEL=SID`` -> ``{cohort: [(LABEL, SID), ...]}``, order preserved."""
     out: dict[str, list[tuple[str, int]]] = {}
@@ -401,6 +412,8 @@ def run(args) -> None:
     meta_all = json.loads((args.input_dir / "saliency_meta.json").read_text())
     meta = meta_all["encoder"]
     summary = pd.read_csv(args.input_dir / "saliency_summary.csv")
+    if args.platt:
+        summary["p"] = _platt(summary["p"], *args.platt)
     if args.quad_case:
         return run_quad(args, meta, summary)
     # Cohorts appear in the order they were requested of the runner, not alphabetically,
@@ -459,6 +472,11 @@ def parse_args() -> argparse.Namespace:
                         "one row per patient given here (e.g. resection:TP=61). Panels "
                         "are titled by LABEL and p alone — no SID, slice index or figure "
                         "title — so the caption can carry that text")
+    p.add_argument("--platt", nargs=2, type=float, default=None, metavar=("A", "B"),
+                   help="print recalibrated probabilities sigmoid(A*logit(p)+B) instead "
+                        "of the raw ensemble score. Labels only — the saliency maps are "
+                        "unchanged, the recalibration being monotone in the score and "
+                        "affine in the logit the attributions are taken of")
     p.add_argument("--quad-stem", default="saliency_extremes",
                    help="filename stem for --quad-case figures; the cohort is appended")
     p.add_argument("--liver-cases", nargs="+", default=["tp_liver", "tn_liver"],

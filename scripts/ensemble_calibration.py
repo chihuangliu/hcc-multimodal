@@ -35,7 +35,8 @@ from scipy.special import expit, logit
 from scipy.stats import norm
 from sklearn.isotonic import IsotonicRegression
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import brier_score_loss, roc_auc_score
+from sklearn.metrics import (average_precision_score, brier_score_loss, confusion_matrix,
+                             roc_auc_score, roc_curve)
 from sklearn.model_selection import StratifiedKFold
 
 from hcc_multimodal.eval.ensemble import HeteroEnsembleGrid, build_member
@@ -46,6 +47,13 @@ from hcc_multimodal.train.config import RANDOM_STATE
 
 matplotlib.rcParams["svg.fonttype"] = "none"
 EPS = 1e-6
+
+# Internal cohort keys -> the names used in write-ups.
+DISPLAY = {"soramic": "SORAMIC", "lusanne": "Lausanne", "resection": "Resection"}
+
+
+def display_name(cohort):
+    return DISPLAY.get(cohort, cohort)
 
 
 # ---------------------------------------------------------------------------
@@ -218,6 +226,93 @@ def ensemble_scores(model_id, members_csv, cohorts, select_k, n_folds):
 
 
 # ---------------------------------------------------------------------------
+# Classification performance at a threshold frozen on the training cohort
+# ---------------------------------------------------------------------------
+def youden_threshold(y, p):
+    """Threshold maximising Youden's J = sensitivity + specificity - 1.
+
+    J is rank-based, so it is invariant to a strictly monotone recalibration: selecting on
+    the calibrated scores and selecting on the raw scores flag the *same* patients. It is
+    computed on the calibrated scale only so the reported number shares the scale of the
+    reported probabilities.
+    """
+    fpr, tpr, thr = roc_curve(np.asarray(y, dtype=int), _clip(p))
+    return float(thr[int(np.argmax(tpr - fpr))])
+
+
+def classification_row(y, p, thr, n_boot, seed):
+    """Rank metrics + the operating point at ``thr``, with bootstrap CIs.
+
+    PR-AUC's no-skill baseline is the cohort prevalence, which moves from 48% (resection)
+    to 68/74% (ablation cohorts) — reported alongside so the lift is readable, which a bare
+    AUROC hides.
+    """
+    y = np.asarray(y, dtype=int)
+    p = _clip(p)
+    tn, fp, fn, tp = confusion_matrix(y, (p >= thr).astype(int), labels=[0, 1]).ravel()
+    row = {
+        "n": len(y), "prevalence": float(y.mean()), "threshold": float(thr),
+        "auroc": float(roc_auc_score(y, p)),
+        "pr_auc": float(average_precision_score(y, p)),
+        "no_skill": float(y.mean()),
+        "brier": float(brier_score_loss(y, p)),
+        "sens": tp / (tp + fn) if tp + fn else np.nan,
+        "spec": tn / (tn + fp) if tn + fp else np.nan,
+        "ppv": tp / (tp + fp) if tp + fp else np.nan,
+        "npv": tn / (tn + fn) if tn + fn else np.nan,
+        "f1": 2 * tp / (2 * tp + fp + fn) if (2 * tp + fp + fn) else np.nan,
+        "tp": int(tp), "fp": int(fp), "fn": int(fn), "tn": int(tn),
+    }
+    if n_boot > 0:
+        rng = np.random.default_rng(seed)
+        au, pa = [], []
+        for _ in range(n_boot):
+            i = rng.integers(0, len(y), len(y))
+            if len(np.unique(y[i])) < 2:
+                continue
+            au.append(roc_auc_score(y[i], p[i]))
+            pa.append(average_precision_score(y[i], p[i]))
+        row["auroc_lo"], row["auroc_hi"] = np.percentile(au, [2.5, 97.5])
+        row["pr_auc_lo"], row["pr_auc_hi"] = np.percentile(pa, [2.5, 97.5])
+    return row
+
+
+def roc_plot(curves, thr, path, title=None):
+    """ROC per cohort with the frozen operating point marked.
+
+    One curve per cohort: the ROC is identical calibrated or not (rank-invariant), so a
+    single curve serves both. ``title`` is left off by default — the figure is captioned
+    where it is used, and a baked-in title duplicates that caption.
+    """
+    fig, ax = plt.subplots(figsize=(5.4, 5.0))
+    for (name, (y, p, color)) in curves.items():
+        y = np.asarray(y, dtype=int)
+        p = _clip(p)
+        fpr, tpr, _ = roc_curve(y, p)
+        ax.plot(fpr, tpr, "-", color=color, linewidth=2,
+                label=f"{display_name(name)} (AUROC {roc_auc_score(y, p):.3f})")
+        yhat = p >= thr
+        tn, fp, fn, tp = confusion_matrix(y, yhat.astype(int), labels=[0, 1]).ravel()
+        ax.plot(fp / (fp + tn), tp / (tp + fn), "o", color=color, markersize=9,
+                markeredgecolor="white", markeredgewidth=1.4, zorder=5)
+    ax.plot([0, 1], [0, 1], "k:", linewidth=1, label="chance")
+    ax.set_xlabel("1 - specificity", fontsize=12)
+    ax.set_ylabel("Sensitivity", fontsize=12)
+    if title:
+        ax.set_title(title, fontsize=12)
+    ax.set_xlim(-0.02, 1.02)
+    ax.set_ylim(-0.02, 1.02)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=9, loc="lower right")
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path.with_suffix(".png"), bbox_inches="tight", dpi=150)
+    fig.savefig(path.with_suffix(".svg"), bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved {path.with_suffix('.png')}")
+
+
+# ---------------------------------------------------------------------------
 # Reliability plot
 # ---------------------------------------------------------------------------
 def reliability_plot(panels, n_bins, path, title):
@@ -316,6 +411,12 @@ def main():
     ap.add_argument("--freeze-on", choices=["oof", "insample"], default="insample",
                     help="resection scores the k-means KM cutoff is frozen on; 'insample' "
                          "matches the deployed A2 survival head")
+    ap.add_argument("--threshold-rule", choices=["youden", "prevalence", "fixed"],
+                    default="youden",
+                    help="how the classification threshold is chosen on the resection "
+                         "training cohort before being frozen")
+    ap.add_argument("--threshold", type=float,
+                    help="the threshold value when --threshold-rule fixed")
     ap.add_argument("--oracle", action="store_true",
                     help="also fit a Platt scaler in-cohort (uses test labels; ceiling only)")
     ap.add_argument("--out-dir", type=Path, required=True)
@@ -398,6 +499,37 @@ def main():
     strat.to_csv(args.out_dir / f"stratification_{args.model_id}.csv", index=False)
     print("\nKM risk-group stability under recalibration (frozen k-means cutoff):")
     print(strat.to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+
+    # -- classification at a threshold frozen on the resection training cohort ------
+    pr_res = platt(oof.values)
+    if args.threshold_rule == "youden":
+        thr = youden_threshold(y_res.values, pr_res)
+    elif args.threshold_rule == "prevalence":
+        thr = float(y_res.mean())
+    else:
+        if args.threshold is None:
+            raise SystemExit("--threshold-rule fixed requires --threshold")
+        thr = args.threshold
+    print(f"\nClassification threshold ({args.threshold_rule}, frozen on resection): {thr:.4f}")
+
+    crows = [{"cohort": "resection (OOF)", "calibrator": "platt (nested)",
+              **classification_row(y_res.values, nested["platt"], thr, args.n_boot, args.seed)}]
+    curves = {}
+    for c, (s_, y_) in tests.items():
+        pc = platt(s_.values)
+        crows.append({"cohort": c, "calibrator": "platt (resection-fit)",
+                      **classification_row(y_.values, pc, thr, args.n_boot, args.seed)})
+        curves[c] = (y_.values, pc, "tab:blue" if len(curves) == 0 else "tab:orange")
+    cdf = pd.DataFrame(crows)
+    cdf.to_csv(args.out_dir / f"classification_{args.model_id}.csv", index=False)
+    show = ["cohort", "n", "prevalence", "auroc", "auroc_lo", "auroc_hi", "pr_auc",
+            "pr_auc_lo", "pr_auc_hi", "no_skill", "brier"]
+    print(cdf[[c for c in show if c in cdf]].to_string(index=False,
+                                                       float_format=lambda v: f"{v:.3f}"))
+    print(cdf[["cohort", "sens", "spec", "ppv", "npv", "f1", "tp", "fp", "fn", "tn"]]
+          .to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+
+    roc_plot(curves, thr, args.fig_dir / f"roc_{args.model_id}")
 
     reliability_plot(panels, args.n_bins, args.fig_dir / f"reliability_{args.model_id}",
                      f"Ensemble calibration — {args.model_id} "
